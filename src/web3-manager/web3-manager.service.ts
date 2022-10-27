@@ -18,10 +18,10 @@ export class Web3ManagerService {
 
   async mint(mintData: MintDataDto) {
     try {
-      const contract = await this.dbManagerService.findByPk(mintData.contractId);
-      const nftWeb = new this.w3.eth.Contract(contract.deployData.abi as U.AbiItem[]);
-      const data = nftWeb.methods.mint(mintData.address, mintData.tokenId, mintData.qty, Buffer.from(mintData.name));
-      const mintTx = await this.send(nftWeb, data, false);
+      const contractObj = await this.dbManagerService.findByPk(mintData.contractId);
+      const contract = new this.w3.eth.Contract(contractObj.deployData.abi as U.AbiItem[]);
+      const data = contract.methods.mint(mintData.address, mintData.tokenId, mintData.qty, Buffer.from(mintData.name));
+      const mintTx = await this.send(contract, data, false);
       const tokenObj = await this.dbManagerService.create({
         address: mintTx.contractAddress,
         mintData,
