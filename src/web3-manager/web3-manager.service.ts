@@ -53,7 +53,7 @@ export class Web3ManagerService {
 
   async send(contract: Contract, data: ContractSendMethod, deploy: boolean) {
     try {
-      const account = this.w3.eth.accounts.privateKeyToAccount(this.configService.get('ADMIN_PRIV_KEY'));
+      const account = this.w3.eth.accounts.privateKeyToAccount(this.configService.get('PRIV_KEY'));
 
       const tx = {
         nonce: await this.w3.eth.getTransactionCount(account.address),
