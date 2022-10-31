@@ -1,9 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { InjectModel } from '@nestjs/sequelize';
 import { Order } from 'sequelize';
+import { ObjectTypes } from '../common/constants';
 import { GetAllContractsDto } from '../common/dto/getAllContracts.dto';
 import { NewContractDto } from '../common/dto/newContract.dto';
 import { NewTokenDto } from '../common/dto/newToken.dto';
+import { ResponseDto } from '../common/dto/response.dto';
 import { Contract } from '../common/models/contract.model';
 import { Token } from '../common/models/tokens.model';
 
@@ -14,13 +17,13 @@ export class DbManagerService {
     @InjectModel(Token) private tokenRepository: typeof Token,
   ) {}
 
-  async create(params: NewContractDto | NewTokenDto) {
-    if (typeof params === typeof NewContractDto) {
-      return await this.contractRepository.create({ params });
-    }
+  async create(params: NewContractDto | NewTokenDto, objectType: ObjectTypes) {
+    switch (objectType) {
+      case ObjectTypes.CONTRACT:
+        return await this.contractRepository.create({ params });
 
-    if (typeof params === typeof NewTokenDto) {
-      return await this.tokenRepository.create({ params });
+      case ObjectTypes.TOKEN:
+        return await this.tokenRepository.create({ params });
     }
   }
 
@@ -38,27 +41,15 @@ export class DbManagerService {
         include: null,
       };
 
-      const result = await this.contractRepository.findAndCountAll(args);
+      const allObjects = await this.contractRepository.findAndCountAll(args);
 
-      return {
-        status: HttpStatus.OK,
-        message: null,
-        result,
-      };
+      return new ResponseDto(HttpStatus.OK, null, allObjects);
     } catch (error) {
       if (error.name === 'SequelizeDatabaseError') {
-        return {
-          status: error.original.code,
-          message: error.original.message,
-          result: null,
-        };
+        throw new RpcException(error.original.message);
       }
 
-      return {
-        status: error.status,
-        message: error.message,
-        result: null,
-      };
+      throw new RpcException(error.message);
     }
   }
 }
