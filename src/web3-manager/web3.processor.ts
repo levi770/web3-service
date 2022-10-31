@@ -1,7 +1,7 @@
 import Web3 from 'web3';
 import * as U from 'web3-utils';
-import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
+import { Process, Processor } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
 import { HttpStatus } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';

@@ -1,7 +1,7 @@
+import { Order } from 'sequelize';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { InjectModel } from '@nestjs/sequelize';
-import { Order } from 'sequelize';
 import { ObjectTypes } from '../common/constants';
 import { GetAllContractsDto } from '../common/dto/getAllContracts.dto';
 import { NewContractDto } from '../common/dto/newContract.dto';

@@ -1,13 +1,13 @@
 import Web3 from 'web3';
+import { Contract, ContractSendMethod } from 'web3-eth-contract';
+import { Queue } from 'bull';
+import { Observable } from 'rxjs';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RpcException } from '@nestjs/microservices';
-import { DeployDataDto } from '../common/dto/deployData.dto';
-import { Contract, ContractSendMethod } from 'web3-eth-contract';
-import { MintDataDto } from '../common/dto/mintData.dto';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
-import { Observable } from 'rxjs';
+import { DeployDataDto } from '../common/dto/deployData.dto';
+import { MintDataDto } from '../common/dto/mintData.dto';
 import { JobResultDto } from '../common/dto/jobResult.dto';
 import { ProcessTypes } from '../common/constants';
 

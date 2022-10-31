@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
+import { BullModule } from '@nestjs/bull';
 import { AppController } from './app.controller';
 import { Web3ManagerModule } from './web3-manager/web3-manager.module';
 import { DbManagerModule } from './db-manager/db-manager.module';
 import { IpfsManagerModule } from './ipfs-manager/ipfs-manager.module';
-import { BullModule } from '@nestjs/bull';
 import { Contract } from './common/models/contract.model';
 import { Token } from './common/models/tokens.model';
 

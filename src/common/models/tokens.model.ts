@@ -1,6 +1,6 @@
 import { Column, DataType, Model, Table } from 'sequelize-typescript';
-import { MintDataDto } from '../dto/mintData.dto';
 import { TransactionReceipt } from 'web3-eth';
+import { MintDataDto } from '../dto/mintData.dto';
 
 @Table({ tableName: 'tokens' })
 export class Token extends Model {
