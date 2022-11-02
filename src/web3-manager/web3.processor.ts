@@ -18,19 +18,26 @@ export class Web3Processor {
     private configService: ConfigService,
     private dbManagerService: DbManagerService,
     private web3Service: Web3Service,
-    private w3: Web3,
+    private ethereum: Web3,
+    private polygon: Web3,
   ) {
-    this.w3 = new Web3(new Web3.providers.HttpProvider(this.configService.get('WEB3_HOST')));
+    this.ethereum = new Web3(new Web3.providers.HttpProvider(this.configService.get('ETHEREUM_HOST')));
+    this.polygon = new Web3(new Web3.providers.HttpProvider(this.configService.get('POLYGON_HOST')));
   }
 
   @Process('mint')
   async mint(job: Job) {
     try {
       const mintData: MintDataDto = job.data;
+      const w3: Web3 = mintData.network === 1 ? this.ethereum : this.polygon;
       const contractObj = await this.dbManagerService.findByPk(mintData.contractId);
-      const contract = new this.w3.eth.Contract(contractObj.deployData.abi as U.AbiItem[]);
-      const data = contract.methods.mint(mintData.address, mintData.tokenId, mintData.qty, Buffer.from(mintData.name));
-      const mintTx = await this.web3Service.send(contract, data, false);
+      const contractInstance = new w3.eth.Contract(contractObj.deployData.abi as U.AbiItem[]);
+      const txData = contractInstance.methods.mint(
+        contractObj.address,
+        mintData.nft_number,
+        Buffer.from(mintData.title),
+      );
+      const mintTx = await this.web3Service.send(contractInstance, txData, false);
       const tokenObj = await this.dbManagerService.create(
         {
           address: mintTx.contractAddress,
@@ -50,9 +57,10 @@ export class Web3Processor {
   async deploy(job: Job) {
     try {
       const deployData: DeployDataDto = job.data;
-      const contract = new this.w3.eth.Contract(deployData.abi as U.AbiItem[]);
-      const data = contract.deploy({ data: deployData.bytecode, arguments: deployData.args });
-      const deployTx = await this.web3Service.send(contract, data, true);
+      const w3: Web3 = deployData.network === 1 ? this.ethereum : this.polygon;
+      const contractInstance = new w3.eth.Contract(deployData.abi as U.AbiItem[]);
+      const txData = contractInstance.deploy({ data: deployData.bytecode, arguments: deployData.args });
+      const deployTx = await this.web3Service.send(contractInstance, txData, true);
       const contractObj = await this.dbManagerService.create(
         {
           address: deployTx.contractAddress,

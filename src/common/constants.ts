@@ -7,3 +7,8 @@ export enum ObjectTypes {
   CONTRACT = 'CONTRACT',
   TOKEN = 'TOKEN',
 }
+
+export enum Networks {
+  ETHEREUM = 1,
+  POLYGON = 137,
+}
