@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { Controller } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { ProcessTypes } from './common/constants';
 import { DeployDataDto } from './common/dto/deployData.dto';
@@ -27,5 +27,10 @@ export class AppController {
   @MessagePattern({ cmd: 'getAllContracts' })
   async getAllContracts(data: GetAllContractsDto): Promise<ResponseDto> {
     return await this.dbManagerService.getAllContracts(data);
+  }
+
+  @Get('metadata/:id')
+  async getMetaData(@Query('id') id: string) {
+    return await this.dbManagerService.getMetadata(id);
   }
 }

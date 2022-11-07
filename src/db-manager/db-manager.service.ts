@@ -1,6 +1,5 @@
 import { Order } from 'sequelize';
-import { HttpStatus, Injectable } from '@nestjs/common';
-import { RpcException } from '@nestjs/microservices';
+import { HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { ObjectTypes } from '../common/constants';
 import { GetAllContractsDto } from '../common/dto/getAllContracts.dto';
@@ -41,15 +40,25 @@ export class DbManagerService {
         include: null,
       };
 
-      const allObjects = await this.contractRepository.findAndCountAll(args);
+      const allContracts = await this.contractRepository.findAndCountAll(args);
 
-      return new ResponseDto(HttpStatus.OK, null, allObjects);
+      return new ResponseDto(HttpStatus.OK, null, allContracts);
     } catch (error) {
       if (error.name === 'SequelizeDatabaseError') {
-        throw new RpcException(error.original.message);
+        throw new InternalServerErrorException(error.original.message);
       }
 
-      throw new RpcException(error.message);
+      throw new InternalServerErrorException(error.message);
     }
+  }
+
+  async getMetadata(id: string) {
+    const token = await this.tokenRepository.findOne({ where: { nft_number: id } });
+
+    if (!token) {
+      throw new NotFoundException('Token with this number not found');
+    }
+
+    return token.meta_data;
   }
 }
