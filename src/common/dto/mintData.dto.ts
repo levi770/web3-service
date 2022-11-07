@@ -1,15 +1,12 @@
-import { Networks } from '../constants';
+import { FileTypes, Networks } from '../constants';
+import { MetaDataDto } from './metaData.dto';
 
 export class MintDataDto {
-  jobId: string;
-  contractId: string;
-  title: string;
-  description: string;
-  creators: string;
-  nft_number: number;
+  contract_id: string;
+  nft_number: string;
+  mint_to: string;
   network: Networks;
-  price: number;
-  royalties: number;
   asset_url: string;
-  asset_type: string;
+  asset_type: FileTypes;
+  meta_data: MetaDataDto;
 }

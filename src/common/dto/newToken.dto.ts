@@ -1,5 +1,7 @@
 export class NewTokenDto {
   address: string;
-  mintData: object;
-  mintTx: object;
+  nft_number: string;
+  mint_data: object;
+  meta_data: object;
+  mint_tx: object;
 }

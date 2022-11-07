@@ -1,9 +1,17 @@
 import { Networks } from '../constants';
+import { AbiItem } from 'web3-utils';
 
 export class DeployDataDto {
   jobId: string;
   network: Networks;
-  abi: Array<object>;
+  abi: AbiItem[];
   bytecode: string;
-  args: Array<string>;
+  args: {
+    supplyLimit: number;
+    mintPrice: number;
+    withdrawalWallet: string;
+    name: string;
+    ticker: string;
+    baseURI: string;
+  };
 }

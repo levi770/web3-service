@@ -15,8 +15,8 @@ export class Contract extends Model {
   address: string;
 
   @Column({ type: DataType.JSON })
-  deployData: DeployDataDto;
+  deploy_data: DeployDataDto;
 
   @Column({ type: DataType.JSON })
-  deployTx: TransactionReceipt;
+  deploy_tx: TransactionReceipt;
 }

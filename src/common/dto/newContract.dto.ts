@@ -1,5 +1,5 @@
 export class NewContractDto {
   address: string;
-  deployData: object;
-  deployTx: object;
+  deploy_data: object;
+  deploy_tx: object;
 }
