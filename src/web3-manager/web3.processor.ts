@@ -3,20 +3,23 @@ import * as U from 'web3-utils';
 import { Job } from 'bull';
 import { Process, Processor } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
-import { HttpStatus } from '@nestjs/common';
-import { RpcException } from '@nestjs/microservices';
+import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { MintDataDto } from '../common/dto/mintData.dto';
 import { DbManagerService } from '../db-manager/db-manager.service';
 import { Web3Service } from './web3.service';
 import { DeployDataDto } from '../common/dto/deployData.dto';
-import { ObjectTypes } from '../common/constants';
+import { FileTypes, Networks, ObjectTypes } from '../common/constants';
 import { ResponseDto } from '../common/dto/response.dto';
+import { NftContract } from '../common/contracts/types/nft-contract';
+import { IpfsManagerService } from '../ipfs-manager/ipfs-manager.service';
+import { MetaDataDto } from '../common/dto/metaData.dto';
 
 @Processor('web3')
 export class Web3Processor {
   constructor(
     private configService: ConfigService,
-    private dbManagerService: DbManagerService,
+    private dbManager: DbManagerService,
+    private ipfsManger: IpfsManagerService,
     private web3Service: Web3Service,
     private ethereum: Web3,
     private polygon: Web3,
@@ -29,27 +32,28 @@ export class Web3Processor {
   async mint(job: Job) {
     try {
       const mintData: MintDataDto = job.data;
-      const w3: Web3 = mintData.network === 1 ? this.ethereum : this.polygon;
-      const contractObj = await this.dbManagerService.findByPk(mintData.contractId);
-      const contractInstance = new w3.eth.Contract(contractObj.deployData.abi as U.AbiItem[]);
-      const txData = contractInstance.methods.mint(
-        contractObj.address,
-        mintData.nft_number,
-        Buffer.from(mintData.title),
-      );
+      const w3: Web3 = mintData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
+      const contractObj = await this.dbManager.findByPk(mintData.contract_id);
+      const contractInstance = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[]);
+      const contractMethods: NftContract = contractInstance.methods;
+      const txData = contractMethods.mintTo(mintData.mint_to, mintData.nft_number);
       const mintTx = await this.web3Service.send(contractInstance, txData, false);
-      const tokenObj = await this.dbManagerService.create(
+      const metaData = this.generateMetadata(mintData);
+
+      const tokenObj = await this.dbManager.create(
         {
           address: mintTx.contractAddress,
-          mintData,
-          mintTx,
+          nft_number: mintData.nft_number,
+          meta_data: metaData,
+          mint_data: mintData,
+          mint_tx: mintTx,
         },
         ObjectTypes.TOKEN,
       );
 
       return new ResponseDto(HttpStatus.OK, null, tokenObj);
     } catch (error) {
-      throw new RpcException(error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -59,20 +63,42 @@ export class Web3Processor {
       const deployData: DeployDataDto = job.data;
       const w3: Web3 = deployData.network === 1 ? this.ethereum : this.polygon;
       const contractInstance = new w3.eth.Contract(deployData.abi as U.AbiItem[]);
-      const txData = contractInstance.deploy({ data: deployData.bytecode, arguments: deployData.args });
+      const args = deployData.args;
+      const txData = contractInstance.deploy({
+        data: deployData.bytecode,
+        arguments: [args.supplyLimit, args.mintPrice, args.withdrawalWallet, args.name, args.ticker, args.baseURI],
+      });
       const deployTx = await this.web3Service.send(contractInstance, txData, true);
-      const contractObj = await this.dbManagerService.create(
+
+      const contractObj = await this.dbManager.create(
         {
           address: deployTx.contractAddress,
-          deployData,
-          deployTx,
+          deploy_data: deployData,
+          deploy_tx: deployTx,
         },
         ObjectTypes.CONTRACT,
       );
 
       return new ResponseDto(HttpStatus.OK, null, contractObj);
     } catch (error) {
-      throw new RpcException(error.message);
+      throw new InternalServerErrorException(error.message);
     }
+  }
+
+  async generateMetadata(data: MintDataDto) {
+    const fileId = await this.ipfsManger.upload(data.asset_url);
+    const metadata = data.meta_data;
+
+    switch (data.asset_type) {
+      case FileTypes.IMAGE:
+        metadata.image = fileId;
+        break;
+
+      case FileTypes.OBJECT:
+        metadata.model_url = fileId;
+        break;
+    }
+
+    return metadata;
   }
 }

@@ -8,6 +8,7 @@ import { DbManagerModule } from './db-manager/db-manager.module';
 import { IpfsManagerModule } from './ipfs-manager/ipfs-manager.module';
 import { Contract } from './common/models/contract.model';
 import { Token } from './common/models/tokens.model';
+import { AwsSdkModule } from 'nest-aws-sdk';
 
 @Module({
   imports: [
@@ -30,6 +31,15 @@ import { Token } from './common/models/tokens.model';
       redis: {
         host: process.env.REDIS_HOST,
         port: +process.env.REDIS_PORT,
+      },
+    }),
+    AwsSdkModule.forRoot({
+      defaultServiceOptions: {
+        region: process.env.AWS_REGION,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY,
+          secretAccessKey: process.env.AWS_SECRET_KEY,
+        },
       },
     }),
     Web3ManagerModule,
