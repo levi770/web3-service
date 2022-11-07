@@ -1,10 +1,10 @@
 import Web3 from 'web3';
+import { v4 as uuidv4 } from 'uuid';
 import { Contract, ContractSendMethod } from 'web3-eth-contract';
 import { Queue } from 'bull';
 import { Observable } from 'rxjs';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RpcException } from '@nestjs/microservices';
 import { InjectQueue } from '@nestjs/bull';
 import { DeployDataDto } from '../common/dto/deployData.dto';
 import { MintDataDto } from '../common/dto/mintData.dto';
@@ -23,7 +23,7 @@ export class Web3Service {
   }
 
   async process(data: MintDataDto | DeployDataDto, processType: ProcessTypes) {
-    const jobId = data.jobId;
+    const jobId = uuidv4();
 
     const job$: Observable<JobResultDto> = new Observable((obs) => {
       this.web3Queue.on('active', (job, jobPromise) => {
@@ -35,6 +35,7 @@ export class Web3Service {
       this.web3Queue.on('completed', (job, result) => {
         if (job.id === jobId) {
           obs.next({ jobId: job.id, status: 'completed', data: job.data });
+          obs.complete();
         }
       });
     });
@@ -74,13 +75,13 @@ export class Web3Service {
       const balance = await this.w3.eth.getBalance(account.address);
 
       if (+balance < comission) {
-        throw new RpcException('Not enough balance');
+        throw new BadRequestException('Not enough balance');
       }
 
       const signed = await account.signTransaction(tx);
       return await this.w3.eth.sendSignedTransaction(signed.rawTransaction);
     } catch (error) {
-      throw new RpcException(error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 }
