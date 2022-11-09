@@ -1,9 +1,9 @@
 import { Column, DataType, Model, Table } from 'sequelize-typescript';
 import { TransactionReceipt } from 'web3-eth';
-import { DeployDataDto } from '../dto/deployData.dto';
+import { DeployDataDto } from '../../web3-manager/dto/deployData.dto';
 
 @Table({ tableName: 'contracts' })
-export class Contract extends Model {
+export class ContractModel extends Model {
   @Column({
     type: DataType.UUID,
     defaultValue: DataType.UUIDV4,

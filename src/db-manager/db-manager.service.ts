@@ -2,27 +2,27 @@ import { Order } from 'sequelize';
 import { HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { ObjectTypes } from '../common/constants';
-import { GetAllContractsDto } from '../common/dto/getAllContracts.dto';
-import { NewContractDto } from '../common/dto/newContract.dto';
-import { NewTokenDto } from '../common/dto/newToken.dto';
+import { GetAllContractsDto } from './dto/getAllContracts.dto';
+import { NewContractDto } from './dto/newContract.dto';
+import { NewTokenDto } from './dto/newToken.dto';
 import { ResponseDto } from '../common/dto/response.dto';
-import { Contract } from '../common/models/contract.model';
-import { Token } from '../common/models/tokens.model';
+import { ContractModel } from '../common/models/contract.model';
+import { TokenModel } from '../common/models/tokens.model';
 
 @Injectable()
 export class DbManagerService {
   constructor(
-    @InjectModel(Contract) private contractRepository: typeof Contract,
-    @InjectModel(Token) private tokenRepository: typeof Token,
+    @InjectModel(ContractModel) private contractRepository: typeof ContractModel,
+    @InjectModel(TokenModel) private tokenRepository: typeof TokenModel,
   ) {}
 
   async create(params: NewContractDto | NewTokenDto, objectType: ObjectTypes) {
     switch (objectType) {
       case ObjectTypes.CONTRACT:
-        return await this.contractRepository.create({ params });
+        return await this.contractRepository.create({ ...params });
 
       case ObjectTypes.TOKEN:
-        return await this.tokenRepository.create({ params });
+        return await this.tokenRepository.create({ ...params });
     }
   }
 

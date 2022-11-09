@@ -1,10 +1,10 @@
 import { Column, DataType, Model, Table } from 'sequelize-typescript';
 import { TransactionReceipt } from 'web3-eth';
-import { MetaDataDto } from '../dto/metaData.dto';
-import { MintDataDto } from '../dto/mintData.dto';
+import { MetaDataDto } from '../../web3-manager/dto/metaData.dto';
+import { MintDataDto } from '../../web3-manager/dto/mintData.dto';
 
 @Table({ tableName: 'tokens' })
-export class Token extends Model {
+export class TokenModel extends Model {
   @Column({
     type: DataType.UUID,
     defaultValue: DataType.UUIDV4,
