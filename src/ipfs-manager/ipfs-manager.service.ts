@@ -1,23 +1,23 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { S3 } from 'aws-sdk';
 import { InjectAwsService } from 'nest-aws-sdk';
-import { IpfsService } from 'nestjs-ipfs';
-import { IPFS } from 'ipfs-core';
+//import { IpfsService } from 'nestjs-ipfs';
+//import { IPFS } from 'ipfs-core';
 
 @Injectable()
 export class IpfsManagerService {
   constructor(
     @InjectAwsService(S3)
     private s3: S3,
-    private ipfs: IPFS,
-  ) {
-    this.ipfs = new IpfsService({ start: true }).getNode() as unknown as IPFS;
+  ) //private ipfs: IPFS,
+  {
+    //this.ipfs = new IpfsService({ start: true }).getNode() as unknown as IPFS;
   }
 
-  async upload(url: string) {
-    const file = await this.getObjectFromS3(url);
-    return await this.uploadToIpfs({ name: null, data: file });
-  }
+  // async upload(url: string) {
+  //   const file = await this.getObjectFromS3(url);
+  //   return await this.uploadToIpfs({ name: null, data: file });
+  // }
 
   async getObjectFromS3(key: string): Promise<Buffer> {
     try {
@@ -31,22 +31,22 @@ export class IpfsManagerService {
     }
   }
 
-  async uploadToIpfs(file: { name: string; data: Buffer }) {
-    const fileDetails = {
-      path: 'test',
-      content: file.data,
-    };
+  // async uploadToIpfs(file: { name: string; data: Buffer }) {
+  //   const fileDetails = {
+  //     path: 'test',
+  //     content: file.data,
+  //   };
 
-    const options = {
-      wrapWithDirectory: true,
-      progress: (prog: any) => console.log(`received: ${prog}`),
-    };
+  //   const options = {
+  //     wrapWithDirectory: true,
+  //     progress: (prog: any) => console.log(`received: ${prog}`),
+  //   };
 
-    try {
-      const added = await this.ipfs.add(fileDetails, options);
-      return added.cid.toString();
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
-    }
-  }
+  //   try {
+  //     const added = await this.ipfs.add(fileDetails, options);
+  //     return added.cid.toString();
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
 }
