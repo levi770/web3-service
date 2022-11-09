@@ -1,7 +1,7 @@
 import { DeployDataDto } from '../../web3-manager/dto/deployData.dto';
 import { MintDataDto } from '../../web3-manager/dto/mintData.dto';
-import { ContractModel } from '../models/contract.model';
-import { TokenModel } from '../models/tokens.model';
+import { ContractModel } from '../../db-manager/models/contract.model';
+import { TokenModel } from '../../db-manager/models/tokens.model';
 
 type Data = DeployDataDto | MintDataDto | ContractModel | TokenModel | null;
 

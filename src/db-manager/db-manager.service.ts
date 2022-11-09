@@ -6,8 +6,8 @@ import { GetAllContractsDto } from './dto/getAllContracts.dto';
 import { NewContractDto } from './dto/newContract.dto';
 import { NewTokenDto } from './dto/newToken.dto';
 import { ResponseDto } from '../common/dto/response.dto';
-import { ContractModel } from '../common/models/contract.model';
-import { TokenModel } from '../common/models/tokens.model';
+import { ContractModel } from './models/contract.model';
+import { TokenModel } from './models/tokens.model';
 
 @Injectable()
 export class DbManagerService {

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { ContractModel } from '../common/models/contract.model';
-import { TokenModel } from '../common/models/tokens.model';
+import { ContractModel } from './models/contract.model';
+import { TokenModel } from './models/tokens.model';
 import { DbManagerService } from './db-manager.service';
 
 @Module({
