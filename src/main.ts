@@ -9,9 +9,9 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.use(compression());
-  app.disable('x-powered-by');
   app.use(cookieParser());
 
+  app.disable('x-powered-by');
   app.enableCors({
     origin: true,
     allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept',
