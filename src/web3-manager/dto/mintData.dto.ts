@@ -1,4 +1,4 @@
-import { FileTypes, Networks } from '../constants';
+import { FileTypes, Networks } from '../../common/constants';
 import { MetaDataDto } from './metaData.dto';
 
 export class MintDataDto {

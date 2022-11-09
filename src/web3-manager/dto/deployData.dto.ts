@@ -1,8 +1,7 @@
-import { Networks } from '../constants';
+import { Networks } from '../../common/constants';
 import { AbiItem } from 'web3-utils';
 
 export class DeployDataDto {
-  jobId: string;
   network: Networks;
   abi: AbiItem[];
   bytecode: string;
