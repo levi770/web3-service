@@ -2,7 +2,7 @@ import Web3 from 'web3';
 import { v4 as uuidv4 } from 'uuid';
 import { Contract, ContractSendMethod } from 'web3-eth-contract';
 import { Job, JobPromise, Queue } from 'bull';
-import { fromEvent, map, Observable, takeUntil } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
@@ -10,8 +10,8 @@ import { DeployDataDto } from './dto/deployData.dto';
 import { MintDataDto } from './dto/mintData.dto';
 import { JobResultDto } from '../common/dto/jobResult.dto';
 import { Networks, ProcessTypes } from '../common/constants';
-import { ContractModel } from '../common/models/contract.model';
-import { TokenModel } from '../common/models/tokens.model';
+import { ContractModel } from '../db-manager/models/contract.model';
+import { TokenModel } from '../db-manager/models/tokens.model';
 
 @Injectable()
 export class Web3Service {
@@ -40,7 +40,7 @@ export class Web3Service {
         checkSubscriptions();
         observer.next(new JobResultDto(job.id, 'completed', null));
         observer.complete();
-        clearSubscriptions();
+        removeAllListeners();
       };
 
       this.web3Queue.addListener('active', active);
@@ -48,22 +48,22 @@ export class Web3Service {
 
       const checkSubscriptions = () => {
         if (observer.closed) {
-          clearSubscriptions();
+          removeAllListeners();
         }
       };
 
-      const clearSubscriptions = () => {
+      const removeAllListeners = () => {
         this.web3Queue.removeListener('active', active);
         this.web3Queue.removeListener('completed', completed);
       };
 
       switch (processType) {
         case ProcessTypes.MINT:
-          this.web3Queue.add('mint', data, { jobId });
+          this.web3Queue.add(ProcessTypes.MINT, data, { jobId });
           break;
 
         case ProcessTypes.DEPLOY:
-          this.web3Queue.add('deploy', data, { jobId });
+          this.web3Queue.add(ProcessTypes.DEPLOY, data, { jobId });
           break;
       }
     });

@@ -36,8 +36,7 @@ export class Web3Processor {
       const w3: Web3 = mintData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const contractObj = await this.dbManager.findByPk(mintData.contract_id);
       const contractInstance = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[]);
-      const contractMethods: NftContract = contractInstance.methods;
-      const txData = contractMethods.mintTo(mintData.mint_to, mintData.nft_number);
+      const txData = (contractInstance.methods as NftContract).mintTo(mintData.mint_to, mintData.nft_number);
       const mintTx = await this.web3Service.send(contractInstance, txData, false, mintData.network);
       const metaData = this.generateMetadata(mintData);
 

@@ -1,11 +1,11 @@
 export enum ProcessTypes {
-  MINT = 'MINT',
-  DEPLOY = 'DEPLOY',
+  MINT = 'mint',
+  DEPLOY = 'deploy',
 }
 
 export enum ObjectTypes {
-  CONTRACT = 'CONTRACT',
-  TOKEN = 'TOKEN',
+  CONTRACT = 'contract',
+  TOKEN = 'token',
 }
 
 export enum Networks {
