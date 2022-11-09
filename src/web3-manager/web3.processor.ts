@@ -4,25 +4,26 @@ import { Job } from 'bull';
 import { Process, Processor } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
 import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
-import { MintDataDto } from '../common/dto/mintData.dto';
+import { MintDataDto } from './dto/mintData.dto';
 import { DbManagerService } from '../db-manager/db-manager.service';
 import { Web3Service } from './web3.service';
-import { DeployDataDto } from '../common/dto/deployData.dto';
+import { DeployDataDto } from './dto/deployData.dto';
 import { FileTypes, Networks, ObjectTypes } from '../common/constants';
 import { ResponseDto } from '../common/dto/response.dto';
 import { NftContract } from '../common/contracts/types/nft-contract';
 import { IpfsManagerService } from '../ipfs-manager/ipfs-manager.service';
-import { MetaDataDto } from '../common/dto/metaData.dto';
+import { MetaDataDto } from './dto/metaData.dto';
 
 @Processor('web3')
 export class Web3Processor {
+  private ethereum: Web3;
+  private polygon: Web3;
+
   constructor(
     private configService: ConfigService,
     private dbManager: DbManagerService,
     private ipfsManger: IpfsManagerService,
     private web3Service: Web3Service,
-    private ethereum: Web3,
-    private polygon: Web3,
   ) {
     this.ethereum = new Web3(new Web3.providers.HttpProvider(this.configService.get('ETHEREUM_HOST')));
     this.polygon = new Web3(new Web3.providers.HttpProvider(this.configService.get('POLYGON_HOST')));
@@ -37,7 +38,7 @@ export class Web3Processor {
       const contractInstance = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[]);
       const contractMethods: NftContract = contractInstance.methods;
       const txData = contractMethods.mintTo(mintData.mint_to, mintData.nft_number);
-      const mintTx = await this.web3Service.send(contractInstance, txData, false);
+      const mintTx = await this.web3Service.send(contractInstance, txData, false, mintData.network);
       const metaData = this.generateMetadata(mintData);
 
       const tokenObj = await this.dbManager.create(
@@ -51,7 +52,7 @@ export class Web3Processor {
         ObjectTypes.TOKEN,
       );
 
-      return new ResponseDto(HttpStatus.OK, null, tokenObj);
+      return tokenObj;
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
@@ -61,14 +62,14 @@ export class Web3Processor {
   async deploy(job: Job) {
     try {
       const deployData: DeployDataDto = job.data;
-      const w3: Web3 = deployData.network === 1 ? this.ethereum : this.polygon;
+      const w3: Web3 = deployData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const contractInstance = new w3.eth.Contract(deployData.abi as U.AbiItem[]);
       const args = deployData.args;
       const txData = contractInstance.deploy({
         data: deployData.bytecode,
         arguments: [args.supplyLimit, args.mintPrice, args.withdrawalWallet, args.name, args.ticker, args.baseURI],
       });
-      const deployTx = await this.web3Service.send(contractInstance, txData, true);
+      const deployTx = await this.web3Service.send(contractInstance, txData, true, deployData.network);
 
       const contractObj = await this.dbManager.create(
         {
@@ -79,23 +80,23 @@ export class Web3Processor {
         ObjectTypes.CONTRACT,
       );
 
-      return new ResponseDto(HttpStatus.OK, null, contractObj);
+      return contractObj;
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
   }
 
   async generateMetadata(data: MintDataDto) {
-    const fileId = await this.ipfsManger.upload(data.asset_url);
+    //const fileId = await this.ipfsManger.upload(data.asset_url);
     const metadata = data.meta_data;
 
     switch (data.asset_type) {
       case FileTypes.IMAGE:
-        metadata.image = fileId;
+        //metadata.image = fileId;
         break;
 
       case FileTypes.OBJECT:
-        metadata.model_url = fileId;
+        //metadata.model_url = fileId;
         break;
     }
 

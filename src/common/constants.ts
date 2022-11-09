@@ -9,8 +9,8 @@ export enum ObjectTypes {
 }
 
 export enum Networks {
-  ETHEREUM = 1,
-  POLYGON = 137,
+  ETHEREUM = 5,
+  POLYGON = 80001,
 }
 
 export enum FileTypes {

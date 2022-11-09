@@ -8,13 +8,7 @@ import { Web3Service } from './web3.service';
 
 @Module({
   providers: [Web3Service, Web3Processor],
-  imports: [
-    BullModule.registerQueue({
-      name: 'web3',
-    }),
-    ConfigModule,
-    DbManagerModule,
-    IpfsManagerModule,
-  ],
+  imports: [BullModule.registerQueue({ name: 'web3' }), ConfigModule, DbManagerModule, IpfsManagerModule],
+  exports: [Web3Service],
 })
 export class Web3ManagerModule {}
