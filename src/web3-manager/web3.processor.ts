@@ -3,16 +3,14 @@ import * as U from 'web3-utils';
 import { Job } from 'bull';
 import { Process, Processor } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
-import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
+import { InternalServerErrorException } from '@nestjs/common';
 import { MintDataDto } from './dto/mintData.dto';
 import { DbManagerService } from '../db-manager/db-manager.service';
 import { Web3Service } from './web3.service';
 import { DeployDataDto } from './dto/deployData.dto';
 import { FileTypes, Networks, ObjectTypes } from '../common/constants';
-import { ResponseDto } from '../common/dto/response.dto';
 import { NftContract } from '../common/contracts/types/nft-contract';
 import { IpfsManagerService } from '../ipfs-manager/ipfs-manager.service';
-import { MetaDataDto } from './dto/metaData.dto';
 
 @Processor('web3')
 export class Web3Processor {
@@ -35,14 +33,14 @@ export class Web3Processor {
       const mintData: MintDataDto = job.data;
       const w3: Web3 = mintData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const contractObj = await this.dbManager.findByPk(mintData.contract_id);
-      const contractInstance = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[]);
+      const contractInstance = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[], contractObj.address);
       const txData = (contractInstance.methods as NftContract).mintTo(mintData.mint_to, mintData.nft_number);
       const mintTx = await this.web3Service.send(contractInstance, txData, false, mintData.network);
-      const metaData = this.generateMetadata(mintData);
+      const metaData = await this.generateMetadata(mintData);
 
       const tokenObj = await this.dbManager.create(
         {
-          address: mintTx.contractAddress,
+          address: contractObj.address,
           nft_number: mintData.nft_number,
           meta_data: metaData,
           mint_data: mintData,
@@ -81,21 +79,21 @@ export class Web3Processor {
 
       return contractObj;
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      return new InternalServerErrorException(error.message);
     }
   }
 
   async generateMetadata(data: MintDataDto) {
-    //const fileId = await this.ipfsManger.upload(data.asset_url);
+    const fileId = await this.ipfsManger.upload(data.asset_url);
     const metadata = data.meta_data;
 
     switch (data.asset_type) {
       case FileTypes.IMAGE:
-        //metadata.image = fileId;
+        metadata.image = `${fileId}/${data.asset_url}`;
         break;
 
       case FileTypes.OBJECT:
-        //metadata.model_url = fileId;
+        metadata.model_url = `${fileId}/${data.asset_url}`;
         break;
     }
 
