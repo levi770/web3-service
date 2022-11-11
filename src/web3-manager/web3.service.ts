@@ -2,7 +2,7 @@ import Web3 from 'web3';
 import { v4 as uuidv4 } from 'uuid';
 import { Contract, ContractSendMethod } from 'web3-eth-contract';
 import { Job, JobPromise, Queue } from 'bull';
-import { map, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
@@ -33,18 +33,32 @@ export class Web3Service {
     const job$: Observable<JobResultDto> = new Observable((observer) => {
       const active = (job: Job<MintDataDto | DeployDataDto>, jobPromise: JobPromise) => {
         checkSubscriptions();
-        observer.next(new JobResultDto(job.id, 'active', null));
+        if (job.id === jobId) {
+          observer.next(new JobResultDto(job.id, 'active', job.data));
+        }
       };
 
       const completed = (job: Job<MintDataDto | DeployDataDto>, result: ContractModel | TokenModel) => {
         checkSubscriptions();
-        observer.next(new JobResultDto(job.id, 'completed', null));
-        observer.complete();
-        removeAllListeners();
+        if (job.id === jobId) {
+          observer.next(new JobResultDto(job.id, 'completed', result));
+          observer.complete();
+          removeAllListeners();
+        }
+      };
+
+      const failed = (job: Job<MintDataDto | DeployDataDto>, error: Error) => {
+        checkSubscriptions();
+        if (job.id === jobId) {
+          observer.next(new JobResultDto(job.id, 'failed', error.message));
+          observer.complete();
+          removeAllListeners();
+        }
       };
 
       this.web3Queue.addListener('active', active);
       this.web3Queue.addListener('completed', completed);
+      this.web3Queue.addListener('failed', failed);
 
       const checkSubscriptions = () => {
         if (observer.closed) {
@@ -55,26 +69,21 @@ export class Web3Service {
       const removeAllListeners = () => {
         this.web3Queue.removeListener('active', active);
         this.web3Queue.removeListener('completed', completed);
+        this.web3Queue.removeListener('failed', failed);
       };
-
-      switch (processType) {
-        case ProcessTypes.MINT:
-          this.web3Queue.add(ProcessTypes.MINT, data, { jobId });
-          break;
-
-        case ProcessTypes.DEPLOY:
-          this.web3Queue.add(ProcessTypes.DEPLOY, data, { jobId });
-          break;
-      }
     });
 
-    return job$.pipe(
-      map((result: JobResultDto) => {
-        if (result.jobId === jobId) {
-          return result;
-        }
-      }),
-    );
+    switch (processType) {
+      case ProcessTypes.MINT:
+        await this.web3Queue.add(ProcessTypes.MINT, data, { jobId, delay: 1000 });
+        break;
+
+      case ProcessTypes.DEPLOY:
+        await this.web3Queue.add(ProcessTypes.DEPLOY, data, { jobId, delay: 1000 });
+        break;
+    }
+
+    return job$;
   }
 
   async send(contract: Contract, data: ContractSendMethod, deploy: boolean, network: Networks) {
