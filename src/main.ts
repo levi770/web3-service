@@ -4,8 +4,10 @@ import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
+  const logger: Logger = new Logger('App');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.use(compression());
@@ -29,7 +31,7 @@ async function bootstrap() {
 
   await app.startAllMicroservices();
   await app.listen(process.env.PORT || 5000, '127.0.0.1', async () =>
-    console.log(`Server started on port ${await app.getUrl()}`),
+    logger.log(`Server started on port ${await app.getUrl()}`),
   );
 }
 bootstrap();

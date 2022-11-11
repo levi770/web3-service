@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { ProcessTypes } from './common/constants';
 import { DeployDataDto } from './web3-manager/dto/deployData.dto';
@@ -30,7 +30,7 @@ export class AppController {
   }
 
   @Get('metadata/:id')
-  async getMetaData(@Query('id') id: string) {
+  async getMetaData(@Param('id') id: string) {
     return await this.dbManagerService.getMetadata(id);
   }
 }

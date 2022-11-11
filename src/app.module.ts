@@ -1,3 +1,4 @@
+import { AwsSdkModule } from 'nest-aws-sdk';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
@@ -8,7 +9,6 @@ import { DbManagerModule } from './db-manager/db-manager.module';
 import { IpfsManagerModule } from './ipfs-manager/ipfs-manager.module';
 import { ContractModel } from './db-manager/models/contract.model';
 import { TokenModel } from './db-manager/models/tokens.model';
-import { AwsSdkModule } from 'nest-aws-sdk';
 
 @Module({
   imports: [

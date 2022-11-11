@@ -3,7 +3,7 @@ import { MintDataDto } from '../../web3-manager/dto/mintData.dto';
 import { ContractModel } from '../../db-manager/models/contract.model';
 import { TokenModel } from '../../db-manager/models/tokens.model';
 
-type Data = DeployDataDto | MintDataDto | ContractModel | TokenModel | null;
+type Data = DeployDataDto | MintDataDto | ContractModel | TokenModel | string | null;
 
 export class JobResultDto {
   jobId: string | number;

@@ -15,7 +15,7 @@ export class TokenModel extends Model {
   @Column({ type: DataType.STRING })
   address: string;
 
-  @Column({ type: DataType.STRING })
+  @Column({ type: DataType.STRING, unique: true })
   nft_number: string;
 
   @Column({ type: DataType.JSON })
