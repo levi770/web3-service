@@ -1,51 +1,50 @@
 version: '3'
 
 services:
-  
+
   crm-web3-svc:
     build: ./
-    hostname: crm-web3-svc
-    restart: always
     env_file:
       - ./.dev.env
-    networks:
-      - postgres
     depends_on:
       - postgres
+      - redis
+      - ipfs
+    restart: always
   
   postgres:
     container_name: postgres
     image: postgres
     volumes:
-      - ./database:/docker-entrypoint-initdb.d
       - /data/postgres:/data/postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=crm-web3-svc
     ports:
       - "5432:5432"
     restart: always
-    env_file:
-      - ./.dev.env
-    networks:
-      - postgres
   
   pgadmin:
-    links:
-      - postgres:postgres
     container_name: pgadmin
     image: dpage/pgadmin4
-    ports:
-      - "8080:80"
     volumes:
       - /data/pgadmin:/root/.pgadmin
-    env_file:
-      - ./.dev.env
-    networks:
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "8081:80"
+    depends_on:
       - postgres
+    restart: always
 
   redis:
     container_name: redis
     image: "redis:alpine"
     ports:
       - "6379:6379"
+    restart: always
 
   redis-commander:
     container_name: redis-commander
@@ -53,26 +52,23 @@ services:
     environment:
       - REDIS_HOSTS=local:redis:6379
     ports:
-      - "8081:8081"
+      - "8082:8081"
     depends_on:
         - redis
+    restart: always
         
   ipfs:
-    image: lscr.io/linuxserver/ipfs
     container_name: ipfs
+    image: lscr.io/linuxserver/ipfs
+    volumes:
+      - /data/ipfs:/config
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/London
-    volumes:
-      - /data/ipfs:/config
     ports:
-      - 80:80
+      - 88:80
       - 4001:4001
-      - 5001:5001
-      - 8080:8080
-    restart: unless-stopped
-
-networks:
-  postgres:
-    driver: bridge
+      - 5050:5001
+      - 8083:8080
+    restart: always
