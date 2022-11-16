@@ -1,9 +1,16 @@
 import Web3 from 'web3';
 import { v4 as uuidv4 } from 'uuid';
+import { TransactionReceipt } from 'web3-core';
 import { Contract, ContractSendMethod } from 'web3-eth-contract';
 import { Job, JobPromise, Queue } from 'bull';
 import { Observable } from 'rxjs';
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import { DeployDataDto } from './dto/deployData.dto';
@@ -11,7 +18,9 @@ import { MintDataDto } from './dto/mintData.dto';
 import { JobResultDto } from '../common/dto/jobResult.dto';
 import { Networks, ProcessTypes } from '../common/constants';
 import { ContractModel } from '../db-manager/models/contract.model';
-import { TokenModel } from '../db-manager/models/tokens.model';
+import { TokenModel } from '../db-manager/models/token.model';
+import { GetJobDto } from './dto/getJob.dto';
+import { ResponseDto } from '../common/dto/response.dto';
 
 @Injectable()
 export class Web3Service {
@@ -27,7 +36,17 @@ export class Web3Service {
     this.polygon = new Web3(new Web3.providers.HttpProvider(configService.get('POLYGON_HOST')));
   }
 
-  async process(data: MintDataDto | DeployDataDto, processType: ProcessTypes) {
+  async getJob(data: GetJobDto) {
+    const job = await this.web3Queue.getJob(data.jobId);
+
+    if (!job) {
+      throw new NotFoundException('Job not found');
+    }
+
+    return new ResponseDto(HttpStatus.OK, null, job.returnvalue);
+  }
+
+  async process(data: MintDataDto | DeployDataDto, processType: ProcessTypes): Promise<Observable<JobResultDto>> {
     const jobId = uuidv4();
 
     const job$: Observable<JobResultDto> = new Observable((observer) => {
@@ -86,7 +105,12 @@ export class Web3Service {
     return job$;
   }
 
-  async send(contract: Contract, data: ContractSendMethod, deploy: boolean, network: Networks) {
+  async send(
+    contract: Contract,
+    data: ContractSendMethod,
+    deploy: boolean,
+    network: Networks,
+  ): Promise<TransactionReceipt> {
     try {
       const w3: Web3 = network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const account = w3.eth.accounts.privateKeyToAccount(this.configService.get('PRIV_KEY'));
@@ -113,9 +137,10 @@ export class Web3Service {
       }
 
       const signed = await account.signTransaction(tx);
+
       return await w3.eth.sendSignedTransaction(signed.rawTransaction);
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      throw new InternalServerErrorException(error);
     }
   }
 }

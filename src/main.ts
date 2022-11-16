@@ -6,6 +6,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 
+
 async function bootstrap() {
   const logger: Logger = new Logger('App');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);

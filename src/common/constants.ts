@@ -17,3 +17,13 @@ export enum FileTypes {
   IMAGE = 'image',
   OBJECT = 'object',
 }
+
+export enum CMD {
+  DEPLOY = 'deployContract',
+  MINT = 'mintToken',
+  ALL_CONTRACTS = 'getAllContracts',
+  ONE_CONTRACT = 'getOneContract',
+  ALL_TOKENS = 'getAllTokens',
+  ONE_TOKEN = 'getOneToken',
+  JOB = 'getJobById',
+}

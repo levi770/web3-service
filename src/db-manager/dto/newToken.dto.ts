@@ -1,4 +1,5 @@
 export class NewTokenDto {
+  contract_id?: string;
   address: string;
   nft_number: string;
   mint_data: object;
