@@ -14,7 +14,7 @@ export class IpfsManagerService implements OnModuleInit {
     this.ipfs = await new IpfsService({ url: await this.configService.get('IPFS_HTTP_API_URL') }).getNode();
   }
 
-  async upload(key: string) {
+  async upload(key: string): Promise<string> {
     const file = await this.getObjectFromS3(key);
     return await this.uploadToIpfs({ name: key, data: file });
   }
@@ -32,7 +32,7 @@ export class IpfsManagerService implements OnModuleInit {
     }
   }
 
-  async uploadToIpfs(file: { name: string; data: Buffer }) {
+  async uploadToIpfs(file: { name: string; data: Buffer }): Promise<string> {
     const fileDetails = { path: file.name, content: file.data };
     const options = { wrapWithDirectory: true };
 

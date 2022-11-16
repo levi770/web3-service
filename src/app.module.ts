@@ -8,7 +8,7 @@ import { Web3ManagerModule } from './web3-manager/web3-manager.module';
 import { DbManagerModule } from './db-manager/db-manager.module';
 import { IpfsManagerModule } from './ipfs-manager/ipfs-manager.module';
 import { ContractModel } from './db-manager/models/contract.model';
-import { TokenModel } from './db-manager/models/tokens.model';
+import { TokenModel } from './db-manager/models/token.model';
 
 @Module({
   imports: [
