@@ -21,6 +21,8 @@ import { ContractModel } from '../db-manager/models/contract.model';
 import { TokenModel } from '../db-manager/models/token.model';
 import { GetJobDto } from './dto/getJob.dto';
 import { ResponseDto } from '../common/dto/response.dto';
+import { RpcException } from '@nestjs/microservices';
+import { TxPayload } from './interfaces/tx.interface';
 
 @Injectable()
 export class Web3Service {
@@ -40,7 +42,7 @@ export class Web3Service {
     const job = await this.web3Queue.getJob(data.jobId);
 
     if (!job) {
-      throw new NotFoundException('Job not found');
+      throw new RpcException('Job not found');
     }
 
     return new ResponseDto(HttpStatus.OK, null, job.returnvalue);
@@ -107,40 +109,42 @@ export class Web3Service {
 
   async send(
     contract: Contract,
-    data: ContractSendMethod,
-    deploy: boolean,
+    data: string,
+    processType: ProcessTypes,
     network: Networks,
   ): Promise<TransactionReceipt> {
     try {
       const w3: Web3 = network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const account = w3.eth.accounts.privateKeyToAccount(this.configService.get('PRIV_KEY'));
-
-      const tx = {
+      const to = processType === ProcessTypes.MINT ? contract.options.address : null;
+      
+      const tx: TxPayload = {
         nonce: await w3.eth.getTransactionCount(account.address),
-        from: account.address,
-        to: contract.options.address,
-        gas: await data.estimateGas({ from: account.address, value: 0 }),
         maxPriorityFeePerGas: await w3.eth.getGasPrice(),
-        data: data.encodeABI(),
+        gas: await w3.eth.estimateGas({
+          from: account.address,
+          value: 0,
+          data,
+          to,
+        }),
+        from: account.address,
         value: 0,
+        data,
+        to,
       };
-
-      if (deploy) {
-        delete tx.to;
-      }
 
       const comission = +tx.gas * +tx.maxPriorityFeePerGas;
       const balance = await w3.eth.getBalance(account.address);
 
       if (+balance < comission) {
-        throw new BadRequestException('Not enough balance');
+        throw new RpcException('Not enough balance');
       }
 
       const signed = await account.signTransaction(tx);
 
       return await w3.eth.sendSignedTransaction(signed.rawTransaction);
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      throw new RpcException(error);
     }
   }
 }

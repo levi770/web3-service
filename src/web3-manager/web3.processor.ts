@@ -8,12 +8,12 @@ import { MintDataDto } from './dto/mintData.dto';
 import { DbManagerService } from '../db-manager/db-manager.service';
 import { Web3Service } from './web3.service';
 import { DeployDataDto } from './dto/deployData.dto';
-import { FileTypes, Networks, ObjectTypes } from '../common/constants';
-import { NftContract } from '../common/contracts/types/nft-contract';
+import { FileTypes, Networks, ObjectTypes, ProcessTypes } from '../common/constants';
 import { IpfsManagerService } from '../ipfs-manager/ipfs-manager.service';
 import { ContractModel } from '../db-manager/models/contract.model';
 import { TokenModel } from '../db-manager/models/token.model';
 import { MetaDataDto } from './dto/metaData.dto';
+import { RpcException } from '@nestjs/microservices';
 
 @Processor('web3')
 export class Web3Processor {
@@ -30,20 +30,22 @@ export class Web3Processor {
     this.polygon = new Web3(new Web3.providers.HttpProvider(this.configService.get('POLYGON_HOST')));
   }
 
-  @Process('mint')
+  @Process(ProcessTypes.MINT)
   async mint(job: Job): Promise<ContractModel | TokenModel> {
     try {
       const mintData: MintDataDto = job.data;
       const w3: Web3 = mintData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const contractObj = await this.dbManager.findByPk(mintData.contract_id);
       const contractInstance = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[], contractObj.address);
-
-      // TODO mint cases
-      const txData = (contractInstance.methods as NftContract).mintTo(mintData.mint_to, mintData.nft_number);
-
-      const mintTx = await this.web3Service.send(contractInstance, txData, false, mintData.network);
+      const methodArgs = mintData.arguments.split(',');
+      const methodObj = contractObj.deploy_data.abi.find(
+        (x) => x.name === mintData.method_name && x.type === 'function',
+      );
+      
+      const txData = w3.eth.abi.encodeFunctionCall(methodObj, methodArgs);
+      const mintTx = await this.web3Service.send(contractInstance, txData, ProcessTypes.MINT, mintData.network);
       const metaData = await this.generateMetadata(mintData);
-
+      
       const tokenObj = await this.dbManager.create(
         {
           address: contractObj.address,
@@ -59,22 +61,19 @@ export class Web3Processor {
 
       return tokenObj;
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      throw new RpcException(error);
     }
   }
 
-  @Process('deploy')
+  @Process(ProcessTypes.DEPLOY)
   async deploy(job: Job): Promise<ContractModel | TokenModel> {
     try {
       const deployData: DeployDataDto = job.data;
       const w3: Web3 = deployData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const contractInstance = new w3.eth.Contract(deployData.abi as U.AbiItem[]);
-      const args = deployData.args;
-      const txData = contractInstance.deploy({
-        data: deployData.bytecode,
-        arguments: [args.supplyLimit, args.mintPrice, args.withdrawalWallet, args.name, args.ticker, args.baseURI],
-      });
-      const deployTx = await this.web3Service.send(contractInstance, txData, true, deployData.network);
+      
+      const txData = contractInstance.deploy({ data: deployData.bytecode, arguments: deployData.args.split(',') });
+      const deployTx = await this.web3Service.send(contractInstance, txData.encodeABI(), ProcessTypes.DEPLOY, deployData.network);
 
       const contractObj = await this.dbManager.create(
         {
@@ -87,7 +86,7 @@ export class Web3Processor {
 
       return contractObj;
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      throw new RpcException(error);
     }
   }
 
