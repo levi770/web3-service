@@ -26,4 +26,8 @@ export enum CMD {
   ALL_TOKENS = 'getAllTokens',
   ONE_TOKEN = 'getOneToken',
   JOB = 'getJobById',
+  UPDATE_METADATA = 'updateMetadata'
 }
+
+export const IPFS_MODULE_OPTIONS = 'IPFS_MODULE_OPTIONS';
+export const WEB3_QUEUE = 'web3';

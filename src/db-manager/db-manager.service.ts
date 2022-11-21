@@ -18,6 +18,8 @@ import { MetaDataDto } from '../web3-manager/dto/metaData.dto';
 import { GetOneDto } from './dto/getOne.dto';
 import { DbArgsPayload } from './interfaces/dbArgsPayload.interface';
 import { AllObjectResults } from './interfaces/allObjectsResult.interface';
+import { RpcException } from '@nestjs/microservices';
+import { UpdateMetadataDto } from './dto/updateMetadata.dto';
 
 @Injectable()
 export class DbManagerService {
@@ -76,18 +78,18 @@ export class DbManagerService {
 
       return new ResponseDto(HttpStatus.OK, null, allObjects);
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      throw new RpcException(error);
     }
   }
 
   async getOneObject(objectType: ObjectTypes, params: GetOneDto) {
     try {
       if (!params) {
-        throw new BadRequestException('params can not be empty');
+        throw new RpcException('params can not be empty');
       }
 
       if (!params.id && !params.address) {
-        throw new BadRequestException('id or address is required');
+        throw new RpcException('id or address is required');
       }
 
       let args: DbArgsPayload = {
@@ -103,7 +105,7 @@ export class DbManagerService {
 
       switch (objectType) {
         case ObjectTypes.TOKEN:
-          args.attributes = { exclude: ['contract_id', 'updatedAt'] };
+          args.attributes = { exclude: ['updatedAt'] };
           result = await this.tokenRepository.findOne(args);
           break;
 
@@ -112,7 +114,7 @@ export class DbManagerService {
             args.include = [
               {
                 model: TokenModel,
-                attributes: { exclude: ['contract_id', 'updatedAt'] },
+                attributes: { exclude: ['updatedAt'] },
               },
             ];
           }
@@ -123,7 +125,7 @@ export class DbManagerService {
 
       return new ResponseDto(HttpStatus.OK, null, result);
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      throw new RpcException(error);
     }
   }
 
@@ -131,9 +133,19 @@ export class DbManagerService {
     const token = await this.tokenRepository.findOne({ where: { nft_number: id } });
 
     if (!token) {
-      throw new NotFoundException('Token with this number not found');
+      throw new RpcException('Token with this number not found');
     }
 
     return token.meta_data;
+  }
+
+  async updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto> {
+    const token = await this.tokenRepository.update(data.meta_data, { where: { nft_number: data.id } });
+
+    if (!token[0]) {
+      throw new RpcException('data not updated');
+    }
+
+    return new ResponseDto(HttpStatus.OK, null, 'data updated');
   }
 }
