@@ -2,15 +2,17 @@ version: '3'
 
 services:
 
-  crm-web3-svc:
-    build: ./
-    env_file:
-      - ./.dev.env
-    depends_on:
-      - postgres
-      - redis
-      - ipfs
-    restart: always
+  # crm-web3-svc:
+  #   build: ./
+  #   env_file:
+  #     - ./.dev.env
+  #   networks:
+  #     - svc
+  #   ports:
+  #     - 5000:5000
+  #   depends_on:
+  #     - postgres
+  #   restart: always
   
   postgres:
     container_name: postgres
@@ -21,8 +23,10 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=crm-web3-svc
+    networks:
+      - svc
     ports:
-      - "5432:5432"
+      - 5432:5432
     restart: always
   
   pgadmin:
@@ -33,8 +37,10 @@ services:
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@admin.com
       - PGADMIN_DEFAULT_PASSWORD=admin
+    networks:
+      - svc
     ports:
-      - "8081:80"
+      - 8081:80
     depends_on:
       - postgres
     restart: always
@@ -42,8 +48,10 @@ services:
   redis:
     container_name: redis
     image: "redis:alpine"
+    networks:
+      - svc
     ports:
-      - "6379:6379"
+      - 6379:6379
     restart: always
 
   redis-commander:
@@ -51,8 +59,10 @@ services:
     image: rediscommander/redis-commander:latest
     environment:
       - REDIS_HOSTS=local:redis:6379
+    networks:
+      - svc
     ports:
-      - "8082:8081"
+      - 8082:8081
     depends_on:
         - redis
     restart: always
@@ -66,9 +76,15 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/London
+    networks:
+      - svc
     ports:
       - 88:80
       - 4001:4001
       - 5050:5001
       - 8083:8080
     restart: always
+
+networks:
+  svc:
+    driver: bridge
