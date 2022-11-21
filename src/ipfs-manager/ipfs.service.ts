@@ -1,7 +1,7 @@
 import { create } from 'ipfs-http-client';
 import { Injectable, Inject, OnApplicationShutdown } from '@nestjs/common';
-import { IPFS_MODULE_OPTIONS } from './ipfs.constants';
-import { IPFSOptions } from './ipfs-options.interface';
+import { IPFSOptions } from './interfaces/ipfs-options.interface';
+import { IPFS_MODULE_OPTIONS } from '../common/constants';
 
 @Injectable()
 export class IpfsService implements OnApplicationShutdown {

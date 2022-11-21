@@ -3,6 +3,7 @@ import { InjectAwsService } from 'nest-aws-sdk';
 import { Injectable, InternalServerErrorException, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IpfsService } from './ipfs.service';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class IpfsManagerService implements OnModuleInit {
@@ -25,10 +26,10 @@ export class IpfsManagerService implements OnModuleInit {
       return object.Body as Buffer;
     } catch (error) {
       if (error.statusCode === 404) {
-        throw new NotFoundException('file not found');
+        throw new RpcException('file not found');
       }
 
-      throw new InternalServerErrorException(error.message);
+      throw new RpcException(error.message);
     }
   }
 
@@ -40,7 +41,7 @@ export class IpfsManagerService implements OnModuleInit {
       const added = await this.ipfs.add(fileDetails, options);
       return added.cid.toString();
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      throw new RpcException(error);
     }
   }
 }
