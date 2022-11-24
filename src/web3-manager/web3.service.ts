@@ -45,7 +45,7 @@ export class Web3Service {
       throw new RpcException('Job not found');
     }
 
-    return new ResponseDto(HttpStatus.OK, null, job.returnvalue);
+    return new ResponseDto(HttpStatus.OK, null, job);
   }
 
   async process(data: MintDataDto | DeployDataDto, processType: ProcessTypes): Promise<Observable<JobResultDto>> {
@@ -117,7 +117,7 @@ export class Web3Service {
       const w3: Web3 = network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const account = w3.eth.accounts.privateKeyToAccount(this.configService.get('PRIV_KEY'));
       const to = processType === ProcessTypes.MINT ? contract.options.address : null;
-      
+
       const tx: TxPayload = {
         nonce: await w3.eth.getTransactionCount(account.address),
         maxPriorityFeePerGas: await w3.eth.getGasPrice(),
