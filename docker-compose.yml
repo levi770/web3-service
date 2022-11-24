@@ -1,18 +1,22 @@
-version: '3'
+version: '3.8'
 
 services:
 
-  # crm-web3-svc:
-  #   build: ./
-  #   env_file:
-  #     - ./.dev.env
-  #   networks:
-  #     - svc
-  #   ports:
-  #     - 5000:5000
-  #   depends_on:
-  #     - postgres
-  #   restart: always
+  app:
+    container_name: crm-web3-svc
+    build: 
+      context: .
+      target: development
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    env_file:
+      - .env
+    ports:
+      - 5000:5000
+    command: npm run start:dev
+    depends_on:
+      - postgres
   
   postgres:
     container_name: postgres
@@ -23,11 +27,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=crm-web3-svc
-    networks:
-      - svc
     ports:
-      - 5432:5432
-    restart: always
+      - 5678:5432
   
   pgadmin:
     container_name: pgadmin
@@ -37,35 +38,28 @@ services:
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@admin.com
       - PGADMIN_DEFAULT_PASSWORD=admin
-    networks:
-      - svc
     ports:
-      - 8081:80
+      - 8880:80
     depends_on:
       - postgres
-    restart: always
 
   redis:
     container_name: redis
     image: "redis:alpine"
-    networks:
-      - svc
     ports:
-      - 6379:6379
-    restart: always
+      - 6789:6379
+    volumes:
+      - /data/redis:/data
 
   redis-commander:
     container_name: redis-commander
     image: rediscommander/redis-commander:latest
     environment:
       - REDIS_HOSTS=local:redis:6379
-    networks:
-      - svc
     ports:
-      - 8082:8081
+      - 8881:8081
     depends_on:
         - redis
-    restart: always
         
   ipfs:
     container_name: ipfs
@@ -76,15 +70,18 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/London
-    networks:
-      - svc
     ports:
       - 88:80
-      - 4001:4001
-      - 5050:5001
-      - 8083:8080
-    restart: always
+      - 4444:4001
+      - 5555:5001
+      - 8888:8080
 
-networks:
-  svc:
-    driver: bridge
+volumes:
+  postgres:
+    driver: local
+  pgadmin:
+    driver: local
+  redis:
+    driver: local
+  ipfs:
+    driver: local
