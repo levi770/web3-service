@@ -1,11 +1,5 @@
 import { Order } from 'sequelize';
-import {
-  BadRequestException,
-  HttpStatus,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { ObjectTypes } from '../common/constants';
 import { GetAllDto } from './dto/getAll.dto';
@@ -36,7 +30,7 @@ export class DbManagerService {
       case ObjectTypes.TOKEN:
         const contract = await this.findByPk((params as NewTokenDto).contract_id);
         const token = await this.tokenRepository.create({ ...params });
-        await contract.$add('tokens', [token.id]);
+        await contract.$add('token', [token.id]);
         return token;
     }
   }
@@ -133,19 +127,32 @@ export class DbManagerService {
     const token = await this.tokenRepository.findOne({ where: { nft_number: id } });
 
     if (!token) {
-      throw new RpcException('Token with this number not found');
+      throw new NotFoundException('Token with this number not found');
     }
 
     return token.meta_data;
   }
 
   async updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto> {
-    const token = await this.tokenRepository.update(data.meta_data, { where: { nft_number: data.id } });
+    const token = await this.tokenRepository.findOne({ where: { nft_number: data.id } });
 
-    if (!token[0]) {
-      throw new RpcException('data not updated');
+    if (!token) {
+      throw new RpcException('Token with this number not found');
     }
 
-    return new ResponseDto(HttpStatus.OK, null, 'data updated');
+    try {
+      for (const key in data.meta_data) {
+        if (token.meta_data[key] !== undefined) {
+          token.meta_data[key] = data.meta_data[key];
+        }
+      }
+
+      token.changed('meta_data', true);
+      await token.save();
+
+      return new ResponseDto(HttpStatus.OK, null, 'data updated');
+    } catch (error) {
+      throw new RpcException(error);
+    }
   }
 }
