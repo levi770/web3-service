@@ -3,7 +3,7 @@ import * as U from 'web3-utils';
 import { Job } from 'bull';
 import { Process, Processor } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
-import { InternalServerErrorException } from '@nestjs/common';
+import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { MintDataDto } from './dto/mintData.dto';
 import { DbManagerService } from '../db-manager/db-manager.service';
 import { Web3Service } from './web3.service';
@@ -36,18 +36,28 @@ export class Web3Processor {
       const mintData: MintDataDto = job.data;
       const w3: Web3 = mintData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const contractObj = await this.dbManager.findByPk(mintData.contract_id);
+
+      if (!contractObj) {
+        throw new RpcException('contract not found');
+      }
+      
       const contractInstance = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[], contractObj.address);
       const methodArgs = mintData.arguments.split(',');
       const methodObj = contractObj.deploy_data.abi.find(
         (x) => x.name === mintData.method_name && x.type === 'function',
       );
-      
+
+      if (!methodObj) {
+        throw new RpcException('method not found');
+      }
+
       const txData = w3.eth.abi.encodeFunctionCall(methodObj, methodArgs);
       const mintTx = await this.web3Service.send(contractInstance, txData, ProcessTypes.MINT, mintData.network);
       const metaData = await this.generateMetadata(mintData);
-      
+
       const tokenObj = await this.dbManager.create(
         {
+          contract_id: contractObj.id,
           address: contractObj.address,
           nft_number: mintData.nft_number,
           meta_data: metaData,
@@ -56,8 +66,6 @@ export class Web3Processor {
         },
         ObjectTypes.TOKEN,
       );
-
-      await contractObj.$add('token', [tokenObj.id]);
 
       return tokenObj;
     } catch (error) {
@@ -71,9 +79,14 @@ export class Web3Processor {
       const deployData: DeployDataDto = job.data;
       const w3: Web3 = deployData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const contractInstance = new w3.eth.Contract(deployData.abi as U.AbiItem[]);
-      
+
       const txData = contractInstance.deploy({ data: deployData.bytecode, arguments: deployData.args.split(',') });
-      const deployTx = await this.web3Service.send(contractInstance, txData.encodeABI(), ProcessTypes.DEPLOY, deployData.network);
+      const deployTx = await this.web3Service.send(
+        contractInstance,
+        txData.encodeABI(),
+        ProcessTypes.DEPLOY,
+        deployData.network,
+      );
 
       const contractObj = await this.dbManager.create(
         {
