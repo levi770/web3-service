@@ -38,7 +38,7 @@ let Web3Service = class Web3Service {
         if (!job) {
             throw new microservices_1.RpcException('Job not found');
         }
-        return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, job.returnvalue);
+        return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, job);
     }
     async process(data, processType) {
         const jobId = (0, uuid_1.v4)();
