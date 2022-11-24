@@ -63,9 +63,6 @@ COPY --chown=node:node --from=build /usr/src/app/package*.json ./
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 
-# wget because curl is not available in alpine
-HEALTHCHECK CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ping || exit 1
-
 # Run migrations in the production server and
 # Start the server using the production build
-CMD ["sh", "-c", "yarn typeorm:migrate-prod; node dist/main.js"]
+CMD ["sh", "-c", "node dist/main.js"]
