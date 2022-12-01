@@ -1,10 +1,19 @@
 export declare enum ProcessTypes {
+    DEPLOY = "deploy",
+    COMMON = "common",
+    WHITELIST = "whitelist"
+}
+export declare enum OperationTypes {
     MINT = "mint",
-    DEPLOY = "deploy"
+    DEPLOY = "deploy",
+    COMMON = "common",
+    WHITELIST_ADD = "whitelistadd",
+    WHITELIST_REMOVE = "whitelistremove"
 }
 export declare enum ObjectTypes {
     CONTRACT = "contract",
-    TOKEN = "token"
+    TOKEN = "token",
+    WHITELIST = "whitelist"
 }
 export declare enum Networks {
     ETHEREUM = 5,
@@ -15,14 +24,13 @@ export declare enum FileTypes {
     OBJECT = "object"
 }
 export declare enum CMD {
-    DEPLOY = "deployContract",
-    MINT = "mintToken",
-    ALL_CONTRACTS = "getAllContracts",
-    ONE_CONTRACT = "getOneContract",
-    ALL_TOKENS = "getAllTokens",
-    ONE_TOKEN = "getOneToken",
-    JOB = "getJobById",
-    UPDATE_METADATA = "updateMetadata"
+    DEPLOY = "deploycontract",
+    CALL = "processcall",
+    ALL_OBJECTS = "getallobjects",
+    ONE_OBJECT = "getoneobject",
+    ALL_TOKENS = "getalltokens",
+    ONE_TOKEN = "getonetoken",
+    JOB = "getjobbyid",
+    UPDATE_METADATA = "updatemetadata"
 }
-export declare const IPFS_MODULE_OPTIONS = "IPFS_MODULE_OPTIONS";
 export declare const WEB3_QUEUE = "web3";

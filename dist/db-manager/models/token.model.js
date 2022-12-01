@@ -51,7 +51,7 @@ __decorate([
 __decorate([
     (0, sequelize_typescript_1.BelongsTo)(() => contract_model_1.ContractModel),
     __metadata("design:type", contract_model_1.ContractModel)
-], TokenModel.prototype, "user", void 0);
+], TokenModel.prototype, "contract", void 0);
 TokenModel = __decorate([
     (0, sequelize_typescript_1.Table)({ tableName: 'tokens' })
 ], TokenModel);

@@ -10,17 +10,20 @@ import { MetaDataDto } from './web3-manager/dto/metaData.dto';
 import { GetOneDto } from './db-manager/dto/getOne.dto';
 import { GetJobDto } from './web3-manager/dto/getJob.dto';
 import { UpdateMetadataDto } from './db-manager/dto/updateMetadata.dto';
+import { AllObjectsDto } from './db-manager/dto/allObjects.dto';
+import { TokenModel } from './db-manager/models/token.model';
+import { ContractModel } from './db-manager/models/contract.model';
+import { WhitelistModel } from './db-manager/models/whitelist.model';
 export declare class AppController {
     private web3Service;
     private dbManagerService;
     constructor(web3Service: Web3Service, dbManagerService: DbManagerService);
     getJob(data: GetJobDto): Promise<ResponseDto>;
-    deploy(data: DeployDataDto): Promise<Observable<JobResultDto>>;
-    mint(data: MintDataDto): Promise<Observable<JobResultDto>>;
-    getAllContracts(data: GetAllDto): Promise<ResponseDto>;
-    getOneContract(data: GetOneDto): Promise<ResponseDto>;
-    getAllTokens(data: GetAllDto): Promise<ResponseDto>;
-    getOneToken(data: GetOneDto): Promise<ResponseDto>;
+    processDeploy(data: DeployDataDto): Promise<Observable<JobResultDto>>;
+    processCall(data: MintDataDto): Promise<Observable<JobResultDto>>;
+    processWhitelist(data: MintDataDto): Promise<Observable<JobResultDto>>;
+    getAllObjects(data: GetAllDto): Promise<AllObjectsDto>;
+    getOneObject(data: GetOneDto): Promise<TokenModel | ContractModel | WhitelistModel>;
     updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto>;
     getMetaData(id: string): Promise<MetaDataDto>;
 }

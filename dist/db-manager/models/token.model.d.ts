@@ -11,5 +11,5 @@ export declare class TokenModel extends Model {
     meta_data: MetaDataDto;
     mint_tx: TransactionReceipt;
     contract_id: string;
-    user: ContractModel;
+    contract: ContractModel;
 }

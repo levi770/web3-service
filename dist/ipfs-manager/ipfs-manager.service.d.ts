@@ -1,16 +1,16 @@
 /// <reference types="node" />
 import { S3 } from 'aws-sdk';
-import { OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-export declare class IpfsManagerService implements OnModuleInit {
+import { HttpService } from '@nestjs/axios';
+export declare class IpfsManagerService {
     private s3;
     private configService;
+    private httpService;
     private ipfs;
-    constructor(s3: S3, configService: ConfigService);
-    onModuleInit(): Promise<void>;
+    constructor(s3: S3, configService: ConfigService, httpService: HttpService);
     upload(key: string): Promise<string>;
     getObjectFromS3(key: string): Promise<Buffer>;
-    uploadToIpfs(file: {
+    uploadToPinata(file: {
         name: string;
         data: Buffer;
     }): Promise<string>;

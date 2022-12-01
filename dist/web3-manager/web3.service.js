@@ -79,21 +79,14 @@ let Web3Service = class Web3Service {
                 this.web3Queue.removeListener('failed', failed);
             };
         });
-        switch (processType) {
-            case constants_1.ProcessTypes.MINT:
-                await this.web3Queue.add(constants_1.ProcessTypes.MINT, data, { jobId, delay: 1000 });
-                break;
-            case constants_1.ProcessTypes.DEPLOY:
-                await this.web3Queue.add(constants_1.ProcessTypes.DEPLOY, data, { jobId, delay: 1000 });
-                break;
-        }
+        await this.web3Queue.add(processType, data, { jobId, delay: 1000 });
         return job$;
     }
-    async send(contract, data, processType, network) {
+    async send(network, contract, data, operationType) {
         try {
             const w3 = network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
             const account = w3.eth.accounts.privateKeyToAccount(this.configService.get('PRIV_KEY'));
-            const to = processType === constants_1.ProcessTypes.MINT ? contract.options.address : null;
+            const to = operationType === constants_1.OperationTypes.DEPLOY ? null : contract.options.address;
             const tx = {
                 nonce: await w3.eth.getTransactionCount(account.address),
                 maxPriorityFeePerGas: await w3.eth.getGasPrice(),

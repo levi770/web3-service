@@ -13,31 +13,53 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DbManagerService = void 0;
+const sequelize_1 = require("sequelize");
 const common_1 = require("@nestjs/common");
-const sequelize_1 = require("@nestjs/sequelize");
+const sequelize_2 = require("@nestjs/sequelize");
 const constants_1 = require("../common/constants");
 const response_dto_1 = require("../common/dto/response.dto");
 const contract_model_1 = require("./models/contract.model");
 const token_model_1 = require("./models/token.model");
 const microservices_1 = require("@nestjs/microservices");
+const whitelist_model_1 = require("./models/whitelist.model");
 let DbManagerService = class DbManagerService {
-    constructor(contractRepository, tokenRepository) {
+    constructor(contractRepository, tokenRepository, whitelistRepository) {
         this.contractRepository = contractRepository;
         this.tokenRepository = tokenRepository;
+        this.whitelistRepository = whitelistRepository;
     }
     async create(params, objectType) {
         switch (objectType) {
             case constants_1.ObjectTypes.CONTRACT:
                 return await this.contractRepository.create({ ...params });
             case constants_1.ObjectTypes.TOKEN:
-                const contract = await this.findByPk(params.contract_id);
+                const contract = await this.findById(params.contract_id, constants_1.ObjectTypes.CONTRACT);
                 const token = await this.tokenRepository.create({ ...params });
                 await contract.$add('token', [token.id]);
                 return token;
+            case constants_1.ObjectTypes.WHITELIST:
+                return await this.whitelistRepository.create({ ...params });
         }
     }
-    async findByPk(pk) {
-        return await this.contractRepository.findByPk(pk);
+    async delete(params, objectType) {
+        switch (objectType) {
+            case constants_1.ObjectTypes.CONTRACT:
+                return await this.contractRepository.destroy({ where: { id: params } });
+            case constants_1.ObjectTypes.TOKEN:
+                return await this.tokenRepository.destroy({ where: { id: params } });
+            case constants_1.ObjectTypes.WHITELIST:
+                return await this.whitelistRepository.destroy({ where: { address: params.address } });
+        }
+    }
+    async findById(id, objectType) {
+        switch (objectType) {
+            case constants_1.ObjectTypes.CONTRACT:
+                return await this.contractRepository.findOne({ where: { [sequelize_1.Op.or]: [{ id }, { address: id }] } });
+            case constants_1.ObjectTypes.TOKEN:
+                return await this.tokenRepository.findOne({ where: { [sequelize_1.Op.or]: [{ id }, { address: id }] } });
+            case constants_1.ObjectTypes.WHITELIST:
+                return await this.whitelistRepository.findOne({ where: { [sequelize_1.Op.or]: [{ id }, { address: id }] } });
+        }
     }
     async getAllObjects(objectType, params) {
         try {
@@ -64,8 +86,11 @@ let DbManagerService = class DbManagerService {
                     }
                     allObjects = await this.contractRepository.findAndCountAll(args);
                     break;
+                case constants_1.ObjectTypes.WHITELIST:
+                    allObjects = await this.whitelistRepository.findAndCountAll(args);
+                    break;
             }
-            return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, allObjects);
+            return allObjects;
         }
         catch (error) {
             throw new microservices_1.RpcException(error);
@@ -104,8 +129,11 @@ let DbManagerService = class DbManagerService {
                     }
                     result = await this.contractRepository.findOne(args);
                     break;
+                case constants_1.ObjectTypes.WHITELIST:
+                    result = await this.whitelistRepository.findOne(args);
+                    break;
             }
-            return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, result);
+            return result;
         }
         catch (error) {
             throw new microservices_1.RpcException(error);
@@ -140,9 +168,10 @@ let DbManagerService = class DbManagerService {
 };
 DbManagerService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, sequelize_1.InjectModel)(contract_model_1.ContractModel)),
-    __param(1, (0, sequelize_1.InjectModel)(token_model_1.TokenModel)),
-    __metadata("design:paramtypes", [Object, Object])
+    __param(0, (0, sequelize_2.InjectModel)(contract_model_1.ContractModel)),
+    __param(1, (0, sequelize_2.InjectModel)(token_model_1.TokenModel)),
+    __param(2, (0, sequelize_2.InjectModel)(whitelist_model_1.WhitelistModel)),
+    __metadata("design:paramtypes", [Object, Object, Object])
 ], DbManagerService);
 exports.DbManagerService = DbManagerService;
 //# sourceMappingURL=db-manager.service.js.map

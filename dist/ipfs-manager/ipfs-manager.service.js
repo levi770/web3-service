@@ -17,19 +17,18 @@ const aws_sdk_1 = require("aws-sdk");
 const nest_aws_sdk_1 = require("nest-aws-sdk");
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const ipfs_service_1 = require("./ipfs.service");
 const microservices_1 = require("@nestjs/microservices");
+const axios_1 = require("@nestjs/axios");
+const rxjs_1 = require("rxjs");
 let IpfsManagerService = class IpfsManagerService {
-    constructor(s3, configService) {
+    constructor(s3, configService, httpService) {
         this.s3 = s3;
         this.configService = configService;
-    }
-    async onModuleInit() {
-        this.ipfs = await new ipfs_service_1.IpfsService({ url: await this.configService.get('IPFS_HTTP_API_URL') }).getNode();
+        this.httpService = httpService;
     }
     async upload(key) {
         const file = await this.getObjectFromS3(key);
-        return await this.uploadToIpfs({ name: key, data: file });
+        return await this.uploadToPinata({ name: key, data: file });
     }
     async getObjectFromS3(key) {
         try {
@@ -43,22 +42,28 @@ let IpfsManagerService = class IpfsManagerService {
             throw new microservices_1.RpcException(error.message);
         }
     }
-    async uploadToIpfs(file) {
-        const fileDetails = { path: file.name, content: file.data };
-        const options = { wrapWithDirectory: true };
-        try {
-            const added = await this.ipfs.add(fileDetails, options);
-            return added.cid.toString();
-        }
-        catch (error) {
-            throw new microservices_1.RpcException(error);
-        }
+    async uploadToPinata(file) {
+        const formData = new FormData();
+        formData.append('file', new Blob([file.data]), `files/${file.name}`);
+        const pinData = await (0, rxjs_1.lastValueFrom)(this.httpService
+            .post((this.configService.get('PINATA_URL')) + 'pinning/pinFileToIPFS', formData, {
+            maxBodyLength: Infinity,
+            headers: {
+                'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`,
+                pinata_api_key: this.configService.get('PINATA_KEY'),
+                pinata_secret_api_key: this.configService.get('PINATA_SECRET'),
+            },
+        })
+            .pipe((0, rxjs_1.map)((res) => res.data)));
+        return pinData.IpfsHash;
     }
 };
 IpfsManagerService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, nest_aws_sdk_1.InjectAwsService)(aws_sdk_1.S3)),
-    __metadata("design:paramtypes", [aws_sdk_1.S3, config_1.ConfigService])
+    __metadata("design:paramtypes", [aws_sdk_1.S3,
+        config_1.ConfigService,
+        axios_1.HttpService])
 ], IpfsManagerService);
 exports.IpfsManagerService = IpfsManagerService;
 //# sourceMappingURL=ipfs-manager.service.js.map

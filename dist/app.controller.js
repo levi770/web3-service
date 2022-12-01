@@ -32,23 +32,20 @@ let AppController = class AppController {
     async getJob(data) {
         return await this.web3Service.getJob(data);
     }
-    async deploy(data) {
+    async processDeploy(data) {
         return await this.web3Service.process(data, constants_1.ProcessTypes.DEPLOY);
     }
-    async mint(data) {
-        return await this.web3Service.process(data, constants_1.ProcessTypes.MINT);
+    async processCall(data) {
+        return await this.web3Service.process(data, constants_1.ProcessTypes.COMMON);
     }
-    async getAllContracts(data) {
+    async processWhitelist(data) {
+        return await this.web3Service.process(data, constants_1.ProcessTypes.WHITELIST);
+    }
+    async getAllObjects(data) {
         return await this.dbManagerService.getAllObjects(constants_1.ObjectTypes.CONTRACT, data);
     }
-    async getOneContract(data) {
+    async getOneObject(data) {
         return await this.dbManagerService.getOneObject(constants_1.ObjectTypes.CONTRACT, data);
-    }
-    async getAllTokens(data) {
-        return await this.dbManagerService.getAllObjects(constants_1.ObjectTypes.TOKEN, data);
-    }
-    async getOneToken(data) {
-        return await this.dbManagerService.getOneObject(constants_1.ObjectTypes.TOKEN, data);
     }
     async updateMetadata(data) {
         return await this.dbManagerService.updateMetadata(data);
@@ -68,37 +65,31 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [deployData_dto_1.DeployDataDto]),
     __metadata("design:returntype", Promise)
-], AppController.prototype, "deploy", null);
+], AppController.prototype, "processDeploy", null);
 __decorate([
-    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.MINT }),
+    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.CALL }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [mintData_dto_1.MintDataDto]),
     __metadata("design:returntype", Promise)
-], AppController.prototype, "mint", null);
+], AppController.prototype, "processCall", null);
 __decorate([
-    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.ALL_CONTRACTS }),
+    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.CALL }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [mintData_dto_1.MintDataDto]),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "processWhitelist", null);
+__decorate([
+    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.ALL_OBJECTS }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [getAll_dto_1.GetAllDto]),
     __metadata("design:returntype", Promise)
-], AppController.prototype, "getAllContracts", null);
+], AppController.prototype, "getAllObjects", null);
 __decorate([
-    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.ONE_CONTRACT }),
+    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.ONE_OBJECT }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [getOne_dto_1.GetOneDto]),
     __metadata("design:returntype", Promise)
-], AppController.prototype, "getOneContract", null);
-__decorate([
-    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.ALL_TOKENS }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [getAll_dto_1.GetAllDto]),
-    __metadata("design:returntype", Promise)
-], AppController.prototype, "getAllTokens", null);
-__decorate([
-    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.ONE_TOKEN }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [getOne_dto_1.GetOneDto]),
-    __metadata("design:returntype", Promise)
-], AppController.prototype, "getOneToken", null);
+], AppController.prototype, "getOneObject", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.UPDATE_METADATA }),
     __metadata("design:type", Function),

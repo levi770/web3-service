@@ -12,12 +12,13 @@ const nest_aws_sdk_1 = require("nest-aws-sdk");
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const ipfs_manager_service_1 = require("./ipfs-manager.service");
+const axios_1 = require("@nestjs/axios");
 let IpfsManagerModule = class IpfsManagerModule {
 };
 IpfsManagerModule = __decorate([
     (0, common_1.Module)({
         providers: [ipfs_manager_service_1.IpfsManagerService],
-        imports: [nest_aws_sdk_1.AwsSdkModule.forFeatures([aws_sdk_1.S3]), config_1.ConfigModule],
+        imports: [nest_aws_sdk_1.AwsSdkModule.forFeatures([aws_sdk_1.S3]), config_1.ConfigModule, axios_1.HttpModule],
         exports: [ipfs_manager_service_1.IpfsManagerService],
     })
 ], IpfsManagerModule);

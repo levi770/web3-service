@@ -7,6 +7,7 @@ import { IpfsManagerService } from '../ipfs-manager/ipfs-manager.service';
 import { ContractModel } from '../db-manager/models/contract.model';
 import { TokenModel } from '../db-manager/models/token.model';
 import { MetaDataDto } from './dto/metaData.dto';
+import { WhitelistModel } from '../db-manager/models/whitelist.model';
 export declare class Web3Processor {
     private configService;
     private dbManager;
@@ -15,7 +16,9 @@ export declare class Web3Processor {
     private ethereum;
     private polygon;
     constructor(configService: ConfigService, dbManager: DbManagerService, ipfsManger: IpfsManagerService, web3Service: Web3Service);
-    mint(job: Job): Promise<ContractModel | TokenModel>;
-    deploy(job: Job): Promise<ContractModel | TokenModel>;
-    generateMetadata(data: MintDataDto): Promise<MetaDataDto>;
+    processWhitelist(job: Job): Promise<import("web3-core").TransactionReceipt>;
+    processCall(job: Job): Promise<ContractModel | TokenModel | WhitelistModel | import("web3-core").TransactionReceipt>;
+    deploy(job: Job): Promise<ContractModel>;
+    getMetadata(data: MintDataDto): Promise<MetaDataDto>;
+    getMerkleRoot(leaves: WhitelistModel[]): Promise<string>;
 }
