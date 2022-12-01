@@ -1,23 +1,24 @@
 import { S3 } from 'aws-sdk';
 import { InjectAwsService } from 'nest-aws-sdk';
-import { Injectable, InternalServerErrorException, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IpfsService } from './ipfs.service';
 import { RpcException } from '@nestjs/microservices';
+import { HttpService } from '@nestjs/axios';
+import { lastValueFrom, map } from 'rxjs';
 
 @Injectable()
-export class IpfsManagerService implements OnModuleInit {
+export class IpfsManagerService {
   private ipfs: any;
 
-  constructor(@InjectAwsService(S3) private s3: S3, private configService: ConfigService) {}
-
-  async onModuleInit() {
-    this.ipfs = await new IpfsService({ url: await this.configService.get('IPFS_HTTP_API_URL') }).getNode();
-  }
+  constructor(
+    @InjectAwsService(S3) private s3: S3,
+    private configService: ConfigService,
+    private httpService: HttpService,
+  ) {}
 
   async upload(key: string): Promise<string> {
     const file = await this.getObjectFromS3(key);
-    return await this.uploadToIpfs({ name: key, data: file });
+    return await this.uploadToPinata({ name: key, data: file });
   }
 
   async getObjectFromS3(key: string): Promise<Buffer> {
@@ -33,15 +34,23 @@ export class IpfsManagerService implements OnModuleInit {
     }
   }
 
-  async uploadToIpfs(file: { name: string; data: Buffer }): Promise<string> {
-    const fileDetails = { path: file.name, content: file.data };
-    const options = { wrapWithDirectory: true };
+  async uploadToPinata(file: { name: string; data: Buffer }): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', new Blob([file.data]), `files/${file.name}`);
 
-    try {
-      const added = await this.ipfs.add(fileDetails, options);
-      return added.cid.toString();
-    } catch (error) {
-      throw new RpcException(error);
-    }
+    const pinData = await lastValueFrom(
+      this.httpService
+        .post((this.configService.get('PINATA_URL')) + 'pinning/pinFileToIPFS', formData, {
+          maxBodyLength: Infinity,
+          headers: {
+            'Content-Type': `multipart/form-data; boundary=${(formData as any).getBoundary()}`,
+            pinata_api_key: this.configService.get('PINATA_KEY'),
+            pinata_secret_api_key: this.configService.get('PINATA_SECRET'),
+          },
+        })
+        .pipe(map((res) => res.data)),
+    );
+
+    return pinData.IpfsHash;
   }
 }
