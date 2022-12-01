@@ -1,7 +1,7 @@
 import { Observable } from 'rxjs';
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
-import { CMD, ObjectTypes, ProcessTypes } from './common/constants';
+import { CMD, ObjectTypes, OperationTypes, ProcessTypes } from './common/constants';
 import { DeployDataDto } from './web3-manager/dto/deployData.dto';
 import { GetAllDto } from './db-manager/dto/getAll.dto';
 import { JobResultDto } from './common/dto/jobResult.dto';
@@ -13,6 +13,10 @@ import { MetaDataDto } from './web3-manager/dto/metaData.dto';
 import { GetOneDto } from './db-manager/dto/getOne.dto';
 import { GetJobDto } from './web3-manager/dto/getJob.dto';
 import { UpdateMetadataDto } from './db-manager/dto/updateMetadata.dto';
+import { AllObjectsDto } from './db-manager/dto/allObjects.dto';
+import { TokenModel } from './db-manager/models/token.model';
+import { ContractModel } from './db-manager/models/contract.model';
+import { WhitelistModel } from './db-manager/models/whitelist.model';
 
 @Controller()
 export class AppController {
@@ -24,33 +28,28 @@ export class AppController {
   }
 
   @MessagePattern({ cmd: CMD.DEPLOY })
-  async deploy(data: DeployDataDto): Promise<Observable<JobResultDto>> {
+  async processDeploy(data: DeployDataDto): Promise<Observable<JobResultDto>> {
     return await this.web3Service.process(data, ProcessTypes.DEPLOY);
   }
 
-  @MessagePattern({ cmd: CMD.MINT })
-  async mint(data: MintDataDto): Promise<Observable<JobResultDto>> {
-    return await this.web3Service.process(data, ProcessTypes.MINT);
+  @MessagePattern({ cmd: CMD.CALL })
+  async processCall(data: MintDataDto): Promise<Observable<JobResultDto>> {
+    return await this.web3Service.process(data, ProcessTypes.COMMON);
   }
 
-  @MessagePattern({ cmd: CMD.ALL_CONTRACTS })
-  async getAllContracts(data: GetAllDto): Promise<ResponseDto> {
+  @MessagePattern({ cmd: CMD.CALL })
+  async processWhitelist(data: MintDataDto): Promise<Observable<JobResultDto>> {
+    return await this.web3Service.process(data, ProcessTypes.WHITELIST);
+  }
+
+  @MessagePattern({ cmd: CMD.ALL_OBJECTS })
+  async getAllObjects(data: GetAllDto): Promise<AllObjectsDto> {
     return await this.dbManagerService.getAllObjects(ObjectTypes.CONTRACT, data);
   }
 
-  @MessagePattern({ cmd: CMD.ONE_CONTRACT })
-  async getOneContract(data: GetOneDto): Promise<ResponseDto> {
+  @MessagePattern({ cmd: CMD.ONE_OBJECT })
+  async getOneObject(data: GetOneDto): Promise<TokenModel | ContractModel | WhitelistModel> {
     return await this.dbManagerService.getOneObject(ObjectTypes.CONTRACT, data);
-  }
-
-  @MessagePattern({ cmd: CMD.ALL_TOKENS })
-  async getAllTokens(data: GetAllDto): Promise<ResponseDto> {
-    return await this.dbManagerService.getAllObjects(ObjectTypes.TOKEN, data);
-  }
-
-  @MessagePattern({ cmd: CMD.ONE_TOKEN })
-  async getOneToken(data: GetOneDto): Promise<ResponseDto> {
-    return await this.dbManagerService.getOneObject(ObjectTypes.TOKEN, data);
   }
 
   @MessagePattern({ cmd: CMD.UPDATE_METADATA })

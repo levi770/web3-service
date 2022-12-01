@@ -1,11 +1,21 @@
 export enum ProcessTypes {
+  DEPLOY = 'deploy',
+  COMMON = 'common',
+  WHITELIST = 'whitelist',
+}
+
+export enum OperationTypes {
   MINT = 'mint',
   DEPLOY = 'deploy',
+  COMMON = 'common',
+  WHITELIST_ADD = 'whitelistadd',
+  WHITELIST_REMOVE = 'whitelistremove',
 }
 
 export enum ObjectTypes {
   CONTRACT = 'contract',
   TOKEN = 'token',
+  WHITELIST = 'whitelist',
 }
 
 export enum Networks {
@@ -19,15 +29,14 @@ export enum FileTypes {
 }
 
 export enum CMD {
-  DEPLOY = 'deployContract',
-  MINT = 'mintToken',
-  ALL_CONTRACTS = 'getAllContracts',
-  ONE_CONTRACT = 'getOneContract',
-  ALL_TOKENS = 'getAllTokens',
-  ONE_TOKEN = 'getOneToken',
-  JOB = 'getJobById',
-  UPDATE_METADATA = 'updateMetadata'
+  DEPLOY = 'deploycontract',
+  CALL = 'processcall',
+  ALL_OBJECTS = 'getallobjects',
+  ONE_OBJECT = 'getoneobject',
+  ALL_TOKENS = 'getalltokens',
+  ONE_TOKEN = 'getonetoken',
+  JOB = 'getjobbyid',
+  UPDATE_METADATA = 'updatemetadata',
 }
 
-export const IPFS_MODULE_OPTIONS = 'IPFS_MODULE_OPTIONS';
 export const WEB3_QUEUE = 'web3';

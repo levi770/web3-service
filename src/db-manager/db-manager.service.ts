@@ -1,4 +1,4 @@
-import { Order } from 'sequelize';
+import { Order, Op } from 'sequelize';
 import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { ObjectTypes } from '../common/constants';
@@ -11,35 +11,66 @@ import { TokenModel } from './models/token.model';
 import { MetaDataDto } from '../web3-manager/dto/metaData.dto';
 import { GetOneDto } from './dto/getOne.dto';
 import { DbArgsPayload } from './interfaces/dbArgsPayload.interface';
-import { AllObjectResults } from './interfaces/allObjectsResult.interface';
+import { AllObjectsDto } from './dto/allObjects.dto';
 import { RpcException } from '@nestjs/microservices';
 import { UpdateMetadataDto } from './dto/updateMetadata.dto';
+import { WhitelistDto } from '../web3-manager/dto/whitelist.dto';
+import { WhitelistModel } from './models/whitelist.model';
 
 @Injectable()
 export class DbManagerService {
   constructor(
     @InjectModel(ContractModel) private contractRepository: typeof ContractModel,
     @InjectModel(TokenModel) private tokenRepository: typeof TokenModel,
+    @InjectModel(WhitelistModel) private whitelistRepository: typeof WhitelistModel,
   ) {}
 
-  async create(params: NewContractDto | NewTokenDto, objectType: ObjectTypes): Promise<ContractModel | TokenModel> {
+  async create(
+    params: NewContractDto | NewTokenDto | WhitelistDto,
+    objectType: ObjectTypes,
+  ): Promise<ContractModel | TokenModel | WhitelistModel> {
     switch (objectType) {
       case ObjectTypes.CONTRACT:
         return await this.contractRepository.create({ ...params });
 
       case ObjectTypes.TOKEN:
-        const contract = await this.findByPk((params as NewTokenDto).contract_id);
+        const contract = await this.findById((params as NewTokenDto).contract_id, ObjectTypes.CONTRACT);
         const token = await this.tokenRepository.create({ ...params });
         await contract.$add('token', [token.id]);
         return token;
+
+      case ObjectTypes.WHITELIST:
+        return await this.whitelistRepository.create({ ...params });
     }
   }
 
-  async findByPk(pk: string): Promise<ContractModel> {
-    return await this.contractRepository.findByPk(pk);
+  async delete(params: string | WhitelistDto, objectType: ObjectTypes): Promise<number> {
+    switch (objectType) {
+      case ObjectTypes.CONTRACT:
+        return await this.contractRepository.destroy({ where: { id: params } });
+
+      case ObjectTypes.TOKEN:
+        return await this.tokenRepository.destroy({ where: { id: params } });
+
+      case ObjectTypes.WHITELIST:
+        return await this.whitelistRepository.destroy({ where: { address: (params as WhitelistDto).address } });
+    }
   }
 
-  async getAllObjects(objectType: ObjectTypes, params?: GetAllDto): Promise<ResponseDto> {
+  async findById(id: string, objectType: ObjectTypes): Promise<ContractModel | TokenModel | WhitelistModel> {
+    switch (objectType) {
+      case ObjectTypes.CONTRACT:
+        return await this.contractRepository.findOne({ where: { [Op.or]: [{ id }, { address: id }] } });
+
+      case ObjectTypes.TOKEN:
+        return await this.tokenRepository.findOne({ where: { [Op.or]: [{ id }, { address: id }] } });
+
+      case ObjectTypes.WHITELIST:
+        return await this.whitelistRepository.findOne({ where: { [Op.or]: [{ id }, { address: id }] } });
+    }
+  }
+
+  async getAllObjects(objectType: ObjectTypes, params?: GetAllDto): Promise<AllObjectsDto> {
     try {
       const args: DbArgsPayload = {
         attributes: { exclude: ['updatedAt'] },
@@ -48,7 +79,7 @@ export class DbManagerService {
         order: [[params.order_by || 'createdAt', params.order || 'DESC']] as Order,
       };
 
-      let allObjects: AllObjectResults;
+      let allObjects: AllObjectsDto;
 
       switch (objectType) {
         case ObjectTypes.TOKEN:
@@ -68,9 +99,13 @@ export class DbManagerService {
 
           allObjects = await this.contractRepository.findAndCountAll(args);
           break;
+
+        case ObjectTypes.WHITELIST:
+          allObjects = await this.whitelistRepository.findAndCountAll(args);
+          break;
       }
 
-      return new ResponseDto(HttpStatus.OK, null, allObjects);
+      return allObjects;
     } catch (error) {
       throw new RpcException(error);
     }
@@ -95,7 +130,7 @@ export class DbManagerService {
           : { contract_id: params.contract_id },
       };
 
-      let result: TokenModel | ContractModel;
+      let result: TokenModel | ContractModel | WhitelistModel;
 
       switch (objectType) {
         case ObjectTypes.TOKEN:
@@ -115,9 +150,13 @@ export class DbManagerService {
 
           result = await this.contractRepository.findOne(args);
           break;
+
+        case ObjectTypes.WHITELIST:
+          result = await this.whitelistRepository.findOne(args);
+          break;
       }
 
-      return new ResponseDto(HttpStatus.OK, null, result);
+      return result;
     } catch (error) {
       throw new RpcException(error);
     }

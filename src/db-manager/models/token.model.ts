@@ -32,5 +32,5 @@ export class TokenModel extends Model {
   contract_id: string;
 
   @BelongsTo(() => ContractModel)
-  user: ContractModel;
+  contract: ContractModel;
 }

@@ -16,7 +16,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { DeployDataDto } from './dto/deployData.dto';
 import { MintDataDto } from './dto/mintData.dto';
 import { JobResultDto } from '../common/dto/jobResult.dto';
-import { Networks, ProcessTypes } from '../common/constants';
+import { Networks, OperationTypes, ProcessTypes } from '../common/constants';
 import { ContractModel } from '../db-manager/models/contract.model';
 import { TokenModel } from '../db-manager/models/token.model';
 import { GetJobDto } from './dto/getJob.dto';
@@ -94,29 +94,21 @@ export class Web3Service {
       };
     });
 
-    switch (processType) {
-      case ProcessTypes.MINT:
-        await this.web3Queue.add(ProcessTypes.MINT, data, { jobId, delay: 1000 });
-        break;
-
-      case ProcessTypes.DEPLOY:
-        await this.web3Queue.add(ProcessTypes.DEPLOY, data, { jobId, delay: 1000 });
-        break;
-    }
+    await this.web3Queue.add(processType, data, { jobId, delay: 1000 });
 
     return job$;
   }
 
   async send(
+    network: Networks,
     contract: Contract,
     data: string,
-    processType: ProcessTypes,
-    network: Networks,
+    operationType?: OperationTypes,
   ): Promise<TransactionReceipt> {
     try {
       const w3: Web3 = network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const account = w3.eth.accounts.privateKeyToAccount(this.configService.get('PRIV_KEY'));
-      const to = processType === ProcessTypes.MINT ? contract.options.address : null;
+      const to = operationType === OperationTypes.DEPLOY ? null : contract.options.address;
 
       const tx: TxPayload = {
         nonce: await w3.eth.getTransactionCount(account.address),

@@ -5,5 +5,5 @@ export class DeployDataDto {
   network: Networks;
   abi: AbiItem[];
   bytecode: string;
-  args: string;
+  arguments: string;
 }
