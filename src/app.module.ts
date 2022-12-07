@@ -18,21 +18,14 @@ import { WhitelistModel } from './db-manager/models/whitelist.model';
     }),
     SequelizeModule.forRoot({
       dialect: 'postgres',
-      host: process.env.POSTGRES_HOST,
-      port: +process.env.POSTGRES_PORT,
-      username: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
-      database: process.env.POSTGRES_DB,
+      uri: process.env.POSTGRES_URI,
       models: [ContractModel, TokenModel, WhitelistModel],
       autoLoadModels: true,
       synchronize: true,
       logging: false,
     }),
     BullModule.forRoot({
-      redis: {
-        host: process.env.REDIS_HOST,
-        port: +process.env.REDIS_PORT,
-      },
+      url: process.env.REDIS_URI,
     }),
     AwsSdkModule.forRoot({
       defaultServiceOptions: {
