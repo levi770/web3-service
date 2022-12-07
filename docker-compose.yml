@@ -60,21 +60,6 @@ services:
       - 8881:8081
     depends_on:
         - redis
-        
-  ipfs:
-    container_name: ipfs
-    image: lscr.io/linuxserver/ipfs
-    volumes:
-      - /data/ipfs:/config
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/London
-    ports:
-      - 88:80
-      - 4444:4001
-      - 5555:5001
-      - 8888:8080
 
 volumes:
   postgres:
