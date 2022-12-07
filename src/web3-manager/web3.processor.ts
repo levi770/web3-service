@@ -35,42 +35,44 @@ export class Web3Processor {
 
   @Process(ProcessTypes.WHITELIST)
   async processWhitelist(job: Job) {
-    const callData: CallDataDto = job.data;
-    const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
-    const contractObj = await this.dbManager.findById(callData.contract_id, ObjectTypes.CONTRACT);
+    try {
+      const callData: CallDataDto = job.data;
+      const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
+      const contractObj = await this.dbManager.findById(callData.contract_id, ObjectTypes.CONTRACT);
 
-    if (!contractObj) {
-      throw new RpcException('contract not found');
-    }
-
-    let merkleRoot: string;
-
-    switch (callData.operation_type) {
-      case OperationTypes.WHITELIST_ADD: {
-        const whitelistOptions = callData?.operation_options as WhitelistDto;
-
-        if (!whitelistOptions) {
-          throw new RpcException('operation specific options missed');
-        }
-
-        const whitelistObj = await this.dbManager.create(whitelistOptions, ObjectTypes.WHITELIST);
-
-        if (!whitelistObj) {
-          throw new RpcException('whitelist object creation failed');
-        }
-
-        const whitelist = (await this.dbManager.getAllObjects(ObjectTypes.WHITELIST)).rows;
-        merkleRoot = await this.getMerkleRoot(whitelist as WhitelistModel[]);
+      if (!contractObj) {
+        throw new RpcException('contract not found');
       }
 
-      case OperationTypes.WHITELIST_REMOVE:
-        {
-          const whitelistOptions = callData?.operation_options as WhitelistDto;
+      let root: string, proof: string[];
 
-          if (!whitelistOptions) {
-            throw new RpcException('operation specific options missed');
+      const whitelistOptions = callData?.operation_options as WhitelistDto;
+
+      if (!whitelistOptions) {
+        throw new RpcException('operation specific options missed');
+      }
+
+      switch (callData.operation_type) {
+        case OperationTypes.WHITELIST_ADD: {
+          const whitelistObj = await this.dbManager.create(whitelistOptions, ObjectTypes.WHITELIST);
+
+          if (!whitelistObj) {
+            throw new RpcException('whitelist object creation failed');
           }
 
+          const whitelist = (await this.dbManager.getAllObjects(ObjectTypes.WHITELIST)).rows;
+          const { merkleRoot, merkleProof } = await this.getMerkleRootProof(
+            whitelist as WhitelistModel[],
+            whitelistOptions.address,
+          );
+
+          root = merkleRoot;
+          proof = merkleProof;
+
+          break;
+        }
+
+        case OperationTypes.WHITELIST_REMOVE: {
           const deleted = await this.dbManager.delete(whitelistOptions, ObjectTypes.WHITELIST);
 
           if (deleted === 0) {
@@ -78,92 +80,98 @@ export class Web3Processor {
           }
 
           const whitelist = (await this.dbManager.getAllObjects(ObjectTypes.WHITELIST)).rows;
-          merkleRoot = await this.getMerkleRoot(whitelist as WhitelistModel[]);
+          const { merkleRoot } = await this.getMerkleRootProof(whitelist as WhitelistModel[]);
+          root = merkleRoot;
+
+          break;
         }
+      }
+
+      const contractInst = new w3.eth.Contract(
+        (contractObj as ContractModel).deploy_data.abi as U.AbiItem[],
+        contractObj.address,
+      );
+
+      const abiObj = (contractObj as ContractModel).deploy_data.abi.find(
+        (x) => x.name === callData.method_name && x.type === 'function',
+      );
+
+      if (!abiObj) {
+        throw new RpcException('method not found');
+      }
+
+      const callArgs = [root];
+
+      const isValidArgs = callArgs.length === abiObj.inputs.length;
+
+      if (!isValidArgs) {
+        throw new RpcException('arguments length is not valid');
+      }
+
+      const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
+      const tx = await this.web3Service.send(callData.network, contractInst, txData);
+
+      return { proof, ...tx };
+    } catch (error) {
+      throw new RpcException(error);
     }
-
-    const contractInst = new w3.eth.Contract(
-      (contractObj as ContractModel).deploy_data.abi as U.AbiItem[],
-      contractObj.address,
-    );
-
-    const abiObj = (contractObj as ContractModel).deploy_data.abi.find(
-      (x) => x.name === callData.method_name && x.type === 'function',
-    );
-
-    if (!abiObj) {
-      throw new RpcException('method not found');
-    }
-
-    const callArgs = [merkleRoot];
-
-    const isValidArgs = callArgs.length === abiObj.inputs.length;
-
-    if (!isValidArgs) {
-      throw new RpcException('arguments length is not valid');
-    }
-
-    const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
-    return await this.web3Service.send(callData.network, contractInst, txData);
   }
 
   @Process(ProcessTypes.COMMON)
   async processCall(job: Job) {
-    const callData: CallDataDto = job.data;
-    const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
-    const contractObj = await this.dbManager.findById(callData.contract_id, ObjectTypes.CONTRACT);
+    try {
+      const callData: CallDataDto = job.data;
+      const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
+      const contractObj = await this.dbManager.findById(callData.contract_id, ObjectTypes.CONTRACT);
 
-    if (!contractObj) {
-      throw new RpcException('contract not found');
-    }
+      if (!contractObj) {
+        throw new RpcException('contract not found');
+      }
 
-    const contractInst = new w3.eth.Contract(
-      (contractObj as ContractModel).deploy_data.abi as U.AbiItem[],
-      contractObj.address,
-    );
-    const abiObj = (contractObj as ContractModel).deploy_data.abi.find(
-      (x) => x.name === callData.method_name && x.type === 'function',
-    );
+      const contractInst = new w3.eth.Contract(
+        (contractObj as ContractModel).deploy_data.abi as U.AbiItem[],
+        contractObj.address,
+      );
+      const abiObj = (contractObj as ContractModel).deploy_data.abi.find(
+        (x) => x.name === callData.method_name && x.type === 'function',
+      );
 
-    if (!abiObj) {
-      throw new RpcException('method not found');
-    }
+      if (!abiObj) {
+        throw new RpcException('method not found');
+      }
 
-    const callArgs = callData.arguments.split(',');
+      const callArgs = callData.arguments ? await this.getArgs(callData.arguments, abiObj.inputs) : [];
 
-    const isValidArgs = callArgs.length === abiObj.inputs.length;
+      const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any);
+      const tx = await this.web3Service.send(callData.network, contractInst, txData);
 
-    if (!isValidArgs) {
-      throw new RpcException('arguments length is not valid');
-    }
+      switch (callData.operation_type) {
+        case OperationTypes.COMMON:
+          return tx;
 
-    const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
-    const tx = await this.web3Service.send(callData.network, contractInst, txData);
+        case OperationTypes.MINT:
+          const mintOptions = callData?.operation_options as MintDataDto;
 
-    switch (callData.operation_type) {
-      case OperationTypes.COMMON:
-        return tx;
+          if (!mintOptions) {
+            throw new RpcException('operation specific options missed');
+          }
 
-      case OperationTypes.MINT:
-        const mintOptions = callData?.operation_options as MintDataDto;
+          const metaData = await this.getMetadata(mintOptions);
 
-        if (!mintOptions) {
-          throw new RpcException('operation specific options missed');
-        }
-
-        const metaData = await this.getMetadata(mintOptions);
-
-        return await this.dbManager.create(
-          {
-            contract_id: contractObj.id,
-            address: contractObj.address,
-            nft_number: mintOptions.nft_number,
-            meta_data: metaData,
-            mint_data: mintOptions,
-            mint_tx: tx,
-          },
-          ObjectTypes.TOKEN,
-        );
+          return await this.dbManager.create(
+            {
+              contract_id: contractObj.id,
+              address: contractObj.address,
+              nft_number: mintOptions.nft_number,
+              meta_data: metaData,
+              mint_data: mintOptions,
+              mint_tx: tx,
+            },
+            ObjectTypes.TOKEN,
+          );
+      }
+    } catch (error) {
+      throw new RpcException(error);
     }
   }
 
@@ -203,21 +211,48 @@ export class Web3Processor {
 
     switch (data.asset_type) {
       case FileTypes.IMAGE:
-        metadata.image = `${fileId}/files/${data.asset_url}`;
+        metadata.image = `${this.configService.get('PINATA_GATEWAY')}${fileId}`;
         break;
 
       case FileTypes.OBJECT:
-        metadata.model_url = `${fileId}/files/${data.asset_url}`;
+        metadata.model_url = `${this.configService.get('PINATA_GATEWAY')}${fileId}`;
         break;
     }
 
     return metadata;
   }
 
-  async getMerkleRoot(leaves: WhitelistModel[]) {
-    const hash_leaves = leaves.map((x) => U.keccak256(x.address));
-    const tree = new MerkleTree(hash_leaves, U.keccak256, { sortPairs: true });
+  async getMerkleRootProof(leaves: WhitelistModel[], leaf?: string) {
+    const hash_leaves = leaves.map((x) => {
+      return U.keccak256(x.address);
+    });
 
-    return tree.getHexRoot();
+    const tree = new MerkleTree(hash_leaves, U.keccak256, { sortPairs: true });
+    const merkleRoot = tree.getHexRoot();
+
+    if (leaf) {
+      const merkleProof = tree.getHexProof(U.keccak256(leaf));
+      return { merkleRoot, merkleProof };
+    }
+
+    return { merkleRoot };
+  }
+
+  async getArgs(args: string, inputs: U.AbiInput[]) {
+    const argsArr = args.split('::');
+
+    const isValidArgs = argsArr.length === inputs.length;
+
+    if (!isValidArgs) {
+      throw new RpcException('arguments length is not valid');
+    }
+
+    return argsArr.map((value, index, array) => {
+      if (inputs[index].type === 'bytes32[]') {
+        return JSON.parse(value);
+      }
+
+      return value;
+    });
   }
 }

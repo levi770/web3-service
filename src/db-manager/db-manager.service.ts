@@ -74,9 +74,9 @@ export class DbManagerService {
     try {
       const args: DbArgsPayload = {
         attributes: { exclude: ['updatedAt'] },
-        offset: !params || !params.limit || !params.page ? null : 0 + (+params.page - 1) * +params.limit,
-        limit: !params || !params.limit ? null : +params.limit,
-        order: [[params.order_by || 'createdAt', params.order || 'DESC']] as Order,
+        offset: !params || !params?.limit || !params?.page ? null : 0 + (+params?.page - 1) * +params.limit,
+        limit: !params || !params?.limit ? null : +params?.limit,
+        order: [[params?.order_by || 'createdAt', params?.order || 'DESC']] as Order,
       };
 
       let allObjects: AllObjectsDto;

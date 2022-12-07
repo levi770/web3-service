@@ -23,6 +23,7 @@ import { GetJobDto } from './dto/getJob.dto';
 import { ResponseDto } from '../common/dto/response.dto';
 import { RpcException } from '@nestjs/microservices';
 import { TxPayload } from './interfaces/tx.interface';
+import { CallDataDto } from './dto/callData.dto';
 
 @Injectable()
 export class Web3Service {
@@ -48,7 +49,7 @@ export class Web3Service {
     return new ResponseDto(HttpStatus.OK, null, job);
   }
 
-  async process(data: MintDataDto | DeployDataDto, processType: ProcessTypes): Promise<Observable<JobResultDto>> {
+  async process(data: CallDataDto | DeployDataDto, processType: ProcessTypes): Promise<Observable<JobResultDto>> {
     const jobId = uuidv4();
 
     const job$: Observable<JobResultDto> = new Observable((observer) => {

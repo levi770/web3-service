@@ -9,6 +9,7 @@ import { DbManagerModule } from './db-manager/db-manager.module';
 import { IpfsManagerModule } from './ipfs-manager/ipfs-manager.module';
 import { ContractModel } from './db-manager/models/contract.model';
 import { TokenModel } from './db-manager/models/token.model';
+import { WhitelistModel } from './db-manager/models/whitelist.model';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { TokenModel } from './db-manager/models/token.model';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      models: [ContractModel, TokenModel],
+      models: [ContractModel, TokenModel, WhitelistModel],
       autoLoadModels: true,
       synchronize: true,
       logging: false,

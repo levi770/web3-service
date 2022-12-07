@@ -17,6 +17,7 @@ import { AllObjectsDto } from './db-manager/dto/allObjects.dto';
 import { TokenModel } from './db-manager/models/token.model';
 import { ContractModel } from './db-manager/models/contract.model';
 import { WhitelistModel } from './db-manager/models/whitelist.model';
+import { CallDataDto } from './web3-manager/dto/callData.dto';
 
 @Controller()
 export class AppController {
@@ -33,23 +34,27 @@ export class AppController {
   }
 
   @MessagePattern({ cmd: CMD.CALL })
-  async processCall(data: MintDataDto): Promise<Observable<JobResultDto>> {
-    return await this.web3Service.process(data, ProcessTypes.COMMON);
-  }
+  async processCall(data: CallDataDto): Promise<Observable<JobResultDto>> {
+    switch (data.operation_type) {
+      case OperationTypes.WHITELIST_ADD:
+        return await this.web3Service.process(data, ProcessTypes.WHITELIST);
 
-  @MessagePattern({ cmd: CMD.CALL })
-  async processWhitelist(data: MintDataDto): Promise<Observable<JobResultDto>> {
-    return await this.web3Service.process(data, ProcessTypes.WHITELIST);
+      case OperationTypes.WHITELIST_REMOVE:
+        return await this.web3Service.process(data, ProcessTypes.WHITELIST);
+
+      default:
+        return await this.web3Service.process(data, ProcessTypes.COMMON);
+    }
   }
 
   @MessagePattern({ cmd: CMD.ALL_OBJECTS })
   async getAllObjects(data: GetAllDto): Promise<AllObjectsDto> {
-    return await this.dbManagerService.getAllObjects(ObjectTypes.CONTRACT, data);
+    return await this.dbManagerService.getAllObjects(data.object_type, data);
   }
 
   @MessagePattern({ cmd: CMD.ONE_OBJECT })
   async getOneObject(data: GetOneDto): Promise<TokenModel | ContractModel | WhitelistModel> {
-    return await this.dbManagerService.getOneObject(ObjectTypes.CONTRACT, data);
+    return await this.dbManagerService.getOneObject(data.object_type, data);
   }
 
   @MessagePattern({ cmd: CMD.UPDATE_METADATA })

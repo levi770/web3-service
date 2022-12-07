@@ -1,3 +1,4 @@
+import FormData from 'form-data';
 import { S3 } from 'aws-sdk';
 import { InjectAwsService } from 'nest-aws-sdk';
 import { Injectable } from '@nestjs/common';
@@ -36,11 +37,11 @@ export class IpfsManagerService {
 
   async uploadToPinata(file: { name: string; data: Buffer }): Promise<string> {
     const formData = new FormData();
-    formData.append('file', new Blob([file.data]), `files/${file.name}`);
+    formData.append('file', file.data, file.name);
 
     const pinData = await lastValueFrom(
       this.httpService
-        .post((this.configService.get('PINATA_URL')) + 'pinning/pinFileToIPFS', formData, {
+        .post(this.configService.get('PINATA_URL') + 'pinning/pinFileToIPFS', formData, {
           maxBodyLength: Infinity,
           headers: {
             'Content-Type': `multipart/form-data; boundary=${(formData as any).getBoundary()}`,
