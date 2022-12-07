@@ -18,12 +18,12 @@ const microservices_1 = require("@nestjs/microservices");
 const constants_1 = require("./common/constants");
 const deployData_dto_1 = require("./web3-manager/dto/deployData.dto");
 const getAll_dto_1 = require("./db-manager/dto/getAll.dto");
-const mintData_dto_1 = require("./web3-manager/dto/mintData.dto");
 const db_manager_service_1 = require("./db-manager/db-manager.service");
 const web3_service_1 = require("./web3-manager/web3.service");
 const getOne_dto_1 = require("./db-manager/dto/getOne.dto");
 const getJob_dto_1 = require("./web3-manager/dto/getJob.dto");
 const updateMetadata_dto_1 = require("./db-manager/dto/updateMetadata.dto");
+const callData_dto_1 = require("./web3-manager/dto/callData.dto");
 let AppController = class AppController {
     constructor(web3Service, dbManagerService) {
         this.web3Service = web3Service;
@@ -36,16 +36,20 @@ let AppController = class AppController {
         return await this.web3Service.process(data, constants_1.ProcessTypes.DEPLOY);
     }
     async processCall(data) {
-        return await this.web3Service.process(data, constants_1.ProcessTypes.COMMON);
-    }
-    async processWhitelist(data) {
-        return await this.web3Service.process(data, constants_1.ProcessTypes.WHITELIST);
+        switch (data.operation_type) {
+            case constants_1.OperationTypes.WHITELIST_ADD:
+                return await this.web3Service.process(data, constants_1.ProcessTypes.WHITELIST);
+            case constants_1.OperationTypes.WHITELIST_REMOVE:
+                return await this.web3Service.process(data, constants_1.ProcessTypes.WHITELIST);
+            default:
+                return await this.web3Service.process(data, constants_1.ProcessTypes.COMMON);
+        }
     }
     async getAllObjects(data) {
-        return await this.dbManagerService.getAllObjects(constants_1.ObjectTypes.CONTRACT, data);
+        return await this.dbManagerService.getAllObjects(data.object_type, data);
     }
     async getOneObject(data) {
-        return await this.dbManagerService.getOneObject(constants_1.ObjectTypes.CONTRACT, data);
+        return await this.dbManagerService.getOneObject(data.object_type, data);
     }
     async updateMetadata(data) {
         return await this.dbManagerService.updateMetadata(data);
@@ -69,15 +73,9 @@ __decorate([
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.CALL }),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [mintData_dto_1.MintDataDto]),
+    __metadata("design:paramtypes", [callData_dto_1.CallDataDto]),
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "processCall", null);
-__decorate([
-    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.CALL }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [mintData_dto_1.MintDataDto]),
-    __metadata("design:returntype", Promise)
-], AppController.prototype, "processWhitelist", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.ALL_OBJECTS }),
     __metadata("design:type", Function),

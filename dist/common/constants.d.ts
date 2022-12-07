@@ -28,8 +28,6 @@ export declare enum CMD {
     CALL = "processcall",
     ALL_OBJECTS = "getallobjects",
     ONE_OBJECT = "getoneobject",
-    ALL_TOKENS = "getalltokens",
-    ONE_TOKEN = "getonetoken",
     JOB = "getjobbyid",
     UPDATE_METADATA = "updatemetadata"
 }

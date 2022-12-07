@@ -15,7 +15,7 @@ const contract_model_1 = require("./contract.model");
 let WhitelistModel = class WhitelistModel extends sequelize_typescript_1.Model {
 };
 __decorate([
-    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING }),
+    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING, unique: true }),
     __metadata("design:type", String)
 ], WhitelistModel.prototype, "address", void 0);
 __decorate([

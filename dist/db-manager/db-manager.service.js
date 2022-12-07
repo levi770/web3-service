@@ -65,9 +65,9 @@ let DbManagerService = class DbManagerService {
         try {
             const args = {
                 attributes: { exclude: ['updatedAt'] },
-                offset: !params || !params.limit || !params.page ? null : 0 + (+params.page - 1) * +params.limit,
-                limit: !params || !params.limit ? null : +params.limit,
-                order: [[params.order_by || 'createdAt', params.order || 'DESC']],
+                offset: !params || !params?.limit || !params?.page ? null : 0 + (+params?.page - 1) * +params.limit,
+                limit: !params || !params?.limit ? null : +params?.limit,
+                order: [[params?.order_by || 'createdAt', params?.order || 'DESC']],
             };
             let allObjects;
             switch (objectType) {

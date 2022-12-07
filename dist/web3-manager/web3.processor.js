@@ -56,89 +56,96 @@ let Web3Processor = class Web3Processor {
         this.polygon = new web3_1.default(new web3_1.default.providers.HttpProvider(this.configService.get('POLYGON_HOST')));
     }
     async processWhitelist(job) {
-        const callData = job.data;
-        const w3 = callData.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
-        const contractObj = await this.dbManager.findById(callData.contract_id, constants_1.ObjectTypes.CONTRACT);
-        if (!contractObj) {
-            throw new microservices_1.RpcException('contract not found');
-        }
-        let merkleRoot;
-        switch (callData.operation_type) {
-            case constants_1.OperationTypes.WHITELIST_ADD: {
-                const whitelistOptions = callData?.operation_options;
-                if (!whitelistOptions) {
-                    throw new microservices_1.RpcException('operation specific options missed');
-                }
-                const whitelistObj = await this.dbManager.create(whitelistOptions, constants_1.ObjectTypes.WHITELIST);
-                if (!whitelistObj) {
-                    throw new microservices_1.RpcException('whitelist object creation failed');
-                }
-                const whitelist = (await this.dbManager.getAllObjects(constants_1.ObjectTypes.WHITELIST)).rows;
-                merkleRoot = await this.getMerkleRoot(whitelist);
+        try {
+            const callData = job.data;
+            const w3 = callData.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
+            const contractObj = await this.dbManager.findById(callData.contract_id, constants_1.ObjectTypes.CONTRACT);
+            if (!contractObj) {
+                throw new microservices_1.RpcException('contract not found');
             }
-            case constants_1.OperationTypes.WHITELIST_REMOVE:
-                {
-                    const whitelistOptions = callData?.operation_options;
-                    if (!whitelistOptions) {
-                        throw new microservices_1.RpcException('operation specific options missed');
+            let root, proof;
+            const whitelistOptions = callData?.operation_options;
+            if (!whitelistOptions) {
+                throw new microservices_1.RpcException('operation specific options missed');
+            }
+            switch (callData.operation_type) {
+                case constants_1.OperationTypes.WHITELIST_ADD: {
+                    const whitelistObj = await this.dbManager.create(whitelistOptions, constants_1.ObjectTypes.WHITELIST);
+                    if (!whitelistObj) {
+                        throw new microservices_1.RpcException('whitelist object creation failed');
                     }
+                    const whitelist = (await this.dbManager.getAllObjects(constants_1.ObjectTypes.WHITELIST)).rows;
+                    const { merkleRoot, merkleProof } = await this.getMerkleRootProof(whitelist, whitelistOptions.address);
+                    root = merkleRoot;
+                    proof = merkleProof;
+                    break;
+                }
+                case constants_1.OperationTypes.WHITELIST_REMOVE: {
                     const deleted = await this.dbManager.delete(whitelistOptions, constants_1.ObjectTypes.WHITELIST);
                     if (deleted === 0) {
                         throw new microservices_1.RpcException('whitelist object creation failed');
                     }
                     const whitelist = (await this.dbManager.getAllObjects(constants_1.ObjectTypes.WHITELIST)).rows;
-                    merkleRoot = await this.getMerkleRoot(whitelist);
+                    const { merkleRoot } = await this.getMerkleRootProof(whitelist);
+                    root = merkleRoot;
+                    break;
                 }
+            }
+            const contractInst = new w3.eth.Contract(contractObj.deploy_data.abi, contractObj.address);
+            const abiObj = contractObj.deploy_data.abi.find((x) => x.name === callData.method_name && x.type === 'function');
+            if (!abiObj) {
+                throw new microservices_1.RpcException('method not found');
+            }
+            const callArgs = [root];
+            const isValidArgs = callArgs.length === abiObj.inputs.length;
+            if (!isValidArgs) {
+                throw new microservices_1.RpcException('arguments length is not valid');
+            }
+            const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
+            const tx = await this.web3Service.send(callData.network, contractInst, txData);
+            return { proof, ...tx };
         }
-        const contractInst = new w3.eth.Contract(contractObj.deploy_data.abi, contractObj.address);
-        const abiObj = contractObj.deploy_data.abi.find((x) => x.name === callData.method_name && x.type === 'function');
-        if (!abiObj) {
-            throw new microservices_1.RpcException('method not found');
+        catch (error) {
+            throw new microservices_1.RpcException(error);
         }
-        const callArgs = [merkleRoot];
-        const isValidArgs = callArgs.length === abiObj.inputs.length;
-        if (!isValidArgs) {
-            throw new microservices_1.RpcException('arguments length is not valid');
-        }
-        const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
-        return await this.web3Service.send(callData.network, contractInst, txData);
     }
     async processCall(job) {
-        const callData = job.data;
-        const w3 = callData.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
-        const contractObj = await this.dbManager.findById(callData.contract_id, constants_1.ObjectTypes.CONTRACT);
-        if (!contractObj) {
-            throw new microservices_1.RpcException('contract not found');
+        try {
+            const callData = job.data;
+            const w3 = callData.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
+            const contractObj = await this.dbManager.findById(callData.contract_id, constants_1.ObjectTypes.CONTRACT);
+            if (!contractObj) {
+                throw new microservices_1.RpcException('contract not found');
+            }
+            const contractInst = new w3.eth.Contract(contractObj.deploy_data.abi, contractObj.address);
+            const abiObj = contractObj.deploy_data.abi.find((x) => x.name === callData.method_name && x.type === 'function');
+            if (!abiObj) {
+                throw new microservices_1.RpcException('method not found');
+            }
+            const callArgs = callData.arguments ? await this.getArgs(callData.arguments, abiObj.inputs) : [];
+            const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
+            const tx = await this.web3Service.send(callData.network, contractInst, txData);
+            switch (callData.operation_type) {
+                case constants_1.OperationTypes.COMMON:
+                    return tx;
+                case constants_1.OperationTypes.MINT:
+                    const mintOptions = callData?.operation_options;
+                    if (!mintOptions) {
+                        throw new microservices_1.RpcException('operation specific options missed');
+                    }
+                    const metaData = await this.getMetadata(mintOptions);
+                    return await this.dbManager.create({
+                        contract_id: contractObj.id,
+                        address: contractObj.address,
+                        nft_number: mintOptions.nft_number,
+                        meta_data: metaData,
+                        mint_data: mintOptions,
+                        mint_tx: tx,
+                    }, constants_1.ObjectTypes.TOKEN);
+            }
         }
-        const contractInst = new w3.eth.Contract(contractObj.deploy_data.abi, contractObj.address);
-        const abiObj = contractObj.deploy_data.abi.find((x) => x.name === callData.method_name && x.type === 'function');
-        if (!abiObj) {
-            throw new microservices_1.RpcException('method not found');
-        }
-        const callArgs = callData.arguments.split(',');
-        const isValidArgs = callArgs.length === abiObj.inputs.length;
-        if (!isValidArgs) {
-            throw new microservices_1.RpcException('arguments length is not valid');
-        }
-        const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
-        const tx = await this.web3Service.send(callData.network, contractInst, txData);
-        switch (callData.operation_type) {
-            case constants_1.OperationTypes.COMMON:
-                return tx;
-            case constants_1.OperationTypes.MINT:
-                const mintOptions = callData?.operation_options;
-                if (!mintOptions) {
-                    throw new microservices_1.RpcException('operation specific options missed');
-                }
-                const metaData = await this.getMetadata(mintOptions);
-                return await this.dbManager.create({
-                    contract_id: contractObj.id,
-                    address: contractObj.address,
-                    nft_number: mintOptions.nft_number,
-                    meta_data: metaData,
-                    mint_data: mintOptions,
-                    mint_tx: tx,
-                }, constants_1.ObjectTypes.TOKEN);
+        catch (error) {
+            throw new microservices_1.RpcException(error);
         }
     }
     async deploy(job) {
@@ -164,18 +171,38 @@ let Web3Processor = class Web3Processor {
         const metadata = data.meta_data;
         switch (data.asset_type) {
             case constants_1.FileTypes.IMAGE:
-                metadata.image = `${fileId}/files/${data.asset_url}`;
+                metadata.image = `${this.configService.get('PINATA_GATEWAY')}${fileId}`;
                 break;
             case constants_1.FileTypes.OBJECT:
-                metadata.model_url = `${fileId}/files/${data.asset_url}`;
+                metadata.model_url = `${this.configService.get('PINATA_GATEWAY')}${fileId}`;
                 break;
         }
         return metadata;
     }
-    async getMerkleRoot(leaves) {
-        const hash_leaves = leaves.map((x) => U.keccak256(x.address));
+    async getMerkleRootProof(leaves, leaf) {
+        const hash_leaves = leaves.map((x) => {
+            return U.keccak256(x.address);
+        });
         const tree = new merkletreejs_1.default(hash_leaves, U.keccak256, { sortPairs: true });
-        return tree.getHexRoot();
+        const merkleRoot = tree.getHexRoot();
+        if (leaf) {
+            const merkleProof = tree.getHexProof(U.keccak256(leaf));
+            return { merkleRoot, merkleProof };
+        }
+        return { merkleRoot };
+    }
+    async getArgs(args, inputs) {
+        const argsArr = args.split('::');
+        const isValidArgs = argsArr.length === inputs.length;
+        if (!isValidArgs) {
+            throw new microservices_1.RpcException('arguments length is not valid');
+        }
+        return argsArr.map((value, index, array) => {
+            if (inputs[index].type === 'bytes32[]') {
+                return JSON.parse(value);
+            }
+            return value;
+        });
     }
 };
 __decorate([

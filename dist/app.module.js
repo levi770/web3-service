@@ -18,6 +18,7 @@ const db_manager_module_1 = require("./db-manager/db-manager.module");
 const ipfs_manager_module_1 = require("./ipfs-manager/ipfs-manager.module");
 const contract_model_1 = require("./db-manager/models/contract.model");
 const token_model_1 = require("./db-manager/models/token.model");
+const whitelist_model_1 = require("./db-manager/models/whitelist.model");
 let AppModule = class AppModule {
 };
 AppModule = __decorate([
@@ -28,21 +29,14 @@ AppModule = __decorate([
             }),
             sequelize_1.SequelizeModule.forRoot({
                 dialect: 'postgres',
-                host: process.env.POSTGRES_HOST,
-                port: +process.env.POSTGRES_PORT,
-                username: process.env.POSTGRES_USER,
-                password: process.env.POSTGRES_PASSWORD,
-                database: process.env.POSTGRES_DB,
-                models: [contract_model_1.ContractModel, token_model_1.TokenModel],
+                uri: process.env.POSTGRES_URI,
+                models: [contract_model_1.ContractModel, token_model_1.TokenModel, whitelist_model_1.WhitelistModel],
                 autoLoadModels: true,
                 synchronize: true,
                 logging: false,
             }),
             bull_1.BullModule.forRoot({
-                redis: {
-                    host: process.env.REDIS_HOST,
-                    port: +process.env.REDIS_PORT,
-                },
+                url: process.env.REDIS_URI,
             }),
             nest_aws_sdk_1.AwsSdkModule.forRoot({
                 defaultServiceOptions: {

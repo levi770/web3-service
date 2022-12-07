@@ -37,8 +37,6 @@ var CMD;
     CMD["CALL"] = "processcall";
     CMD["ALL_OBJECTS"] = "getallobjects";
     CMD["ONE_OBJECT"] = "getoneobject";
-    CMD["ALL_TOKENS"] = "getalltokens";
-    CMD["ONE_TOKEN"] = "getonetoken";
     CMD["JOB"] = "getjobbyid";
     CMD["UPDATE_METADATA"] = "updatemetadata";
 })(CMD = exports.CMD || (exports.CMD = {}));

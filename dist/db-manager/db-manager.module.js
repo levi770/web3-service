@@ -12,12 +12,13 @@ const sequelize_1 = require("@nestjs/sequelize");
 const contract_model_1 = require("./models/contract.model");
 const token_model_1 = require("./models/token.model");
 const db_manager_service_1 = require("./db-manager.service");
+const whitelist_model_1 = require("./models/whitelist.model");
 let DbManagerModule = class DbManagerModule {
 };
 DbManagerModule = __decorate([
     (0, common_1.Module)({
         providers: [db_manager_service_1.DbManagerService],
-        imports: [sequelize_1.SequelizeModule.forFeature([contract_model_1.ContractModel, token_model_1.TokenModel])],
+        imports: [sequelize_1.SequelizeModule.forFeature([contract_model_1.ContractModel, token_model_1.TokenModel, whitelist_model_1.WhitelistModel])],
         exports: [db_manager_service_1.DbManagerService],
     })
 ], DbManagerModule);

@@ -1,3 +1,4 @@
+import * as U from 'web3-utils';
 import { Job } from 'bull';
 import { ConfigService } from '@nestjs/config';
 import { MintDataDto } from './dto/mintData.dto';
@@ -16,9 +17,34 @@ export declare class Web3Processor {
     private ethereum;
     private polygon;
     constructor(configService: ConfigService, dbManager: DbManagerService, ipfsManger: IpfsManagerService, web3Service: Web3Service);
-    processWhitelist(job: Job): Promise<import("web3-core").TransactionReceipt>;
+    processWhitelist(job: Job): Promise<{
+        status: boolean;
+        transactionHash: string;
+        transactionIndex: number;
+        blockHash: string;
+        blockNumber: number;
+        from: string;
+        to: string;
+        contractAddress?: string;
+        cumulativeGasUsed: number;
+        gasUsed: number;
+        effectiveGasPrice: number;
+        logs: import("web3-core").Log[];
+        logsBloom: string;
+        events?: {
+            [eventName: string]: import("web3-core").EventLog;
+        };
+        proof: string[];
+    }>;
     processCall(job: Job): Promise<ContractModel | TokenModel | WhitelistModel | import("web3-core").TransactionReceipt>;
     deploy(job: Job): Promise<ContractModel>;
     getMetadata(data: MintDataDto): Promise<MetaDataDto>;
-    getMerkleRoot(leaves: WhitelistModel[]): Promise<string>;
+    getMerkleRootProof(leaves: WhitelistModel[], leaf?: string): Promise<{
+        merkleRoot: string;
+        merkleProof: string[];
+    } | {
+        merkleRoot: string;
+        merkleProof?: undefined;
+    }>;
+    getArgs(args: string, inputs: U.AbiInput[]): Promise<any[]>;
 }

@@ -11,8 +11,12 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.IpfsManagerService = void 0;
+const form_data_1 = __importDefault(require("form-data"));
 const aws_sdk_1 = require("aws-sdk");
 const nest_aws_sdk_1 = require("nest-aws-sdk");
 const common_1 = require("@nestjs/common");
@@ -43,10 +47,10 @@ let IpfsManagerService = class IpfsManagerService {
         }
     }
     async uploadToPinata(file) {
-        const formData = new FormData();
-        formData.append('file', new Blob([file.data]), `files/${file.name}`);
+        const formData = new form_data_1.default();
+        formData.append('file', file.data, file.name);
         const pinData = await (0, rxjs_1.lastValueFrom)(this.httpService
-            .post((this.configService.get('PINATA_URL')) + 'pinning/pinFileToIPFS', formData, {
+            .post(this.configService.get('PINATA_URL') + 'pinning/pinFileToIPFS', formData, {
             maxBodyLength: Infinity,
             headers: {
                 'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`,
