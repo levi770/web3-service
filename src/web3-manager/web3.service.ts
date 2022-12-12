@@ -1,29 +1,25 @@
-import Web3 from 'web3';
-import { v4 as uuidv4 } from 'uuid';
-import { TransactionReceipt } from 'web3-core';
-import { Contract, ContractSendMethod } from 'web3-eth-contract';
-import { Job, JobPromise, Queue } from 'bull';
-import { Observable } from 'rxjs';
-import {
-  BadRequestException,
-  HttpStatus,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { InjectQueue } from '@nestjs/bull';
-import { DeployDataDto } from './dto/deployData.dto';
-import { MintDataDto } from './dto/mintData.dto';
-import { JobResultDto } from '../common/dto/jobResult.dto';
-import { Networks, OperationTypes, ProcessTypes } from '../common/constants';
-import { ContractModel } from '../db-manager/models/contract.model';
-import { TokenModel } from '../db-manager/models/token.model';
-import { GetJobDto } from './dto/getJob.dto';
-import { ResponseDto } from '../common/dto/response.dto';
-import { RpcException } from '@nestjs/microservices';
-import { TxPayload } from './interfaces/tx.interface';
-import { CallDataDto } from './dto/callData.dto';
+import Web3 from 'web3'
+import { CallDataDto } from './dto/callData.dto'
+import { ConfigService } from '@nestjs/config'
+import { Contract } from 'web3-eth-contract'
+import { ContractModel } from '../db-manager/models/contract.model'
+import { DeployDataDto } from './dto/deployData.dto'
+import { GetJobDto } from './dto/getJob.dto'
+import { HttpStatus, Injectable } from '@nestjs/common'
+import { InjectQueue } from '@nestjs/bull'
+import { Job, JobPromise, Queue } from 'bull'
+import { JobResultDto } from '../common/dto/jobResult.dto'
+import { MintDataDto } from './dto/mintData.dto'
+import { Networks, OperationTypes, ProcessTypes } from '../common/constants'
+import { Observable } from 'rxjs'
+import { ResponseDto } from '../common/dto/response.dto'
+import { RpcException } from '@nestjs/microservices'
+import { TokenModel } from '../db-manager/models/token.model'
+import { TransactionReceipt } from 'web3-core'
+import { TxObj } from './interfaces/txObj.interface'
+import { TxPayload } from './interfaces/tx.interface'
+import { TxResultDto } from './dto/txResult.dto'
+import { v4 as uuidv4 } from 'uuid'
 
 @Injectable()
 export class Web3Service {
@@ -100,44 +96,49 @@ export class Web3Service {
     return job$;
   }
 
-  async send(
-    network: Networks,
-    contract: Contract,
-    data: string,
-    operationType?: OperationTypes,
-  ): Promise<TransactionReceipt> {
+  async send(txObj: TxObj): Promise<TxResultDto> {
     try {
-      const w3: Web3 = network === Networks.ETHEREUM ? this.ethereum : this.polygon;
+      const w3: Web3 = txObj.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const account = w3.eth.accounts.privateKeyToAccount(this.configService.get('PRIV_KEY'));
-      const to = operationType === OperationTypes.DEPLOY ? null : contract.options.address;
+      const to = txObj.operationType === OperationTypes.DEPLOY ? null : txObj.contract.options.address;
 
       const tx: TxPayload = {
         nonce: await w3.eth.getTransactionCount(account.address),
         maxPriorityFeePerGas: await w3.eth.getGasPrice(),
         gas: await w3.eth.estimateGas({
           from: account.address,
+          data: txObj.data,
           value: 0,
-          data,
           to,
         }),
         from: account.address,
+        data: txObj.data,
         value: 0,
-        data,
         to,
       };
 
-      const comission = +tx.gas * +tx.maxPriorityFeePerGas;
+      const comission = (+tx.gas * +tx.maxPriorityFeePerGas).toString();
       const balance = await w3.eth.getBalance(account.address);
 
-      if (+balance < comission) {
+      if (+balance < +comission) {
         throw new RpcException('Not enough balance');
       }
 
-      const signed = await account.signTransaction(tx);
+      if (!txObj.execute) {
+        return { tx, comission, balance };
+      }
 
-      return await w3.eth.sendSignedTransaction(signed.rawTransaction);
+      const signed = await account.signTransaction(tx);
+      const txReceipt = await w3.eth.sendSignedTransaction(signed.rawTransaction);
+
+      return { tx, comission, balance, txReceipt };
     } catch (error) {
       throw new RpcException(error);
     }
+  }
+
+  async getTxReceipt(txHash: string, network: Networks) {
+    const w3: Web3 = network === Networks.ETHEREUM ? this.ethereum : this.polygon;
+    return await w3.eth.getTransactionReceipt(txHash);
   }
 }

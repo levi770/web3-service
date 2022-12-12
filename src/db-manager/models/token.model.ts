@@ -1,8 +1,10 @@
-import { Column, DataType, Model, Table, ForeignKey, BelongsTo } from 'sequelize-typescript';
-import { TransactionReceipt } from 'web3-eth';
-import { MetaDataDto } from '../../web3-manager/dto/metaData.dto';
-import { MintDataDto } from '../../web3-manager/dto/mintData.dto';
-import { ContractModel } from './contract.model';
+import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript'
+import { ContractModel } from './contract.model'
+import { MetaDataDto } from '../../web3-manager/dto/metaData.dto'
+import { MetadataModel } from './metadata.model'
+import { MintDataDto } from '../../web3-manager/dto/mintData.dto'
+import { TransactionReceipt } from 'web3-eth'
+
 
 @Table({ tableName: 'tokens' })
 export class TokenModel extends Model {
@@ -14,23 +16,39 @@ export class TokenModel extends Model {
   id: string;
 
   @Column({ type: DataType.STRING })
+  status: string;
+
+  @Column({
+    type: DataType.INTEGER,
+    unique: true,
+    autoIncrement: true,
+  })
+  token_id: number;
+
+  @Column({ type: DataType.STRING })
   address: string;
 
-  @Column({ type: DataType.STRING, unique: true })
+  @Column({ type: DataType.STRING })
   nft_number: string;
 
   @Column({ type: DataType.JSON })
   mint_data: MintDataDto;
 
-  @Column({ type: DataType.JSON })
-  meta_data: MetaDataDto;
+  @Column({ type: DataType.STRING })
+  tx_hash: string;
 
   @Column({ type: DataType.JSON })
-  mint_tx: TransactionReceipt;
+  tx_receipt: TransactionReceipt;
 
   @ForeignKey(() => ContractModel)
   contract_id: string;
 
   @BelongsTo(() => ContractModel)
   contract: ContractModel;
+
+  @ForeignKey(() => MetadataModel)
+  metadata_id: string;
+
+  @BelongsTo(() => MetadataModel)
+  metadata: MetadataModel;
 }

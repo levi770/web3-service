@@ -1,4 +1,7 @@
+import { Statuses } from 'aws-sdk/clients/signer'
+
 export class NewTokenDto {
+  status: Statuses;
   contract_id?: string;
   address: string;
   nft_number: string;

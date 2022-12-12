@@ -1,10 +1,10 @@
-import compression from 'compression';
-import cookieParser from 'cookie-parser';
-import { NestFactory } from '@nestjs/core';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import compression from 'compression'
+import cookieParser from 'cookie-parser'
+import { AppModule } from './app.module'
+import { Logger } from '@nestjs/common'
+import { MicroserviceOptions, Transport } from '@nestjs/microservices'
+import { NestExpressApplication } from '@nestjs/platform-express'
+import { NestFactory } from '@nestjs/core'
 
 
 async function bootstrap() {

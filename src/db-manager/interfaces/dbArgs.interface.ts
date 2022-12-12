@@ -1,6 +1,6 @@
-import { Order } from 'sequelize';
+import { Order } from 'sequelize'
 
-export interface DbArgsPayload {
+export interface DbArgs {
   attributes?: {
     exclude: string[];
   };
