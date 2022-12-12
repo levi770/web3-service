@@ -1,11 +1,17 @@
 import { Model } from 'sequelize-typescript';
-import { TransactionReceipt } from 'web3-eth';
 import { DeployDataDto } from '../../web3-manager/dto/deployData.dto';
+import { MetadataModel } from './metadata.model';
 import { TokenModel } from './token.model';
+import { TransactionReceipt } from 'web3-eth';
+import { WhitelistModel } from './whitelist.model';
 export declare class ContractModel extends Model {
     id: string;
+    status: string;
     address: string;
     deploy_data: DeployDataDto;
-    deploy_tx: TransactionReceipt;
+    tx_hash: string;
+    tx_receipt: TransactionReceipt;
+    metadata: MetadataModel;
     tokens: TokenModel[];
+    whitelist: WhitelistModel[];
 }

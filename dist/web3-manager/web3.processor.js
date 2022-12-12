@@ -36,16 +36,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Web3Processor = void 0;
-const web3_1 = __importDefault(require("web3"));
 const U = __importStar(require("web3-utils"));
-const bull_1 = require("@nestjs/bull");
+const merkletreejs_1 = __importDefault(require("merkletreejs"));
+const web3_1 = __importDefault(require("web3"));
 const config_1 = require("@nestjs/config");
 const db_manager_service_1 = require("../db-manager/db-manager.service");
-const web3_service_1 = require("./web3.service");
 const constants_1 = require("../common/constants");
 const ipfs_manager_service_1 = require("../ipfs-manager/ipfs-manager.service");
+const bull_1 = require("@nestjs/bull");
 const microservices_1 = require("@nestjs/microservices");
-const merkletreejs_1 = __importDefault(require("merkletreejs"));
+const web3_service_1 = require("./web3.service");
 let Web3Processor = class Web3Processor {
     constructor(configService, dbManager, ipfsManger, web3Service) {
         this.configService = configService;
@@ -59,12 +59,16 @@ let Web3Processor = class Web3Processor {
         try {
             const callData = job.data;
             const w3 = callData.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
-            const contractObj = await this.dbManager.findById(callData.contract_id, constants_1.ObjectTypes.CONTRACT);
+            const contractObj = (await this.dbManager.findById(callData.contract_id, constants_1.ObjectTypes.CONTRACT));
             if (!contractObj) {
                 throw new microservices_1.RpcException('contract not found');
             }
-            let root, proof;
-            const whitelistOptions = callData?.operation_options;
+            let merkleRoot, merkleProof;
+            const whitelistOptions = {
+                status: callData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED,
+                contract_id: contractObj.id,
+                address: callData.operation_options.address,
+            };
             if (!whitelistOptions) {
                 throw new microservices_1.RpcException('operation specific options missed');
             }
@@ -75,9 +79,9 @@ let Web3Processor = class Web3Processor {
                         throw new microservices_1.RpcException('whitelist object creation failed');
                     }
                     const whitelist = (await this.dbManager.getAllObjects(constants_1.ObjectTypes.WHITELIST)).rows;
-                    const { merkleRoot, merkleProof } = await this.getMerkleRootProof(whitelist, whitelistOptions.address);
-                    root = merkleRoot;
-                    proof = merkleProof;
+                    const { root, proof } = await this.getMerkleRootProof(whitelist, whitelistOptions.address);
+                    merkleRoot = root;
+                    merkleProof = proof;
                     break;
                 }
                 case constants_1.OperationTypes.WHITELIST_REMOVE: {
@@ -86,8 +90,8 @@ let Web3Processor = class Web3Processor {
                         throw new microservices_1.RpcException('whitelist object creation failed');
                     }
                     const whitelist = (await this.dbManager.getAllObjects(constants_1.ObjectTypes.WHITELIST)).rows;
-                    const { merkleRoot } = await this.getMerkleRootProof(whitelist);
-                    root = merkleRoot;
+                    const { root } = await this.getMerkleRootProof(whitelist);
+                    merkleRoot = root;
                     break;
                 }
             }
@@ -96,14 +100,25 @@ let Web3Processor = class Web3Processor {
             if (!abiObj) {
                 throw new microservices_1.RpcException('method not found');
             }
-            const callArgs = [root];
+            const callArgs = [merkleRoot];
             const isValidArgs = callArgs.length === abiObj.inputs.length;
             if (!isValidArgs) {
                 throw new microservices_1.RpcException('arguments length is not valid');
             }
             const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
-            const tx = await this.web3Service.send(callData.network, contractInst, txData);
-            return { proof, ...tx };
+            const txObj = {
+                execute: callData.execute,
+                network: callData.network,
+                contract: contractInst,
+                data: txData,
+                operationType: constants_1.OperationTypes.COMMON,
+            };
+            const callTx = await this.web3Service.send(txObj);
+            const tx = callData.execute ? callTx.txReceipt : null;
+            if (merkleProof) {
+                return { merkleProof, callTx };
+            }
+            return { callTx };
         }
         catch (error) {
             throw new microservices_1.RpcException(error);
@@ -113,7 +128,10 @@ let Web3Processor = class Web3Processor {
         try {
             const callData = job.data;
             const w3 = callData.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
-            const contractObj = await this.dbManager.findById(callData.contract_id, constants_1.ObjectTypes.CONTRACT);
+            const contractObj = (await this.dbManager.getOneObject(constants_1.ObjectTypes.CONTRACT, {
+                id: callData.contract_id,
+                include_child: true,
+            }));
             if (!contractObj) {
                 throw new microservices_1.RpcException('contract not found');
             }
@@ -124,24 +142,41 @@ let Web3Processor = class Web3Processor {
             }
             const callArgs = callData.arguments ? await this.getArgs(callData.arguments, abiObj.inputs) : [];
             const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
-            const tx = await this.web3Service.send(callData.network, contractInst, txData);
+            const txObj = {
+                execute: callData.execute,
+                network: callData.network,
+                contract: contractInst,
+                data: txData,
+                operationType: constants_1.OperationTypes.COMMON,
+            };
+            const callTx = await this.web3Service.send(txObj);
+            const tx = callData.execute ? callTx.txReceipt : null;
             switch (callData.operation_type) {
                 case constants_1.OperationTypes.COMMON:
-                    return tx;
+                    return { callTx };
                 case constants_1.OperationTypes.MINT:
                     const mintOptions = callData?.operation_options;
                     if (!mintOptions) {
                         throw new microservices_1.RpcException('operation specific options missed');
                     }
-                    const metaData = await this.getMetadata(mintOptions);
-                    return await this.dbManager.create({
+                    const tokenObj = (await this.dbManager.create({
+                        status: callData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED,
                         contract_id: contractObj.id,
                         address: contractObj.address,
                         nft_number: mintOptions.nft_number,
-                        meta_data: metaData,
                         mint_data: mintOptions,
                         mint_tx: tx,
-                    }, constants_1.ObjectTypes.TOKEN);
+                    }, constants_1.ObjectTypes.TOKEN));
+                    let metadataObj;
+                    if (mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type) {
+                        const meta_data = await this.getMetadata(mintOptions);
+                        metadataObj = (await this.dbManager.create({ status: constants_1.Statuses.CREATED, token_id: tokenObj.id, meta_data }, constants_1.ObjectTypes.METADATA));
+                        await this.dbManager.setMetadata({ object_id: tokenObj.id, metadata_id: metadataObj.id }, constants_1.ObjectTypes.TOKEN);
+                        return { callTx, meta_data, metadataObj, tokenObj };
+                    }
+                    metadataObj = contractObj.metadata;
+                    await this.dbManager.setMetadata({ object_id: tokenObj.id, metadata_id: metadataObj.id }, constants_1.ObjectTypes.TOKEN);
+                    return { callTx, metadataObj, tokenObj };
             }
         }
         catch (error) {
@@ -153,14 +188,32 @@ let Web3Processor = class Web3Processor {
             const deployData = job.data;
             const w3 = deployData.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
             const contractInstance = new w3.eth.Contract(deployData.abi);
-            const txData = contractInstance.deploy({ data: deployData.bytecode, arguments: deployData.arguments.split(',') });
-            const deployTx = await this.web3Service.send(deployData.network, contractInstance, txData.encodeABI(), constants_1.OperationTypes.DEPLOY);
-            const contractObj = await this.dbManager.create({
-                address: deployTx.contractAddress,
+            const txData = contractInstance.deploy({
+                data: deployData.bytecode,
+                arguments: deployData.arguments.split('::'),
+            });
+            const txObj = {
+                execute: deployData.execute,
+                network: deployData.network,
+                contract: contractInstance,
+                data: txData.encodeABI(),
+                operationType: constants_1.OperationTypes.DEPLOY,
+            };
+            const deployTx = await this.web3Service.send(txObj);
+            const tx = deployData.execute ? deployTx.txReceipt : null;
+            const contractObj = (await this.dbManager.create({
+                status: deployData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED,
+                address: tx.contractAddress ?? null,
                 deploy_data: deployData,
-                deploy_tx: deployTx,
-            }, constants_1.ObjectTypes.CONTRACT);
-            return contractObj;
+                deploy_tx: tx,
+            }, constants_1.ObjectTypes.CONTRACT));
+            if (deployData.meta_data && deployData.asset_url && deployData.asset_type) {
+                const meta_data = await this.getMetadata(deployData);
+                const metadataObj = (await this.dbManager.create({ status: constants_1.Statuses.CREATED, meta_data }, constants_1.ObjectTypes.METADATA));
+                await this.dbManager.setMetadata({ object_id: contractObj.id, metadata_id: metadataObj.id }, constants_1.ObjectTypes.CONTRACT);
+                return { deployTx, meta_data, metadataObj, contractObj };
+            }
+            return { deployTx, contractObj };
         }
         catch (error) {
             throw new microservices_1.RpcException(error);
@@ -184,12 +237,12 @@ let Web3Processor = class Web3Processor {
             return U.keccak256(x.address);
         });
         const tree = new merkletreejs_1.default(hash_leaves, U.keccak256, { sortPairs: true });
-        const merkleRoot = tree.getHexRoot();
+        const root = tree.getHexRoot();
         if (leaf) {
-            const merkleProof = tree.getHexProof(U.keccak256(leaf));
-            return { merkleRoot, merkleProof };
+            const proof = tree.getHexProof(U.keccak256(leaf));
+            return { root, proof };
         }
-        return { merkleRoot };
+        return { root };
     }
     async getArgs(args, inputs) {
         const argsArr = args.split('::');

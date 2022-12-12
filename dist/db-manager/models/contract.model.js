@@ -12,7 +12,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContractModel = void 0;
 const sequelize_typescript_1 = require("sequelize-typescript");
 const deployData_dto_1 = require("../../web3-manager/dto/deployData.dto");
+const metadata_model_1 = require("./metadata.model");
 const token_model_1 = require("./token.model");
+const whitelist_model_1 = require("./whitelist.model");
 let ContractModel = class ContractModel extends sequelize_typescript_1.Model {
 };
 __decorate([
@@ -26,19 +28,35 @@ __decorate([
 __decorate([
     (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING }),
     __metadata("design:type", String)
+], ContractModel.prototype, "status", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING }),
+    __metadata("design:type", String)
 ], ContractModel.prototype, "address", void 0);
 __decorate([
     (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.JSON }),
     __metadata("design:type", deployData_dto_1.DeployDataDto)
 ], ContractModel.prototype, "deploy_data", void 0);
 __decorate([
+    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING }),
+    __metadata("design:type", String)
+], ContractModel.prototype, "tx_hash", void 0);
+__decorate([
     (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.JSON }),
     __metadata("design:type", Object)
-], ContractModel.prototype, "deploy_tx", void 0);
+], ContractModel.prototype, "tx_receipt", void 0);
+__decorate([
+    (0, sequelize_typescript_1.HasOne)(() => metadata_model_1.MetadataModel, { onDelete: 'CASCADE' }),
+    __metadata("design:type", metadata_model_1.MetadataModel)
+], ContractModel.prototype, "metadata", void 0);
 __decorate([
     (0, sequelize_typescript_1.HasMany)(() => token_model_1.TokenModel, { onDelete: 'CASCADE' }),
     __metadata("design:type", Array)
 ], ContractModel.prototype, "tokens", void 0);
+__decorate([
+    (0, sequelize_typescript_1.HasMany)(() => whitelist_model_1.WhitelistModel, { onDelete: 'CASCADE' }),
+    __metadata("design:type", Array)
+], ContractModel.prototype, "whitelist", void 0);
 ContractModel = __decorate([
     (0, sequelize_typescript_1.Table)({ tableName: 'contracts' })
 ], ContractModel);

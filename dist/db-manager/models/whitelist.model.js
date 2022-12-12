@@ -15,13 +15,37 @@ const contract_model_1 = require("./contract.model");
 let WhitelistModel = class WhitelistModel extends sequelize_typescript_1.Model {
 };
 __decorate([
-    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING, unique: true }),
+    (0, sequelize_typescript_1.Column)({
+        type: sequelize_typescript_1.DataType.UUID,
+        defaultValue: sequelize_typescript_1.DataType.UUIDV4,
+        primaryKey: true,
+    }),
+    __metadata("design:type", String)
+], WhitelistModel.prototype, "id", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING }),
+    __metadata("design:type", String)
+], WhitelistModel.prototype, "status", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING }),
+    __metadata("design:type", String)
+], WhitelistModel.prototype, "tx_hash", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.JSON }),
+    __metadata("design:type", Object)
+], WhitelistModel.prototype, "tx_receipt", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING }),
     __metadata("design:type", String)
 ], WhitelistModel.prototype, "address", void 0);
 __decorate([
     (0, sequelize_typescript_1.ForeignKey)(() => contract_model_1.ContractModel),
     __metadata("design:type", String)
 ], WhitelistModel.prototype, "contract_id", void 0);
+__decorate([
+    (0, sequelize_typescript_1.BelongsTo)(() => contract_model_1.ContractModel),
+    __metadata("design:type", contract_model_1.ContractModel)
+], WhitelistModel.prototype, "contract", void 0);
 WhitelistModel = __decorate([
     (0, sequelize_typescript_1.Table)({ tableName: 'whitelist' })
 ], WhitelistModel);

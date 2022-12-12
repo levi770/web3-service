@@ -1,6 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WEB3_QUEUE = exports.CMD = exports.FileTypes = exports.Networks = exports.ObjectTypes = exports.OperationTypes = exports.ProcessTypes = void 0;
+exports.WEB3_QUEUE = exports.CMD = exports.FileTypes = exports.Networks = exports.ObjectTypes = exports.OperationTypes = exports.ProcessTypes = exports.Statuses = void 0;
+var Statuses;
+(function (Statuses) {
+    Statuses["CREATED"] = "created";
+    Statuses["PROCESSED"] = "processed";
+    Statuses["UNKNOWN"] = "unknown";
+    Statuses["FAILED"] = "failed";
+    Statuses["DEPLOYED"] = "deployed";
+    Statuses["MINTED"] = "minted";
+    Statuses["UPDATED"] = "updated";
+    Statuses["DELETED"] = "deleted";
+})(Statuses = exports.Statuses || (exports.Statuses = {}));
 var ProcessTypes;
 (function (ProcessTypes) {
     ProcessTypes["DEPLOY"] = "deploy";
@@ -20,6 +31,7 @@ var ObjectTypes;
     ObjectTypes["CONTRACT"] = "contract";
     ObjectTypes["TOKEN"] = "token";
     ObjectTypes["WHITELIST"] = "whitelist";
+    ObjectTypes["METADATA"] = "metadata";
 })(ObjectTypes = exports.ObjectTypes || (exports.ObjectTypes = {}));
 var Networks;
 (function (Networks) {
@@ -39,6 +51,7 @@ var CMD;
     CMD["ONE_OBJECT"] = "getoneobject";
     CMD["JOB"] = "getjobbyid";
     CMD["UPDATE_METADATA"] = "updatemetadata";
+    CMD["UPDATE_STATUS"] = "updatestatus";
 })(CMD = exports.CMD || (exports.CMD = {}));
 exports.WEB3_QUEUE = 'web3';
 //# sourceMappingURL=constants.js.map

@@ -1,15 +1,19 @@
 import { Model } from 'sequelize-typescript';
-import { TransactionReceipt } from 'web3-eth';
-import { MetaDataDto } from '../../web3-manager/dto/metaData.dto';
-import { MintDataDto } from '../../web3-manager/dto/mintData.dto';
 import { ContractModel } from './contract.model';
+import { MetadataModel } from './metadata.model';
+import { MintDataDto } from '../../web3-manager/dto/mintData.dto';
+import { TransactionReceipt } from 'web3-eth';
 export declare class TokenModel extends Model {
     id: string;
+    status: string;
+    token_id: number;
     address: string;
     nft_number: string;
     mint_data: MintDataDto;
-    meta_data: MetaDataDto;
-    mint_tx: TransactionReceipt;
+    tx_hash: string;
+    tx_receipt: TransactionReceipt;
     contract_id: string;
     contract: ContractModel;
+    metadata_id: string;
+    metadata: MetadataModel;
 }

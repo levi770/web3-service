@@ -1,3 +1,13 @@
+export declare enum Statuses {
+    CREATED = "created",
+    PROCESSED = "processed",
+    UNKNOWN = "unknown",
+    FAILED = "failed",
+    DEPLOYED = "deployed",
+    MINTED = "minted",
+    UPDATED = "updated",
+    DELETED = "deleted"
+}
 export declare enum ProcessTypes {
     DEPLOY = "deploy",
     COMMON = "common",
@@ -13,7 +23,8 @@ export declare enum OperationTypes {
 export declare enum ObjectTypes {
     CONTRACT = "contract",
     TOKEN = "token",
-    WHITELIST = "whitelist"
+    WHITELIST = "whitelist",
+    METADATA = "metadata"
 }
 export declare enum Networks {
     ETHEREUM = 5,
@@ -29,6 +40,7 @@ export declare enum CMD {
     ALL_OBJECTS = "getallobjects",
     ONE_OBJECT = "getoneobject",
     JOB = "getjobbyid",
-    UPDATE_METADATA = "updatemetadata"
+    UPDATE_METADATA = "updatemetadata",
+    UPDATE_STATUS = "updatestatus"
 }
 export declare const WEB3_QUEUE = "web3";

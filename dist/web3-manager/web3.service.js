@@ -17,15 +17,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Web3Service = void 0;
 const web3_1 = __importDefault(require("web3"));
-const uuid_1 = require("uuid");
-const rxjs_1 = require("rxjs");
-const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const common_1 = require("@nestjs/common");
 const bull_1 = require("@nestjs/bull");
 const jobResult_dto_1 = require("../common/dto/jobResult.dto");
 const constants_1 = require("../common/constants");
+const rxjs_1 = require("rxjs");
 const response_dto_1 = require("../common/dto/response.dto");
 const microservices_1 = require("@nestjs/microservices");
+const uuid_1 = require("uuid");
 let Web3Service = class Web3Service {
     constructor(web3Queue, configService) {
         this.web3Queue = web3Queue;
@@ -82,36 +82,44 @@ let Web3Service = class Web3Service {
         await this.web3Queue.add(processType, data, { jobId, delay: 1000 });
         return job$;
     }
-    async send(network, contract, data, operationType) {
+    async send(txObj) {
         try {
-            const w3 = network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
+            const w3 = txObj.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
             const account = w3.eth.accounts.privateKeyToAccount(this.configService.get('PRIV_KEY'));
-            const to = operationType === constants_1.OperationTypes.DEPLOY ? null : contract.options.address;
+            const to = txObj.operationType === constants_1.OperationTypes.DEPLOY ? null : txObj.contract.options.address;
             const tx = {
                 nonce: await w3.eth.getTransactionCount(account.address),
                 maxPriorityFeePerGas: await w3.eth.getGasPrice(),
                 gas: await w3.eth.estimateGas({
                     from: account.address,
+                    data: txObj.data,
                     value: 0,
-                    data,
                     to,
                 }),
                 from: account.address,
+                data: txObj.data,
                 value: 0,
-                data,
                 to,
             };
-            const comission = +tx.gas * +tx.maxPriorityFeePerGas;
+            const comission = (+tx.gas * +tx.maxPriorityFeePerGas).toString();
             const balance = await w3.eth.getBalance(account.address);
-            if (+balance < comission) {
+            if (+balance < +comission) {
                 throw new microservices_1.RpcException('Not enough balance');
             }
+            if (!txObj.execute) {
+                return { tx, comission, balance };
+            }
             const signed = await account.signTransaction(tx);
-            return await w3.eth.sendSignedTransaction(signed.rawTransaction);
+            const txReceipt = await w3.eth.sendSignedTransaction(signed.rawTransaction);
+            return { tx, comission, balance, txReceipt };
         }
         catch (error) {
             throw new microservices_1.RpcException(error);
         }
+    }
+    async getTxReceipt(txHash, network) {
+        const w3 = network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
+        return await w3.eth.getTransactionReceipt(txHash);
     }
 };
 Web3Service = __decorate([
