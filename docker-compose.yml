@@ -14,6 +14,7 @@ services:
       - .env
     ports:
       - 5000:5000
+      - 9229:9229
     command: npm run start:dev
     depends_on:
       - postgres
@@ -42,6 +43,8 @@ services:
       - 8880:80
     depends_on:
       - postgres
+    logging:
+      driver: none
 
   redis:
     container_name: redis
@@ -62,11 +65,11 @@ services:
         - redis
 
 volumes:
+  app:
+    driver: local
   postgres:
     driver: local
   pgadmin:
     driver: local
   redis:
-    driver: local
-  ipfs:
     driver: local
