@@ -59,7 +59,7 @@ export class AppController {
     return await this.dbManagerService.getOneObject(data.object_type, data);
   }
 
-  @MessagePattern({ cmd: CMD.UPDATE_METADATA })
+  @MessagePattern({ cmd: CMD.UPDATE_STATUS })
   async updateStatus(data: UpdateStatusDto): Promise<ResponseDto> {
     let txReceipt: TransactionReceipt;
 

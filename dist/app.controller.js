@@ -101,7 +101,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "getOneObject", null);
 __decorate([
-    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.UPDATE_METADATA }),
+    (0, microservices_1.MessagePattern)({ cmd: constants_1.CMD.UPDATE_STATUS }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [updateStatus_dto_1.UpdateStatusDto]),
     __metadata("design:returntype", Promise)
