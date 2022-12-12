@@ -78,6 +78,8 @@ Input data:
 - ```"bytecode"```, required for contract deploy operation in blockchain.
 - ```"arguments"```, is double colon (::) separated arguments fields for contract constructor (ex.: ```"argItem1::argItem2::[\"argArrayItem1\",\"argArrayItem2\"]::argItem3"```).
 - ```"asset_url"```, ```"asset_type"```, ```"meta_data"``` is optional fields, if setted, service will create common metadata object for this collection.
+- `"asset_url"`, is a file key in AWS S3, it will be downloaded from S3 and uploaded to Pinata IPFS node and IPFS url will be setted to metadata object. 
+
 
 Output data:
 ```json
@@ -140,6 +142,30 @@ Output data:
 - if ```"operation_type"``` was ```"mint"```, ```"metadataObj"``` will be created in DB and setted to token entity as a related object. if metadata fields in operation specific payload was empty, the common metadata object from collection entity will be setted to this token entity as related object.
 - ```"tokenObj"```, is a token entity created in DB.
 - if ```"operation_type"``` was ```"whitelistadd"```, the ```"merkleProof"``` array will be created and returned after updating merkle root for this contract.
+
+## Operation specified options DTOs
+
+### Mint options
+
+```json
+{
+  "nft_number": "string",
+  "mint_to": "string",
+  "asset_url": "string",
+  "asset_type": "FileTypes",
+  "meta_data": "MetaDataDto"
+}
+```
+
+### Whitelist options
+
+```json
+{
+  "contract_id": "string",
+  "address": "string"
+}
+```
+
 
 ## Update object status if blockchain operation was executed on client side
 
@@ -249,7 +275,7 @@ Message pattern:
 Input data:
 ```json
 {
-  "jobId": "string";
+  "jobId": "string"
 }
 ```
 
@@ -286,6 +312,8 @@ Output data:
 Params: ```"token_id"```, token id in contract state in blockchain
 
 Output data:
+
+MetadataDto
 ```json
 {
   "name": "string",
@@ -306,4 +334,3 @@ Output data:
   }],
 }
 ```
-
