@@ -18,6 +18,9 @@ export class MetadataModel extends Model {
   @Column({ type: DataType.STRING })
   status: string;
 
+  @Column({ type: DataType.STRING })
+  type: string;
+
   @Column({ type: DataType.JSON })
   meta_data: MetaDataDto;
 

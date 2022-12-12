@@ -8,7 +8,7 @@ import { ContractModel } from '../db-manager/models/contract.model'
 import { DbManagerService } from '../db-manager/db-manager.service'
 import { DeployDataDto } from './dto/deployData.dto'
 import { DeployResultDto } from './dto/deployResult.dto'
-import { FileTypes, Networks, ObjectTypes, OperationTypes, ProcessTypes, Statuses } from '../common/constants'
+import { FileTypes, MetadataTypes, Networks, ObjectTypes, OperationTypes, ProcessTypes, Statuses } from '../common/constants'
 import { IpfsManagerService } from '../ipfs-manager/ipfs-manager.service'
 import { Job } from 'bull'
 import { MetaDataDto } from './dto/metaData.dto'
@@ -202,7 +202,7 @@ export class Web3Processor {
             const meta_data = await this.getMetadata(mintOptions);
 
             metadataObj = (await this.dbManager.create(
-              { status: Statuses.CREATED, token_id: tokenObj.id, meta_data },
+              { status: Statuses.CREATED, type: MetadataTypes.SPECIFIED, token_id: tokenObj.id, meta_data },
               ObjectTypes.METADATA,
             )) as MetadataModel;
 
@@ -260,7 +260,7 @@ export class Web3Processor {
       if (deployData.meta_data && deployData.asset_url && deployData.asset_type) {
         const meta_data = await this.getMetadata(deployData);
         const metadataObj = (await this.dbManager.create(
-          { status: Statuses.CREATED, meta_data },
+          { status: Statuses.CREATED, type: MetadataTypes.COMMON, meta_data },
           ObjectTypes.METADATA,
         )) as MetadataModel;
 

@@ -7,10 +7,10 @@ import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/sequelize'
 import { MetaDataDto } from '../web3-manager/dto/metaData.dto'
 import { MetadataModel } from './models/metadata.model'
+import { MetadataTypes, ObjectTypes, Statuses } from '../common/constants'
 import { NewContractDto } from './dto/newContract.dto'
 import { NewMetadataDto } from './dto/newMetadata.dto'
 import { NewTokenDto } from './dto/newToken.dto'
-import { ObjectTypes } from '../common/constants'
 import { Op, Order } from 'sequelize'
 import { ResponseDto } from '../common/dto/response.dto'
 import { RpcException } from '@nestjs/microservices'
@@ -280,12 +280,21 @@ export class DbManagerService {
       throw new RpcException('Token with this number not found');
     }
 
-    const metadata = (await this.getOneObject(ObjectTypes.METADATA, {
+    let metadata = (await this.getOneObject(ObjectTypes.METADATA, {
       id: (token as TokenModel).metadata_id,
     })) as MetadataModel;
 
     if (!metadata) {
       throw new RpcException('Metadata not found');
+    }
+
+    if (metadata.type === MetadataTypes.COMMON) {
+      const newMetadata = (await this.create(
+        { status: Statuses.CREATED, type: MetadataTypes.SPECIFIED, token_id: token.id, meta_data: metadata.meta_data },
+        ObjectTypes.METADATA,
+      )) as MetadataModel;
+
+      metadata = newMetadata;
     }
 
     try {

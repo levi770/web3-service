@@ -9,20 +9,18 @@ Supported blockchains:
 
 Supported operations:
 
-- Template agnostic contract deploy
-- Template agnostic NFT mint
+- Collection contract deploy
+- ABI agnostic contract call
 - Read/Update NFT metadata
 
-The following applications will be available to manage the working infrastructure of the project after launch:
+The following applications will be available to manage the the project after launch:
 
 - PgAdmin [http://localhost:8880/](http://localhost:8880/)
-- IPFS WebGUI [http://localhost:5555/](http://localhost:5555/)
 - Redis Commander [http://localhost:8881/](http://localhost:8881/)
 
 ## Requirements
 
 - git,
-- docker,
 - docker-compose
 
 ## Installation

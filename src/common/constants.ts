@@ -1,3 +1,8 @@
+export enum MetadataTypes {
+  COMMON = 'common',
+  SPECIFIED = 'specified',
+}
+
 export enum Statuses {
   CREATED = 'created',
   PROCESSED = 'processed',
