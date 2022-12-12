@@ -29,6 +29,10 @@ __decorate([
     __metadata("design:type", String)
 ], MetadataModel.prototype, "status", void 0);
 __decorate([
+    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING }),
+    __metadata("design:type", String)
+], MetadataModel.prototype, "type", void 0);
+__decorate([
     (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.JSON }),
     __metadata("design:type", metaData_dto_1.MetaDataDto)
 ], MetadataModel.prototype, "meta_data", void 0);

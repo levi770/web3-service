@@ -5,6 +5,7 @@ import { TokenModel } from './token.model';
 export declare class MetadataModel extends Model {
     id: string;
     status: string;
+    type: string;
     meta_data: MetaDataDto;
     contract_id: string;
     contract: ContractModel;

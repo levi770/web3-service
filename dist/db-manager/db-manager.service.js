@@ -226,11 +226,15 @@ let DbManagerService = class DbManagerService {
         if (!token) {
             throw new microservices_1.RpcException('Token with this number not found');
         }
-        const metadata = (await this.getOneObject(constants_1.ObjectTypes.METADATA, {
+        let metadata = (await this.getOneObject(constants_1.ObjectTypes.METADATA, {
             id: token.metadata_id,
         }));
         if (!metadata) {
             throw new microservices_1.RpcException('Metadata not found');
+        }
+        if (metadata.type === constants_1.MetadataTypes.COMMON) {
+            const newMetadata = (await this.create({ status: constants_1.Statuses.CREATED, type: constants_1.MetadataTypes.SPECIFIED, token_id: token.id, meta_data: metadata.meta_data }, constants_1.ObjectTypes.METADATA));
+            metadata = newMetadata;
         }
         try {
             for (const key in data.meta_data) {

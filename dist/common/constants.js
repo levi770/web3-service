@@ -1,6 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WEB3_QUEUE = exports.CMD = exports.FileTypes = exports.Networks = exports.ObjectTypes = exports.OperationTypes = exports.ProcessTypes = exports.Statuses = void 0;
+exports.WEB3_QUEUE = exports.CMD = exports.FileTypes = exports.Networks = exports.ObjectTypes = exports.OperationTypes = exports.ProcessTypes = exports.Statuses = exports.MetadataTypes = void 0;
+var MetadataTypes;
+(function (MetadataTypes) {
+    MetadataTypes["COMMON"] = "common";
+    MetadataTypes["SPECIFIED"] = "specified";
+})(MetadataTypes = exports.MetadataTypes || (exports.MetadataTypes = {}));
 var Statuses;
 (function (Statuses) {
     Statuses["CREATED"] = "created";

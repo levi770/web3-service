@@ -170,7 +170,7 @@ let Web3Processor = class Web3Processor {
                     let metadataObj;
                     if (mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type) {
                         const meta_data = await this.getMetadata(mintOptions);
-                        metadataObj = (await this.dbManager.create({ status: constants_1.Statuses.CREATED, token_id: tokenObj.id, meta_data }, constants_1.ObjectTypes.METADATA));
+                        metadataObj = (await this.dbManager.create({ status: constants_1.Statuses.CREATED, type: constants_1.MetadataTypes.SPECIFIED, token_id: tokenObj.id, meta_data }, constants_1.ObjectTypes.METADATA));
                         await this.dbManager.setMetadata({ object_id: tokenObj.id, metadata_id: metadataObj.id }, constants_1.ObjectTypes.TOKEN);
                         return { callTx, meta_data, metadataObj, tokenObj };
                     }
@@ -209,7 +209,7 @@ let Web3Processor = class Web3Processor {
             }, constants_1.ObjectTypes.CONTRACT));
             if (deployData.meta_data && deployData.asset_url && deployData.asset_type) {
                 const meta_data = await this.getMetadata(deployData);
-                const metadataObj = (await this.dbManager.create({ status: constants_1.Statuses.CREATED, meta_data }, constants_1.ObjectTypes.METADATA));
+                const metadataObj = (await this.dbManager.create({ status: constants_1.Statuses.CREATED, type: constants_1.MetadataTypes.COMMON, meta_data }, constants_1.ObjectTypes.METADATA));
                 await this.dbManager.setMetadata({ object_id: contractObj.id, metadata_id: metadataObj.id }, constants_1.ObjectTypes.CONTRACT);
                 return { deployTx, meta_data, metadataObj, contractObj };
             }
