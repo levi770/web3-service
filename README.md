@@ -1,6 +1,6 @@
 # CRM-WEB3-SERVICE
 
-Microservice for blockhain related operations as deploying contracts, minting tokens and querying tokens data. The microservice is a NestJS application based on the postgres database, Redis pub/sub messaging transport protocol, the local IPFS node, and the AWS S3 client.
+Microservice for blockchain-related operations such as deploying contracts, minting tokens, and querying token data. The microservice is a NestJS application that uses a Postgres database, Redis pub/sub messaging transport protocol, a local IPFS node, and an AWS S3 client.
 
 Supported blockchains:
 
@@ -10,8 +10,8 @@ Supported blockchains:
 Supported operations:
 
 - Collection contract deploy
-- ABI agnostic contract calls
-- Read/Update NFT metadata
+- ABI-agnostic contract calls
+- Reading/updating NFT metadata
 
 The following applications will be available to manage the the project after launch:
 
@@ -31,7 +31,7 @@ $ cd crm-web3-svc
 $ mv .env-example .env
 ```
 
-Fill missed variables in .env file with actual values. All variables is required.
+Fill the missed variables in .env file with actual values. All variables is required.
 
 ```bash
 $ docker-compose build
@@ -40,9 +40,9 @@ $ docker-compose up
 
 # Microservice API methods description
 
-All web3 related operations such as contract deploy and contract call will be processed in queue order. After operation request received the microservice will register a job and return an observable object and start to process a job and pipe all stages of this process to observable. 
+All web3-related operations, such as contract deployment and contract calls, will be processed in queue order. After a request for an operation is received, the microservice will register a job and return an observable object. It will then start to process the job and pipe all stages of this process to the observable.
 
-There is three types of job results from web3 service:
+There are three types of job results from the web3 service:
 
 - `"received"`, object contains `jobId` and job input data.
 - `"completed"`, object contains `jobId` and job output data.
@@ -72,13 +72,14 @@ Input data:
 }
 ```
 
-- if `"execute:true"`, transaction will be processed in blockchain, if `"execute:false"`, service will only generate transaction payload data for executing on clients side.
-- `"network"`, is Ethereum or Polygon chainId.
-- `"abi"`, is a contract ABI, required for collection deploy operation and processing contract methods calls.
-- `"bytecode"`, required for contract deploy operation in blockchain.
-- `"arguments"`, is double colon (::) separated arguments fields for contract constructor (ex.: `"argItem1::argItem2::[\"argArrayItem1\",\"argArrayItem2\"]::argItem3"`).
-- `"asset_url"`, `"asset_type"`, `"meta_data"` is optional fields, if setted, service will create common metadata object for this collection.
-- `"asset_url"`, is a file key in AWS S3, it will be downloaded from S3 and uploaded to Pinata IPFS node and IPFS url will be setted to metadata object. 
+- If `"execute:true"`, the transaction will be processed on the blockchain. If `"execute:false"`, the service will only generate transaction payload data for execution on the client side.
+- `"network"` specifies the Ethereum or Polygon chain ID.
+- `"abi"` is the contract ABI, required for collection deployment operations and processing contract method calls.
+- `"bytecode"` is required for contract deployment on the blockchain.
+- `"arguments"` is a double colon (::) separated list of fields for the contract constructor (e.g. `"argItem1::argItem2::["argArrayItem1","argArrayItem2"]::argItem3"`).
+- `"asset_url"`, `"asset_type"`, and `"meta_data"` are optional fields. If set, the service will create a common metadata object for this collection.
+- `"asset_url"` is a file key in AWS S3. It will be downloaded from S3 and uploaded to the Pinata IPFS node, and the IPFS URL will be set in the metadata object.
+
 
 
 Output data:
@@ -91,10 +92,11 @@ Output data:
 }
 ```
 
-- if `"execute:true"` the `"deployTx"` will contain transaction receipt and related data, if `"execute:false"` the `"deployTx"` will contain transaction payload for execution on client side.
-- if inputs `"asset_url"`, `"asset_type"` and `"meta_data"` was not empty, `"meta_data"` output will contains metadata from payload.
-- if inputs `"asset_url"`, `"asset_type"` and `"meta_data"` was not empty, `"metadataObj"`, will be created in DB and setted to contract as related object.
-- `"contractObj"`, is a contract entity created in DB.
+- If `"execute:true"`, the `"deployTx"` will contain the transaction receipt and related data. If `"execute:false"`, the `"deployTx"` will contain the transaction payload for execution on the client side.
+- If the input fields `"asset_url"`, `"asset_type"`, and `"meta_data"` were not empty, the `"meta_data"` output will contain metadata from the payload.
+- If the input fields `"asset_url"`, `"asset_type"`, and `"meta_data"` were not empty, a `"metadataObj"` will be created in the database and linked to the contract as a related object.
+- `"contractObj"` is the contract entity created in the database.
+
 
 ## Process any contract method (common call)
 
@@ -118,13 +120,14 @@ Input data:
 }
 ```
 
-- if `"execute:true"`, transaction will be processed in blockchain, if `"execute:false"`, service will only generate transaction payload data for executing on clients side.
-- `"network"`, is Ethereum or Polygon chainId.
-- `"contract_id"`, is id of existing contract in DB for call methods.
-- `"method_name"`, contract method name (ex.: `"toggleSaleActive"`, `"toggleSaleFree"`, `"editSaleRestrictions"`)
-- `"arguments"`, is double colon (::) separated data fields for contract method call (ex.: `"argItem1::argItem2::[\"argArrayItem1\",\"argArrayItem2\"]::argItem3"`).
-- `"operation_type"`, is operation flag (ex.: `"mint"`, `"whitelistadd"`, `"whitelistremove"` or `"common"`)
-- `"operation_options"`, is operation specific options for execution method call (ex.: address for adding or removing from whitelist or token minting payload data)
+- If `"execute:true"`, the transaction will be processed on the blockchain. If `"execute:false"`, the service will only generate transaction payload data for execution on the client side.
+- `"network"` specifies the Ethereum or Polygon chain ID.
+- `"contract_id"` is the ID of an existing contract in the database for calling methods.
+- `"method_name"` is the name of the contract method (e.g. `"toggleSaleActive"`, `"toggleSaleFree"`, `"editSaleRestrictions"`).
+- `"arguments"` is a double colon (::) separated list of data fields for the contract method call (e.g. `"argItem1::argItem2::[\"argArrayItem1\",\"argArrayItem2\"]::argItem3"`).
+- `"operation_type"` is an operation flag (e.g. `"mint"`, `"whitelistadd"`, `"whitelistremove"`, or `"common"`).
+- `"operation_options"` is a set of operation-specific options for executing the method call (e.g. an address for adding or removing from the whitelist, or token minting payload data).
+
 
 Output data:
 ```json
@@ -137,11 +140,12 @@ Output data:
 }
 ```
 
-- if `execute:true`, the `"callTx"` object will contains transaction receipt and related data, if `execute:false` the `"callTx"` will contains transaction payload for execution on client side.
-- if `"operation_type"` was `"mint"`, `meta_data` field will contains metadata for token mint from input payload.
-- if `"operation_type"` was `"mint"`, `"metadataObj"` will be created in DB and setted to token entity as a related object. if metadata fields in operation specific payload was empty, the common metadata object from collection entity will be setted to this token entity as related object.
-- `"tokenObj"`, is a token entity created in DB.
-- if `"operation_type"` was `"whitelistadd"`, the `"merkleProof"` array will be created and returned after updating merkle root for this contract.
+- If `"execute:true"`, the `"callTx"` object will contain the transaction receipt and related data. If `"execute:false"`, the `"callTx"` will contain the transaction payload for execution on the client side.
+- If `"operation_type"` is `"mint"`, the `"meta_data"` field will contain metadata for the token mint from the input payload.
+- If `"operation_type"` is `"mint"`, a `"metadataObj"` will be created in the database and linked to the token entity as a related object. If the metadata fields in the operation-specific payload are empty, the common metadata object from the collection entity will be linked to this token entity as a related object.
+- `"tokenObj"` is the token entity created in the database.
+- If `"operation_type"` is `"whitelistadd"`, the `"merkleProof"` array will be created and returned after updating the merkle root for this contract.
+
 
 ## Operation specified options DTOs
 
@@ -156,11 +160,12 @@ Output data:
   "meta_data": "MetaDataDto"
 }
 ```
-- `"nft_number"`, qty of tokens to mint
-- `"mint_to"`, user's wallet address to mint token
-- `"asset_url"`, is a file key in AWS S3, it will be downloaded from S3 and uploaded to Pinata IPFS node and IPFS url will be setted to metadata object.
-- `"asset_type"`, `"image"` or 3d `"object"`
-- `"meta_data"`, token metadata payload 
+- `"nft_number"` is the quantity of tokens to mint.
+- `"mint_to"` is the user's wallet address to mint the token to.
+- `"asset_url"` is a file key in AWS S3. It will be downloaded from S3 and uploaded to the Pinata IPFS node, and the IPFS URL will be set in the metadata object.
+- `"asset_type"` is either `"image"` or `"object"` for a 3D object.
+- `"meta_data"` is the token metadata payload.
+
 
 
 ### Whitelist options
@@ -171,8 +176,9 @@ Output data:
   "address": "string"
 }
 ```
-- `"contract_id"`, id of contract entity from DB 
-- `"address"`, user's wallet address to add or remove from contract's whitelist
+- `"contract_id"` is the ID of the contract entity from the database.
+- `"address"` is the user's wallet address to add or remove from the contract's whitelist.
+
 
 ## Update object status if blockchain operation was executed on client side
 
@@ -194,11 +200,12 @@ Input data:
 }
 ```
 
-- `"network"`, is Ethereum or Polygon chainId.
-- `"object_type"`, specified object type (ex.: "contract", "token").
-- `"object_type"`, specified object id.
-- `"tx_hash"`, transaction hash, received after execution of blockchain transaction on client's side, microservice will get a transaction receipt from blockchain by this transaction hash an will set the object (contract or token) status in Db depending on the results of this transaction.
-- `"tx_receipt"`, optional object, transaction receipt, received after execution of blockchain transaction on client's side
+- `"network"` specifies the Ethereum or Polygon chain ID.
+- `"object_type"` specifies the type of object (e.g. `"contract"` or `"token"`).
+- `"object_id"` is the ID of the specified object.
+- `"tx_hash"` is the transaction hash received after the execution of a blockchain transaction on the client side. The microservice will retrieve the transaction receipt from the blockchain using this transaction hash and will update the status of the object (contract or token) in the database depending on the results of the transaction.
+- `"tx_receipt"` is an optional object containing the transaction receipt received after the execution of a blockchain transaction on the client side.
+
 
 Output data:
 `"text message"`
@@ -224,11 +231,12 @@ Input data:
 }
 ```
 
-- `"object_type"`, specified object type (ex.: `"contract"`, `"token"`).
-- `"page"` and `"limit"`, standart pagination options.
-- `"order"`, sorting direction.
-- `"order_by"`, sorting field.
-- if `"include_child:true"`, will include all relations for each entity.
+- `"object_type"` specifies the type of object (e.g. `"contract"` or `"token"`).
+- `"page"` and `"limit"` are standard pagination options.
+- `"order"` specifies the sorting direction.
+- `"order_by"` specifies the field to sort by.
+- If `"include_child:true"`, all relations for each entity will be included.
+
 
 Output data:
 ```json
@@ -263,9 +271,10 @@ Input data:
 }
 ```
 
-- `"object_type"`, specified object type (ex.: `"contract"`, `"token"`).
-- `"id"`, `"token_id"`, `"address"`, `"contract_id"`, is optional fields for filtering objects.
-- if `"include_child:true"`, will include all relations for this entity.
+- `"object_type"` specifies the type of object (e.g. `"contract"` or `"token"`).
+- `"id"`, `"token_id"`, `"address"`, and `"contract_id"` are optional fields for filtering objects.
+- If `"include_child:true"`, all relations for this entity will be included.
+
 
 Output data:
 `Model<T>[]`, requested object
@@ -287,7 +296,15 @@ Input data:
 ```
 
 Output data:
-`"received"`, or `"completed"`, or `"failed"` objects from operations queue.
+```json
+{
+  "jobId": "string",
+  "status": "string",
+  "data": "object",
+}
+```
+
+`"received"`, `"completed"`, or `"failed"` objects can be retrieved from the operations queue.
 
 ## Update token metadata
 
@@ -306,8 +323,9 @@ Input data:
 }
 ```
 
-- `"id"`, token id in contract state in blockchain (`"token_id"` in DB)
-- `"meta_data"`, metadata payload
+- `"id"` is the token ID in the contract state on the blockchain (`"token_id"` in the database).
+- `"meta_data"` is the metadata payload.
+
 
 Output data:
 `"text message"`
@@ -316,11 +334,10 @@ Output data:
 
 `GET /metadata/:token_id`
 
-Params: `"token_id"`, token id in contract state in blockchain
+This endpoint requires the `"id"` parameter, which is the token ID in the contract state on the blockchain (`"token_id"` in the database). The response will contain the metadata payload for the specified token.
+
 
 Output data:
-
-MetadataDto
 ```json
 {
   "name": "string",

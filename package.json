@@ -1,6 +1,6 @@
 {
   "name": "crm-web3-svc",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "",
   "author": "",
   "private": true,
@@ -43,7 +43,7 @@
     "rimraf": "^3.0.2",
     "rxjs": "^7.5.7",
     "uuid": "^9.0.0",
-    "web3": "^1.8.0"
+    "web3": "^1.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.1.5",
