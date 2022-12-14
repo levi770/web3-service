@@ -8,5 +8,5 @@ export class CallResultDto {
   meta_data?: MetaDataDto;
   metadataObj?: MetadataModel;
   tokenObj?: TokenModel;
-  merkleProof?: string[];
+  merkle?: object;
 }

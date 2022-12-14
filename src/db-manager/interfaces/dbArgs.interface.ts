@@ -1,3 +1,4 @@
+import { bool } from 'aws-sdk/clients/signer'
 import { Order } from 'sequelize'
 
 export interface DbArgs {
@@ -9,4 +10,5 @@ export interface DbArgs {
   order?: Order;
   include?: any;
   where?: any;
+  distinct?: boolean;
 }

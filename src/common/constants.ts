@@ -26,6 +26,7 @@ export enum OperationTypes {
   COMMON = 'common',
   WHITELIST_ADD = 'whitelistadd',
   WHITELIST_REMOVE = 'whitelistremove',
+  READ_CONTRACT = 'readcontract',
 }
 
 export enum ObjectTypes {
@@ -53,6 +54,7 @@ export enum CMD {
   JOB = 'getjobbyid',
   UPDATE_METADATA = 'updatemetadata',
   UPDATE_STATUS = 'updatestatus',
+  GET_MERKLE_PROOF = 'getmerkleproof',
 }
 
 export const WEB3_QUEUE = 'web3';

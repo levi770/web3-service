@@ -8,7 +8,6 @@ import { ContractModel } from '../db-manager/models/contract.model'
 import { DbManagerService } from '../db-manager/db-manager.service'
 import { DeployDataDto } from './dto/deployData.dto'
 import { DeployResultDto } from './dto/deployResult.dto'
-import { FileTypes, MetadataTypes, Networks, ObjectTypes, OperationTypes, ProcessTypes, Statuses } from '../common/constants'
 import { IpfsManagerService } from '../ipfs-manager/ipfs-manager.service'
 import { Job } from 'bull'
 import { MetaDataDto } from './dto/metaData.dto'
@@ -21,8 +20,15 @@ import { TxObj } from './interfaces/txObj.interface'
 import { Web3Service } from './web3.service'
 import { WhitelistDto } from './dto/whitelist.dto'
 import { WhitelistModel } from '../db-manager/models/whitelist.model'
-
-
+import {
+  FileTypes,
+  MetadataTypes,
+  Networks,
+  ObjectTypes,
+  OperationTypes,
+  ProcessTypes,
+  Statuses,
+} from '../common/constants';
 
 @Processor('web3')
 export class Web3Processor {
@@ -50,7 +56,7 @@ export class Web3Processor {
         throw new RpcException('contract not found');
       }
 
-      let merkleRoot: string, merkleProof: string[];
+      let merkle: { merkleRoot: any; merkleProof?: any };
 
       const whitelistOptions = {
         status: callData.execute ? Statuses.PROCESSED : Statuses.CREATED,
@@ -64,20 +70,28 @@ export class Web3Processor {
 
       switch (callData.operation_type) {
         case OperationTypes.WHITELIST_ADD: {
+          const addressObj = await this.dbManager.getOneObject(ObjectTypes.WHITELIST, {
+            address: whitelistOptions.address,
+            contract_id: whitelistOptions.contract_id,
+          });
+
+          if (addressObj) {
+            throw new RpcException('Address already exist in whitelist');
+          }
+
           const whitelistObj = await this.dbManager.create(whitelistOptions, ObjectTypes.WHITELIST);
 
           if (!whitelistObj) {
-            throw new RpcException('whitelist object creation failed');
+            throw new RpcException('Failed to create whitelist object');
           }
 
-          const whitelist = (await this.dbManager.getAllObjects(ObjectTypes.WHITELIST)).rows;
-          const { root, proof } = await this.getMerkleRootProof(
-            whitelist as WhitelistModel[],
-            whitelistOptions.address,
-          );
+          const whitelist = (
+            await this.dbManager.getAllObjects(ObjectTypes.WHITELIST, {
+              contract_id: callData.contract_id,
+            })
+          ).rows as WhitelistModel[];
 
-          merkleRoot = root;
-          merkleProof = proof;
+          merkle = await this.web3Service.getMerkleRootProof(whitelist, whitelistOptions.address);
 
           break;
         }
@@ -86,13 +100,16 @@ export class Web3Processor {
           const deleted = await this.dbManager.delete(whitelistOptions, ObjectTypes.WHITELIST);
 
           if (deleted === 0) {
-            throw new RpcException('whitelist object creation failed');
+            throw new RpcException('Failed to remove whitelist object');
           }
 
-          const whitelist = (await this.dbManager.getAllObjects(ObjectTypes.WHITELIST)).rows;
-          const { root } = await this.getMerkleRootProof(whitelist as WhitelistModel[]);
+          const whitelist = (
+            await this.dbManager.getAllObjects(ObjectTypes.WHITELIST, {
+              contract_id: callData.contract_id,
+            })
+          ).rows;
 
-          merkleRoot = root;
+          merkle = await this.web3Service.getMerkleRootProof(whitelist as WhitelistModel[]);
 
           break;
         }
@@ -107,7 +124,7 @@ export class Web3Processor {
         throw new RpcException('method not found');
       }
 
-      const callArgs = [merkleRoot];
+      const callArgs = [merkle.merkleRoot];
       const isValidArgs = callArgs.length === abiObj.inputs.length;
 
       if (!isValidArgs) {
@@ -125,13 +142,8 @@ export class Web3Processor {
       };
 
       const callTx = await this.web3Service.send(txObj);
-      const tx = callData.execute ? callTx.txReceipt : null;
 
-      if (merkleProof) {
-        return { merkleProof, callTx };
-      }
-
-      return { callTx };
+      return { merkle, callTx };
     } catch (error) {
       throw new RpcException(error);
     }
@@ -160,7 +172,13 @@ export class Web3Processor {
 
       const callArgs = callData.arguments ? await this.getArgs(callData.arguments, abiObj.inputs) : [];
 
-      const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any);
+      if (callData.operation_type === OperationTypes.READ_CONTRACT) {
+        const callResult = await contractInst.methods[callData.method_name](...callArgs).call();
+
+        return { [callData.method_name]: callResult };
+      }
+
+      const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any[]);
 
       const txObj: TxObj = {
         execute: callData.execute,
@@ -184,14 +202,17 @@ export class Web3Processor {
             throw new RpcException('operation specific options missed');
           }
 
+          const status = callData.execute ? Statuses.PROCESSED : Statuses.CREATED;
+
           const tokenObj = (await this.dbManager.create(
             {
-              status: callData.execute ? Statuses.PROCESSED : Statuses.CREATED,
+              status,
               contract_id: contractObj.id,
               address: contractObj.address,
               nft_number: mintOptions.nft_number,
               mint_data: mintOptions,
-              mint_tx: tx,
+              tx_hash: tx?.transactionHash,
+              tx_receipt: tx,
             },
             ObjectTypes.TOKEN,
           )) as TokenModel;
@@ -250,7 +271,7 @@ export class Web3Processor {
       const contractObj = (await this.dbManager.create(
         {
           status: deployData.execute ? Statuses.PROCESSED : Statuses.CREATED,
-          address: tx.contractAddress ?? null,
+          address: tx?.contractAddress ?? null,
           deploy_data: deployData,
           deploy_tx: tx,
         },
@@ -295,37 +316,23 @@ export class Web3Processor {
     return metadata;
   }
 
-  async getMerkleRootProof(leaves: WhitelistModel[], leaf?: string) {
-    const hash_leaves = leaves.map((x) => {
-      return U.keccak256(x.address);
-    });
-
-    const tree = new MerkleTree(hash_leaves, U.keccak256, { sortPairs: true });
-    const root = tree.getHexRoot();
-
-    if (leaf) {
-      const proof = tree.getHexProof(U.keccak256(leaf));
-      return { root, proof };
-    }
-
-    return { root };
-  }
-
   async getArgs(args: string, inputs: U.AbiInput[]) {
-    const argsArr = args.split('::');
+    try {
+      const argsArr = args.split('::');
 
-    const isValidArgs = argsArr.length === inputs.length;
-
-    if (!isValidArgs) {
-      throw new RpcException('arguments length is not valid');
-    }
-
-    return argsArr.map((value, index, array) => {
-      if (inputs[index].type === 'bytes32[]') {
-        return JSON.parse(value);
+      if (argsArr.length !== inputs.length) {
+        throw new RpcException('arguments length is not valid');
       }
 
-      return value;
-    });
+      return argsArr.map((value, index) => {
+        if (inputs[index].type === 'bytes32[]') {
+          return JSON.parse(value);
+        }
+
+        return value;
+      });
+    } catch (error) {
+      throw new RpcException('Failed to get arguments: ' + error);
+    }
   }
 }

@@ -2,7 +2,7 @@ import { AllObjectsDto } from './db-manager/dto/allObjects.dto'
 import { CallDataDto } from './web3-manager/dto/callData.dto'
 import { CMD, ObjectTypes, OperationTypes, ProcessTypes, Statuses } from './common/constants'
 import { ContractModel } from './db-manager/models/contract.model'
-import { Controller, Get, Param, Query } from '@nestjs/common'
+import { Controller, Get, HttpCode, HttpStatus, Logger, Param, Query } from '@nestjs/common'
 import { DbManagerService } from './db-manager/db-manager.service'
 import { DeployDataDto } from './web3-manager/dto/deployData.dto'
 import { GetAllDto } from './db-manager/dto/getAll.dto'
@@ -19,48 +19,77 @@ import { TransactionReceipt } from 'web3-core'
 import { UpdateMetadataDto } from './db-manager/dto/updateMetadata.dto'
 import { UpdateStatusDto } from './db-manager/dto/updateStatus.dto'
 import { Web3Service } from './web3-manager/web3.service'
+import { WhitelistDto } from './web3-manager/dto/whitelist.dto'
 import { WhitelistModel } from './db-manager/models/whitelist.model'
 
 @Controller()
 export class AppController {
-  constructor(private web3Service: Web3Service, private dbManagerService: DbManagerService) {}
+  private logger: Logger;
+
+  constructor(private web3Service: Web3Service, private dbManagerService: DbManagerService) {
+    this.logger = new Logger('AppController');
+  }
 
   @MessagePattern({ cmd: CMD.DEPLOY })
   async processDeploy(data: DeployDataDto): Promise<Observable<JobResultDto>> {
+    this.logger.log(`Processing request '${CMD.DEPLOY}' with data: ${JSON.stringify(data)}`);
+    
     return await this.web3Service.process(data, ProcessTypes.DEPLOY);
   }
 
   @MessagePattern({ cmd: CMD.CALL })
   async processCall(data: CallDataDto): Promise<Observable<JobResultDto>> {
-    switch (data.operation_type) {
-      case OperationTypes.WHITELIST_ADD:
-        return await this.web3Service.process(data, ProcessTypes.WHITELIST);
-
-      case OperationTypes.WHITELIST_REMOVE:
-        return await this.web3Service.process(data, ProcessTypes.WHITELIST);
-
-      default:
-        return await this.web3Service.process(data, ProcessTypes.COMMON);
+    this.logger.log(`Processing request '${CMD.CALL}' with data: ${JSON.stringify(data)}`);
+    
+    if (
+      data.operation_type === OperationTypes.WHITELIST_ADD ||
+      data.operation_type === OperationTypes.WHITELIST_REMOVE
+    ) {
+      return await this.web3Service.process(data, ProcessTypes.WHITELIST);
     }
+
+    return await this.web3Service.process(data, ProcessTypes.COMMON);
   }
 
   @MessagePattern({ cmd: CMD.JOB })
   async getJob(data: GetJobDto): Promise<ResponseDto> {
+    this.logger.log(`Processing request '${CMD.JOB}' with data: ${JSON.stringify(data)}`);
+    
     return await this.web3Service.getJob(data);
+  }
+
+  @MessagePattern({ cmd: CMD.GET_MERKLE_PROOF })
+  async getMerkleProof(data: WhitelistDto): Promise<ResponseDto> {
+    this.logger.log(`Processing request '${CMD.GET_MERKLE_PROOF}' with data: ${JSON.stringify(data)}`);
+    
+    const { contract_id, address } = data;
+
+    const whitelist = (await this.dbManagerService.getAllObjects(ObjectTypes.WHITELIST, { contract_id }))
+      .rows as WhitelistModel[];
+
+    const result = await this.web3Service.getMerkleRootProof(whitelist, address);
+
+    return new ResponseDto(HttpStatus.OK, null, result);
   }
 
   @MessagePattern({ cmd: CMD.ALL_OBJECTS })
   async getAllObjects(data: GetAllDto): Promise<AllObjectsDto> {
+    this.logger.log(`Processing request '${CMD.ALL_OBJECTS}' with data: ${JSON.stringify(data)}`);
+    
     return await this.dbManagerService.getAllObjects(data.object_type, data);
   }
 
   @MessagePattern({ cmd: CMD.ONE_OBJECT })
   async getOneObject(data: GetOneDto): Promise<TokenModel | ContractModel | WhitelistModel | MetadataModel> {
+    this.logger.log(`Processing request '${CMD.ONE_OBJECT}' with data: ${JSON.stringify(data)}`);
+    
     return await this.dbManagerService.getOneObject(data.object_type, data);
   }
 
   @MessagePattern({ cmd: CMD.UPDATE_STATUS })
   async updateStatus(data: UpdateStatusDto): Promise<ResponseDto> {
+    this.logger.log(`Processing request '${CMD.UPDATE_STATUS}' with data: ${JSON.stringify(data)}`);
+    
     let txReceipt: TransactionReceipt;
 
     if (data.tx_receipt) {
@@ -76,11 +105,15 @@ export class AppController {
 
   @MessagePattern({ cmd: CMD.UPDATE_METADATA })
   async updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto> {
+    this.logger.log(`Processing request '${CMD.UPDATE_METADATA}' with data: ${JSON.stringify(data)}`);
+    
     return await this.dbManagerService.updateMetadata(data);
   }
 
   @Get('metadata/:id')
   async getMetaData(@Param('id') id: string): Promise<MetaDataDto> {
+    this.logger.log(`Processing request 'metadata/:id' with id: ${id}`);
+    
     return await this.dbManagerService.getMetadata(id);
   }
 }

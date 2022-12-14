@@ -68,7 +68,7 @@ export class DbManagerService {
         return await this.tokenRepository.destroy({ where: { id: params } });
 
       case ObjectTypes.WHITELIST:
-        return await this.whitelistRepository.destroy({ where: { address: (params as WhitelistDto).address } });
+        return await this.whitelistRepository.destroy({ where: { ...(params as WhitelistDto) } });
     }
   }
 
@@ -98,6 +98,7 @@ export class DbManagerService {
         offset: !params || !params?.limit || !params?.page ? null : 0 + (+params?.page - 1) * +params.limit,
         limit: !params || !params?.limit ? null : +params?.limit,
         order: [[params?.order_by || 'createdAt', params?.order || 'DESC']] as Order,
+        distinct: true,
       };
 
       let allObjects: AllObjectsDto;
@@ -135,6 +136,12 @@ export class DbManagerService {
           break;
 
         case ObjectTypes.WHITELIST:
+          if (params.contract_id) {
+            args.where = { contract_id: params.contract_id };
+            allObjects = await this.whitelistRepository.findAndCountAll(args);
+            break;
+          }
+
           allObjects = await this.whitelistRepository.findAndCountAll(args);
           break;
       }
@@ -166,21 +173,21 @@ export class DbManagerService {
           : { contract_id: params.contract_id },
       };
 
-      let result: TokenModel | ContractModel | WhitelistModel | MetadataModel;
+      let result: any;
 
       switch (objectType) {
         case ObjectTypes.TOKEN:
-          if (params.include_child) {
-            args.include = [
-              {
-                model: MetadataModel,
-                attributes: { exclude: ['contract_id', 'updatedAt'] },
-              },
-            ];
-          }
-
           args.attributes = { exclude: ['updatedAt'] };
           result = await this.tokenRepository.findOne(args);
+
+          if (params.include_child) {
+            const metadata = await this.metadataRepository.findOne({
+              where: { id: (result as TokenModel).metadata_id },
+            });
+
+            result = { ...result, metadata };
+          }
+
           break;
 
         case ObjectTypes.CONTRACT:
@@ -274,34 +281,26 @@ export class DbManagerService {
   }
 
   async updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto> {
-    const token = await this.getOneObject(ObjectTypes.TOKEN, { token_id: data.id });
-
-    if (!token) {
-      throw new RpcException('Token with this number not found');
-    }
-
-    let metadata = (await this.getOneObject(ObjectTypes.METADATA, {
-      id: (token as TokenModel).metadata_id,
-    })) as MetadataModel;
-
-    if (!metadata) {
-      throw new RpcException('Metadata not found');
-    }
-
-    if (metadata.type === MetadataTypes.COMMON) {
-      const newMetadata = (await this.create(
-        { status: Statuses.CREATED, type: MetadataTypes.SPECIFIED, token_id: token.id, meta_data: metadata.meta_data },
-        ObjectTypes.METADATA,
-      )) as MetadataModel;
-
-      metadata = newMetadata;
-    }
-
     try {
-      for (const key in data.meta_data) {
-        if (metadata.meta_data[key] !== undefined) {
-          metadata.meta_data[key] = data.meta_data[key];
-        }
+      const token = (await this.getOneObject(ObjectTypes.TOKEN, {
+        token_id: data.id,
+        include_child: true,
+      })) as TokenModel;
+
+      if (!token) {
+        throw new RpcException('Token with this number not found');
+      }
+
+      const metadata =
+        token?.metadata?.type === MetadataTypes.COMMON
+          ? ((await this.create(
+              this.createSpecifiedMetadata(token, token.metadata),
+              ObjectTypes.METADATA,
+            )) as MetadataModel)
+          : token.metadata;
+
+      for (const [key, value] of Object.entries(data.meta_data)) {
+        metadata.meta_data[key] = value;
       }
 
       metadata.changed('meta_data', true);
@@ -311,5 +310,14 @@ export class DbManagerService {
     } catch (error) {
       throw new RpcException(error);
     }
+  }
+
+  createSpecifiedMetadata(token: TokenModel, metadata: MetadataModel) {
+    return {
+      status: Statuses.CREATED,
+      type: MetadataTypes.SPECIFIED,
+      token_id: token.id,
+      meta_data: metadata.meta_data,
+    };
   }
 }

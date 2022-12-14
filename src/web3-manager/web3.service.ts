@@ -1,7 +1,8 @@
+import * as U from 'web3-utils'
+import MerkleTree from 'merkletreejs'
 import Web3 from 'web3'
 import { CallDataDto } from './dto/callData.dto'
 import { ConfigService } from '@nestjs/config'
-import { Contract } from 'web3-eth-contract'
 import { ContractModel } from '../db-manager/models/contract.model'
 import { DeployDataDto } from './dto/deployData.dto'
 import { GetJobDto } from './dto/getJob.dto'
@@ -10,16 +11,16 @@ import { InjectQueue } from '@nestjs/bull'
 import { Job, JobPromise, Queue } from 'bull'
 import { JobResultDto } from '../common/dto/jobResult.dto'
 import { MintDataDto } from './dto/mintData.dto'
-import { Networks, OperationTypes, ProcessTypes } from '../common/constants'
+import { Networks, OperationTypes, ProcessTypes, WEB3_QUEUE } from '../common/constants'
 import { Observable } from 'rxjs'
 import { ResponseDto } from '../common/dto/response.dto'
 import { RpcException } from '@nestjs/microservices'
 import { TokenModel } from '../db-manager/models/token.model'
-import { TransactionReceipt } from 'web3-core'
 import { TxObj } from './interfaces/txObj.interface'
 import { TxPayload } from './interfaces/tx.interface'
 import { TxResultDto } from './dto/txResult.dto'
 import { v4 as uuidv4 } from 'uuid'
+import { WhitelistModel } from '../db-manager/models/whitelist.model'
 
 @Injectable()
 export class Web3Service {
@@ -27,7 +28,7 @@ export class Web3Service {
   private polygon: Web3;
 
   constructor(
-    @InjectQueue('web3')
+    @InjectQueue(WEB3_QUEUE)
     private web3Queue: Queue,
     private configService: ConfigService,
   ) {
@@ -140,5 +141,18 @@ export class Web3Service {
   async getTxReceipt(txHash: string, network: Networks) {
     const w3: Web3 = network === Networks.ETHEREUM ? this.ethereum : this.polygon;
     return await w3.eth.getTransactionReceipt(txHash);
+  }
+
+  async getMerkleRootProof(leaves: WhitelistModel[], address?: string) {
+    const hashLeaves = leaves.map((x) => U.keccak256(x.address));
+    const tree = new MerkleTree(hashLeaves, U.keccak256, { sortPairs: true });
+    const merkleRoot = tree.getRoot();
+
+    if (!address) {
+      return { merkleRoot };
+    }
+
+    const merkleProof = tree.getHexProof(U.keccak256(address));
+    return { merkleRoot, merkleProof: merkleProof };
   }
 }
