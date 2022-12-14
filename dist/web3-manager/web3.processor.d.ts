@@ -9,7 +9,6 @@ import { Job } from 'bull';
 import { MetaDataDto } from './dto/metaData.dto';
 import { MintDataDto } from './dto/mintData.dto';
 import { Web3Service } from './web3.service';
-import { WhitelistModel } from '../db-manager/models/whitelist.model';
 export declare class Web3Processor {
     private configService;
     private dbManager;
@@ -22,12 +21,5 @@ export declare class Web3Processor {
     processCall(job: Job): Promise<CallResultDto>;
     deploy(job: Job): Promise<DeployResultDto>;
     getMetadata(data: MintDataDto | DeployDataDto): Promise<MetaDataDto>;
-    getMerkleRootProof(leaves: WhitelistModel[], leaf?: string): Promise<{
-        root: string;
-        proof: string[];
-    } | {
-        root: string;
-        proof?: undefined;
-    }>;
     getArgs(args: string, inputs: U.AbiInput[]): Promise<any[]>;
 }

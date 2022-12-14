@@ -22,7 +22,8 @@ export declare enum OperationTypes {
     DEPLOY = "deploy",
     COMMON = "common",
     WHITELIST_ADD = "whitelistadd",
-    WHITELIST_REMOVE = "whitelistremove"
+    WHITELIST_REMOVE = "whitelistremove",
+    READ_CONTRACT = "readcontract"
 }
 export declare enum ObjectTypes {
     CONTRACT = "contract",
@@ -45,6 +46,7 @@ export declare enum CMD {
     ONE_OBJECT = "getoneobject",
     JOB = "getjobbyid",
     UPDATE_METADATA = "updatemetadata",
-    UPDATE_STATUS = "updatestatus"
+    UPDATE_STATUS = "updatestatus",
+    GET_MERKLE_PROOF = "getmerkleproof"
 }
 export declare const WEB3_QUEUE = "web3";

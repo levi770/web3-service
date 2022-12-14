@@ -8,4 +8,5 @@ export interface DbArgs {
     order?: Order;
     include?: any;
     where?: any;
+    distinct?: boolean;
 }

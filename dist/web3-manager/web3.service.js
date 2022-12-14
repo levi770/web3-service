@@ -1,9 +1,32 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
@@ -16,6 +39,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Web3Service = void 0;
+const U = __importStar(require("web3-utils"));
+const merkletreejs_1 = __importDefault(require("merkletreejs"));
 const web3_1 = __importDefault(require("web3"));
 const config_1 = require("@nestjs/config");
 const common_1 = require("@nestjs/common");
@@ -121,10 +146,20 @@ let Web3Service = class Web3Service {
         const w3 = network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
         return await w3.eth.getTransactionReceipt(txHash);
     }
+    async getMerkleRootProof(leaves, address) {
+        const hashLeaves = leaves.map((x) => U.keccak256(x.address));
+        const tree = new merkletreejs_1.default(hashLeaves, U.keccak256, { sortPairs: true });
+        const merkleRoot = tree.getRoot();
+        if (!address) {
+            return { merkleRoot };
+        }
+        const merkleProof = tree.getHexProof(U.keccak256(address));
+        return { merkleRoot, merkleProof: merkleProof };
+    }
 };
 Web3Service = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, bull_1.InjectQueue)('web3')),
+    __param(0, (0, bull_1.InjectQueue)(constants_1.WEB3_QUEUE)),
     __metadata("design:paramtypes", [Object, config_1.ConfigService])
 ], Web3Service);
 exports.Web3Service = Web3Service;

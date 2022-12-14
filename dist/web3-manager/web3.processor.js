@@ -1,32 +1,9 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
 };
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
@@ -36,16 +13,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Web3Processor = void 0;
-const U = __importStar(require("web3-utils"));
-const merkletreejs_1 = __importDefault(require("merkletreejs"));
 const web3_1 = __importDefault(require("web3"));
 const config_1 = require("@nestjs/config");
 const db_manager_service_1 = require("../db-manager/db-manager.service");
-const constants_1 = require("../common/constants");
 const ipfs_manager_service_1 = require("../ipfs-manager/ipfs-manager.service");
 const bull_1 = require("@nestjs/bull");
 const microservices_1 = require("@nestjs/microservices");
 const web3_service_1 = require("./web3.service");
+const constants_1 = require("../common/constants");
 let Web3Processor = class Web3Processor {
     constructor(configService, dbManager, ipfsManger, web3Service) {
         this.configService = configService;
@@ -63,7 +38,7 @@ let Web3Processor = class Web3Processor {
             if (!contractObj) {
                 throw new microservices_1.RpcException('contract not found');
             }
-            let merkleRoot, merkleProof;
+            let merkle;
             const whitelistOptions = {
                 status: callData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED,
                 contract_id: contractObj.id,
@@ -74,24 +49,32 @@ let Web3Processor = class Web3Processor {
             }
             switch (callData.operation_type) {
                 case constants_1.OperationTypes.WHITELIST_ADD: {
+                    const addressObj = await this.dbManager.getOneObject(constants_1.ObjectTypes.WHITELIST, {
+                        address: whitelistOptions.address,
+                        contract_id: whitelistOptions.contract_id,
+                    });
+                    if (addressObj) {
+                        throw new microservices_1.RpcException('Address already exist in whitelist');
+                    }
                     const whitelistObj = await this.dbManager.create(whitelistOptions, constants_1.ObjectTypes.WHITELIST);
                     if (!whitelistObj) {
-                        throw new microservices_1.RpcException('whitelist object creation failed');
+                        throw new microservices_1.RpcException('Failed to create whitelist object');
                     }
-                    const whitelist = (await this.dbManager.getAllObjects(constants_1.ObjectTypes.WHITELIST)).rows;
-                    const { root, proof } = await this.getMerkleRootProof(whitelist, whitelistOptions.address);
-                    merkleRoot = root;
-                    merkleProof = proof;
+                    const whitelist = (await this.dbManager.getAllObjects(constants_1.ObjectTypes.WHITELIST, {
+                        contract_id: callData.contract_id,
+                    })).rows;
+                    merkle = await this.web3Service.getMerkleRootProof(whitelist, whitelistOptions.address);
                     break;
                 }
                 case constants_1.OperationTypes.WHITELIST_REMOVE: {
                     const deleted = await this.dbManager.delete(whitelistOptions, constants_1.ObjectTypes.WHITELIST);
                     if (deleted === 0) {
-                        throw new microservices_1.RpcException('whitelist object creation failed');
+                        throw new microservices_1.RpcException('Failed to remove whitelist object');
                     }
-                    const whitelist = (await this.dbManager.getAllObjects(constants_1.ObjectTypes.WHITELIST)).rows;
-                    const { root } = await this.getMerkleRootProof(whitelist);
-                    merkleRoot = root;
+                    const whitelist = (await this.dbManager.getAllObjects(constants_1.ObjectTypes.WHITELIST, {
+                        contract_id: callData.contract_id,
+                    })).rows;
+                    merkle = await this.web3Service.getMerkleRootProof(whitelist);
                     break;
                 }
             }
@@ -100,7 +83,7 @@ let Web3Processor = class Web3Processor {
             if (!abiObj) {
                 throw new microservices_1.RpcException('method not found');
             }
-            const callArgs = [merkleRoot];
+            const callArgs = [merkle.merkleRoot];
             const isValidArgs = callArgs.length === abiObj.inputs.length;
             if (!isValidArgs) {
                 throw new microservices_1.RpcException('arguments length is not valid');
@@ -114,11 +97,7 @@ let Web3Processor = class Web3Processor {
                 operationType: constants_1.OperationTypes.COMMON,
             };
             const callTx = await this.web3Service.send(txObj);
-            const tx = callData.execute ? callTx.txReceipt : null;
-            if (merkleProof) {
-                return { merkleProof, callTx };
-            }
-            return { callTx };
+            return { merkle, callTx };
         }
         catch (error) {
             throw new microservices_1.RpcException(error);
@@ -141,6 +120,10 @@ let Web3Processor = class Web3Processor {
                 throw new microservices_1.RpcException('method not found');
             }
             const callArgs = callData.arguments ? await this.getArgs(callData.arguments, abiObj.inputs) : [];
+            if (callData.operation_type === constants_1.OperationTypes.READ_CONTRACT) {
+                const callResult = await contractInst.methods[callData.method_name](...callArgs).call();
+                return { [callData.method_name]: callResult };
+            }
             const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
             const txObj = {
                 execute: callData.execute,
@@ -159,13 +142,15 @@ let Web3Processor = class Web3Processor {
                     if (!mintOptions) {
                         throw new microservices_1.RpcException('operation specific options missed');
                     }
+                    const status = callData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED;
                     const tokenObj = (await this.dbManager.create({
-                        status: callData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED,
+                        status,
                         contract_id: contractObj.id,
                         address: contractObj.address,
                         nft_number: mintOptions.nft_number,
                         mint_data: mintOptions,
-                        mint_tx: tx,
+                        tx_hash: tx?.transactionHash,
+                        tx_receipt: tx,
                     }, constants_1.ObjectTypes.TOKEN));
                     let metadataObj;
                     if (mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type) {
@@ -203,7 +188,7 @@ let Web3Processor = class Web3Processor {
             const tx = deployData.execute ? deployTx.txReceipt : null;
             const contractObj = (await this.dbManager.create({
                 status: deployData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED,
-                address: tx.contractAddress ?? null,
+                address: tx?.contractAddress ?? null,
                 deploy_data: deployData,
                 deploy_tx: tx,
             }, constants_1.ObjectTypes.CONTRACT));
@@ -232,30 +217,22 @@ let Web3Processor = class Web3Processor {
         }
         return metadata;
     }
-    async getMerkleRootProof(leaves, leaf) {
-        const hash_leaves = leaves.map((x) => {
-            return U.keccak256(x.address);
-        });
-        const tree = new merkletreejs_1.default(hash_leaves, U.keccak256, { sortPairs: true });
-        const root = tree.getHexRoot();
-        if (leaf) {
-            const proof = tree.getHexProof(U.keccak256(leaf));
-            return { root, proof };
-        }
-        return { root };
-    }
     async getArgs(args, inputs) {
-        const argsArr = args.split('::');
-        const isValidArgs = argsArr.length === inputs.length;
-        if (!isValidArgs) {
-            throw new microservices_1.RpcException('arguments length is not valid');
-        }
-        return argsArr.map((value, index, array) => {
-            if (inputs[index].type === 'bytes32[]') {
-                return JSON.parse(value);
+        try {
+            const argsArr = args.split('::');
+            if (argsArr.length !== inputs.length) {
+                throw new microservices_1.RpcException('arguments length is not valid');
             }
-            return value;
-        });
+            return argsArr.map((value, index) => {
+                if (inputs[index].type === 'bytes32[]') {
+                    return JSON.parse(value);
+                }
+                return value;
+            });
+        }
+        catch (error) {
+            throw new microservices_1.RpcException('Failed to get arguments: ' + error);
+        }
     }
 };
 __decorate([

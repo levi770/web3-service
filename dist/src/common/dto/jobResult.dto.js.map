@@ -1,1 +1,0 @@
-{"version":3,"file":"jobResult.dto.js","sourceRoot":"","sources":["../../../../src/common/dto/jobResult.dto.ts"],"names":[],"mappings":";;;AAOA,MAAa,YAAY;IAKvB,YAAY,KAAsB,EAAE,MAAc,EAAE,IAAU;QAC5D,IAAI,CAAC,KAAK,GAAG,KAAK,CAAC;QACnB,IAAI,CAAC,MAAM,GAAG,MAAM,CAAC;QACrB,IAAI,CAAC,IAAI,GAAG,IAAI,CAAC;IACnB,CAAC;CACF;AAVD,oCAUC"}

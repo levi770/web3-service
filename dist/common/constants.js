@@ -30,6 +30,7 @@ var OperationTypes;
     OperationTypes["COMMON"] = "common";
     OperationTypes["WHITELIST_ADD"] = "whitelistadd";
     OperationTypes["WHITELIST_REMOVE"] = "whitelistremove";
+    OperationTypes["READ_CONTRACT"] = "readcontract";
 })(OperationTypes = exports.OperationTypes || (exports.OperationTypes = {}));
 var ObjectTypes;
 (function (ObjectTypes) {
@@ -57,6 +58,7 @@ var CMD;
     CMD["JOB"] = "getjobbyid";
     CMD["UPDATE_METADATA"] = "updatemetadata";
     CMD["UPDATE_STATUS"] = "updatestatus";
+    CMD["GET_MERKLE_PROOF"] = "getmerkleproof";
 })(CMD = exports.CMD || (exports.CMD = {}));
 exports.WEB3_QUEUE = 'web3';
 //# sourceMappingURL=constants.js.map

@@ -2,8 +2,9 @@ import { AllObjectsDto } from './dto/allObjects.dto';
 import { ContractModel } from './models/contract.model';
 import { GetAllDto } from './dto/getAll.dto';
 import { GetOneDto } from './dto/getOne.dto';
+import { MetaDataDto } from '../web3-manager/dto/metaData.dto';
 import { MetadataModel } from './models/metadata.model';
-import { ObjectTypes } from '../common/constants';
+import { MetadataTypes, ObjectTypes, Statuses } from '../common/constants';
 import { NewContractDto } from './dto/newContract.dto';
 import { NewMetadataDto } from './dto/newMetadata.dto';
 import { NewTokenDto } from './dto/newToken.dto';
@@ -24,9 +25,15 @@ export declare class DbManagerService {
     delete(params: string | WhitelistDto, objectType: ObjectTypes): Promise<number>;
     findById(id: string, objectType: ObjectTypes): Promise<ContractModel | TokenModel | WhitelistModel | MetadataModel>;
     getAllObjects(objectType: ObjectTypes, params?: GetAllDto): Promise<AllObjectsDto>;
-    getOneObject(objectType: ObjectTypes, params: GetOneDto): Promise<ContractModel | TokenModel | WhitelistModel | MetadataModel>;
+    getOneObject(objectType: ObjectTypes, params: GetOneDto): Promise<any>;
     updateStatus(data: UpdateStatusDto): Promise<ResponseDto>;
     setMetadata(params: SetMetadataDto, objectType: ObjectTypes): Promise<boolean>;
     getMetadata(id: string): Promise<any>;
     updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto>;
+    createSpecifiedMetadata(token: TokenModel, metadata: MetadataModel): {
+        status: Statuses;
+        type: MetadataTypes;
+        token_id: string;
+        meta_data: MetaDataDto;
+    };
 }

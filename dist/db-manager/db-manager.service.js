@@ -58,7 +58,7 @@ let DbManagerService = class DbManagerService {
             case constants_1.ObjectTypes.TOKEN:
                 return await this.tokenRepository.destroy({ where: { id: params } });
             case constants_1.ObjectTypes.WHITELIST:
-                return await this.whitelistRepository.destroy({ where: { address: params.address } });
+                return await this.whitelistRepository.destroy({ where: { ...params } });
         }
     }
     async findById(id, objectType) {
@@ -80,6 +80,7 @@ let DbManagerService = class DbManagerService {
                 offset: !params || !params?.limit || !params?.page ? null : 0 + (+params?.page - 1) * +params.limit,
                 limit: !params || !params?.limit ? null : +params?.limit,
                 order: [[params?.order_by || 'createdAt', params?.order || 'DESC']],
+                distinct: true,
             };
             let allObjects;
             switch (objectType) {
@@ -111,6 +112,11 @@ let DbManagerService = class DbManagerService {
                     allObjects = await this.contractRepository.findAndCountAll(args);
                     break;
                 case constants_1.ObjectTypes.WHITELIST:
+                    if (params.contract_id) {
+                        args.where = { contract_id: params.contract_id };
+                        allObjects = await this.whitelistRepository.findAndCountAll(args);
+                        break;
+                    }
                     allObjects = await this.whitelistRepository.findAndCountAll(args);
                     break;
             }
@@ -141,16 +147,14 @@ let DbManagerService = class DbManagerService {
             let result;
             switch (objectType) {
                 case constants_1.ObjectTypes.TOKEN:
-                    if (params.include_child) {
-                        args.include = [
-                            {
-                                model: metadata_model_1.MetadataModel,
-                                attributes: { exclude: ['contract_id', 'updatedAt'] },
-                            },
-                        ];
-                    }
                     args.attributes = { exclude: ['updatedAt'] };
                     result = await this.tokenRepository.findOne(args);
+                    if (params.include_child) {
+                        const metadata = await this.metadataRepository.findOne({
+                            where: { id: result.metadata_id },
+                        });
+                        result = { ...result, metadata };
+                    }
                     break;
                 case constants_1.ObjectTypes.CONTRACT:
                     if (params.include_child) {
@@ -222,25 +226,19 @@ let DbManagerService = class DbManagerService {
         return token.metadata.meta_data;
     }
     async updateMetadata(data) {
-        const token = await this.getOneObject(constants_1.ObjectTypes.TOKEN, { token_id: data.id });
-        if (!token) {
-            throw new microservices_1.RpcException('Token with this number not found');
-        }
-        let metadata = (await this.getOneObject(constants_1.ObjectTypes.METADATA, {
-            id: token.metadata_id,
-        }));
-        if (!metadata) {
-            throw new microservices_1.RpcException('Metadata not found');
-        }
-        if (metadata.type === constants_1.MetadataTypes.COMMON) {
-            const newMetadata = (await this.create({ status: constants_1.Statuses.CREATED, type: constants_1.MetadataTypes.SPECIFIED, token_id: token.id, meta_data: metadata.meta_data }, constants_1.ObjectTypes.METADATA));
-            metadata = newMetadata;
-        }
         try {
-            for (const key in data.meta_data) {
-                if (metadata.meta_data[key] !== undefined) {
-                    metadata.meta_data[key] = data.meta_data[key];
-                }
+            const token = (await this.getOneObject(constants_1.ObjectTypes.TOKEN, {
+                token_id: data.id,
+                include_child: true,
+            }));
+            if (!token) {
+                throw new microservices_1.RpcException('Token with this number not found');
+            }
+            const metadata = token?.metadata?.type === constants_1.MetadataTypes.COMMON
+                ? (await this.create(this.createSpecifiedMetadata(token, token.metadata), constants_1.ObjectTypes.METADATA))
+                : token.metadata;
+            for (const [key, value] of Object.entries(data.meta_data)) {
+                metadata.meta_data[key] = value;
             }
             metadata.changed('meta_data', true);
             await metadata.save();
@@ -249,6 +247,14 @@ let DbManagerService = class DbManagerService {
         catch (error) {
             throw new microservices_1.RpcException(error);
         }
+    }
+    createSpecifiedMetadata(token, metadata) {
+        return {
+            status: constants_1.Statuses.CREATED,
+            type: constants_1.MetadataTypes.SPECIFIED,
+            token_id: token.id,
+            meta_data: metadata.meta_data,
+        };
     }
 };
 DbManagerService = __decorate([

@@ -15,14 +15,17 @@ import { TokenModel } from './db-manager/models/token.model';
 import { UpdateMetadataDto } from './db-manager/dto/updateMetadata.dto';
 import { UpdateStatusDto } from './db-manager/dto/updateStatus.dto';
 import { Web3Service } from './web3-manager/web3.service';
+import { WhitelistDto } from './web3-manager/dto/whitelist.dto';
 import { WhitelistModel } from './db-manager/models/whitelist.model';
 export declare class AppController {
     private web3Service;
     private dbManagerService;
+    private logger;
     constructor(web3Service: Web3Service, dbManagerService: DbManagerService);
     processDeploy(data: DeployDataDto): Promise<Observable<JobResultDto>>;
     processCall(data: CallDataDto): Promise<Observable<JobResultDto>>;
     getJob(data: GetJobDto): Promise<ResponseDto>;
+    getMerkleProof(data: WhitelistDto): Promise<ResponseDto>;
     getAllObjects(data: GetAllDto): Promise<AllObjectsDto>;
     getOneObject(data: GetOneDto): Promise<TokenModel | ContractModel | WhitelistModel | MetadataModel>;
     updateStatus(data: UpdateStatusDto): Promise<ResponseDto>;
