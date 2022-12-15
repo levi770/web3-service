@@ -1,4 +1,5 @@
 export declare class WhitelistDto {
     contract_id?: string;
-    address: string;
+    addresses?: string;
+    address?: string;
 }

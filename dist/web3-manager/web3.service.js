@@ -112,16 +112,17 @@ let Web3Service = class Web3Service {
             const w3 = txObj.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
             const account = w3.eth.accounts.privateKeyToAccount(this.configService.get('PRIV_KEY'));
             const to = txObj.operationType === constants_1.OperationTypes.DEPLOY ? null : txObj.contract.options.address;
+            const from = txObj.from_address ?? account.address;
             const tx = {
-                nonce: await w3.eth.getTransactionCount(account.address),
+                nonce: await w3.eth.getTransactionCount(from),
                 maxPriorityFeePerGas: await w3.eth.getGasPrice(),
                 gas: await w3.eth.estimateGas({
-                    from: account.address,
+                    from,
                     data: txObj.data,
                     value: 0,
                     to,
                 }),
-                from: account.address,
+                from,
                 data: txObj.data,
                 value: 0,
                 to,
@@ -146,15 +147,15 @@ let Web3Service = class Web3Service {
         const w3 = network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
         return await w3.eth.getTransactionReceipt(txHash);
     }
-    async getMerkleRootProof(leaves, address) {
+    async getMerkleRoot(leaves) {
         const hashLeaves = leaves.map((x) => U.keccak256(x.address));
         const tree = new merkletreejs_1.default(hashLeaves, U.keccak256, { sortPairs: true });
-        const merkleRoot = tree.getRoot();
-        if (!address) {
-            return { merkleRoot };
-        }
-        const merkleProof = tree.getHexProof(U.keccak256(address));
-        return { merkleRoot, merkleProof: merkleProof };
+        return tree.getHexRoot();
+    }
+    async getMerkleProof(leaves, address) {
+        const hashLeaves = leaves.map((x) => U.keccak256(x.address));
+        const tree = new merkletreejs_1.default(hashLeaves, U.keccak256, { sortPairs: true });
+        return tree.getHexProof(U.keccak256(address));
     }
 };
 Web3Service = __decorate([

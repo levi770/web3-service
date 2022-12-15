@@ -30,22 +30,24 @@ let DbManagerService = class DbManagerService {
         this.whitelistRepository = whitelistRepository;
         this.metadataRepository = metadataRepository;
     }
-    async create(params, objectType) {
+    async create(objects, objectType) {
         switch (objectType) {
             case constants_1.ObjectTypes.CONTRACT: {
-                return await this.contractRepository.create({ ...params });
+                return await this.contractRepository.bulkCreate(objects, { returning: true });
             }
             case constants_1.ObjectTypes.TOKEN: {
-                const contract = await this.findById(params.contract_id, constants_1.ObjectTypes.CONTRACT);
-                const token = await this.tokenRepository.create({ ...params });
-                await contract.$add('token', [token.id]);
-                return token;
+                const tokens = await this.tokenRepository.bulkCreate(objects, { returning: true });
+                tokens.forEach(async (token) => {
+                    const contract = await this.findById(token.contract_id, constants_1.ObjectTypes.CONTRACT);
+                    await contract.$add('token', [token.id]);
+                });
+                return tokens;
             }
             case constants_1.ObjectTypes.WHITELIST: {
-                return await this.whitelistRepository.create({ ...params });
+                return await this.whitelistRepository.bulkCreate(objects, { returning: true });
             }
             case constants_1.ObjectTypes.METADATA: {
-                return await this.metadataRepository.create({ ...params });
+                return await this.metadataRepository.bulkCreate(objects, { returning: true });
             }
         }
     }
@@ -76,12 +78,14 @@ let DbManagerService = class DbManagerService {
     async getAllObjects(objectType, params) {
         try {
             const args = {
-                attributes: { exclude: ['updatedAt'] },
                 offset: !params || !params?.limit || !params?.page ? null : 0 + (+params?.page - 1) * +params.limit,
                 limit: !params || !params?.limit ? null : +params?.limit,
                 order: [[params?.order_by || 'createdAt', params?.order || 'DESC']],
                 distinct: true,
             };
+            if (params.where) {
+                args.where == params.where;
+            }
             let allObjects;
             switch (objectType) {
                 case constants_1.ObjectTypes.TOKEN:
@@ -113,7 +117,6 @@ let DbManagerService = class DbManagerService {
                     break;
                 case constants_1.ObjectTypes.WHITELIST:
                     if (params.contract_id) {
-                        args.where = { contract_id: params.contract_id };
                         allObjects = await this.whitelistRepository.findAndCountAll(args);
                         break;
                     }
@@ -202,6 +205,9 @@ let DbManagerService = class DbManagerService {
         }
         return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, 'status not updated');
     }
+    async getTokenId(contract_id) {
+        return await this.tokenRepository.count({ where: { contract_id, status: constants_1.Statuses.PROCESSED } });
+    }
     async setMetadata(params, objectType) {
         const metadata = (await this.findById(params.metadata_id, constants_1.ObjectTypes.METADATA));
         switch (objectType) {
@@ -235,7 +241,7 @@ let DbManagerService = class DbManagerService {
                 throw new microservices_1.RpcException('Token with this number not found');
             }
             const metadata = token?.metadata?.type === constants_1.MetadataTypes.COMMON
-                ? (await this.create(this.createSpecifiedMetadata(token, token.metadata), constants_1.ObjectTypes.METADATA))
+                ? (await this.create([this.createSpecifiedMetadata(token, token.metadata)], constants_1.ObjectTypes.METADATA))[0]
                 : token.metadata;
             for (const [key, value] of Object.entries(data.meta_data)) {
                 metadata.meta_data[key] = value;

@@ -29,11 +29,7 @@ __decorate([
     __metadata("design:type", String)
 ], TokenModel.prototype, "status", void 0);
 __decorate([
-    (0, sequelize_typescript_1.Column)({
-        type: sequelize_typescript_1.DataType.INTEGER,
-        unique: true,
-        autoIncrement: true,
-    }),
+    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.INTEGER }),
     __metadata("design:type", Number)
 ], TokenModel.prototype, "token_id", void 0);
 __decorate([

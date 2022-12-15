@@ -21,12 +21,13 @@ export declare class DbManagerService {
     private whitelistRepository;
     private metadataRepository;
     constructor(contractRepository: typeof ContractModel, tokenRepository: typeof TokenModel, whitelistRepository: typeof WhitelistModel, metadataRepository: typeof MetadataModel);
-    create(params: NewContractDto | NewTokenDto | WhitelistDto | NewMetadataDto, objectType: ObjectTypes): Promise<ContractModel | TokenModel | WhitelistModel | MetadataModel>;
-    delete(params: string | WhitelistDto, objectType: ObjectTypes): Promise<number>;
+    create(objects: NewContractDto[] | NewTokenDto[] | WhitelistDto[] | NewMetadataDto[], objectType: ObjectTypes): Promise<ContractModel[] | TokenModel[] | WhitelistModel[] | MetadataModel[]>;
+    delete(params: string[] | object, objectType: ObjectTypes): Promise<number>;
     findById(id: string, objectType: ObjectTypes): Promise<ContractModel | TokenModel | WhitelistModel | MetadataModel>;
     getAllObjects(objectType: ObjectTypes, params?: GetAllDto): Promise<AllObjectsDto>;
     getOneObject(objectType: ObjectTypes, params: GetOneDto): Promise<any>;
     updateStatus(data: UpdateStatusDto): Promise<ResponseDto>;
+    getTokenId(contract_id: string): Promise<number>;
     setMetadata(params: SetMetadataDto, objectType: ObjectTypes): Promise<boolean>;
     getMetadata(id: string): Promise<any>;
     updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto>;

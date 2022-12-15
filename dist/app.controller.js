@@ -34,11 +34,11 @@ let AppController = class AppController {
         this.logger = new common_1.Logger('AppController');
     }
     async processDeploy(data) {
-        this.logger.log(`Processing request '${constants_1.CMD.DEPLOY}' with data: ${JSON.stringify(data)}`);
+        this.logger.log(`Processing call '${constants_1.CMD.DEPLOY}' with data: ${JSON.stringify(data)}`);
         return await this.web3Service.process(data, constants_1.ProcessTypes.DEPLOY);
     }
     async processCall(data) {
-        this.logger.log(`Processing request '${constants_1.CMD.CALL}' with data: ${JSON.stringify(data)}`);
+        this.logger.log(`Processing call '${constants_1.CMD.CALL}' with data: ${JSON.stringify(data)}`);
         if (data.operation_type === constants_1.OperationTypes.WHITELIST_ADD ||
             data.operation_type === constants_1.OperationTypes.WHITELIST_REMOVE) {
             return await this.web3Service.process(data, constants_1.ProcessTypes.WHITELIST);
@@ -46,27 +46,28 @@ let AppController = class AppController {
         return await this.web3Service.process(data, constants_1.ProcessTypes.COMMON);
     }
     async getJob(data) {
-        this.logger.log(`Processing request '${constants_1.CMD.JOB}' with data: ${JSON.stringify(data)}`);
+        this.logger.log(`Processing call '${constants_1.CMD.JOB}' with data: ${JSON.stringify(data)}`);
         return await this.web3Service.getJob(data);
     }
     async getMerkleProof(data) {
-        this.logger.log(`Processing request '${constants_1.CMD.GET_MERKLE_PROOF}' with data: ${JSON.stringify(data)}`);
+        this.logger.log(`Processing call '${constants_1.CMD.GET_MERKLE_PROOF}' with data: ${JSON.stringify(data)}`);
         const { contract_id, address } = data;
         const whitelist = (await this.dbManagerService.getAllObjects(constants_1.ObjectTypes.WHITELIST, { contract_id }))
             .rows;
-        const result = await this.web3Service.getMerkleRootProof(whitelist, address);
-        return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, result);
+        const merkleRoot = await this.web3Service.getMerkleRoot(whitelist);
+        const merkleProof = await this.web3Service.getMerkleProof(whitelist, address);
+        return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, { merkleRoot, merkleProof });
     }
     async getAllObjects(data) {
-        this.logger.log(`Processing request '${constants_1.CMD.ALL_OBJECTS}' with data: ${JSON.stringify(data)}`);
+        this.logger.log(`Processing call '${constants_1.CMD.ALL_OBJECTS}' with data: ${JSON.stringify(data)}`);
         return await this.dbManagerService.getAllObjects(data.object_type, data);
     }
     async getOneObject(data) {
-        this.logger.log(`Processing request '${constants_1.CMD.ONE_OBJECT}' with data: ${JSON.stringify(data)}`);
+        this.logger.log(`Processing call '${constants_1.CMD.ONE_OBJECT}' with data: ${JSON.stringify(data)}`);
         return await this.dbManagerService.getOneObject(data.object_type, data);
     }
     async updateStatus(data) {
-        this.logger.log(`Processing request '${constants_1.CMD.UPDATE_STATUS}' with data: ${JSON.stringify(data)}`);
+        this.logger.log(`Processing call '${constants_1.CMD.UPDATE_STATUS}' with data: ${JSON.stringify(data)}`);
         let txReceipt;
         if (data.tx_receipt) {
             txReceipt = data.tx_receipt;
@@ -78,11 +79,11 @@ let AppController = class AppController {
         return await this.dbManagerService.updateStatus({ status, ...data });
     }
     async updateMetadata(data) {
-        this.logger.log(`Processing request '${constants_1.CMD.UPDATE_METADATA}' with data: ${JSON.stringify(data)}`);
+        this.logger.log(`Processing call '${constants_1.CMD.UPDATE_METADATA}' with data: ${JSON.stringify(data)}`);
         return await this.dbManagerService.updateMetadata(data);
     }
     async getMetaData(id) {
-        this.logger.log(`Processing request 'metadata/:id' with id: ${id}`);
+        this.logger.log(`Processing GET request 'metadata' with id: ${id}`);
         return await this.dbManagerService.getMetadata(id);
     }
 };
