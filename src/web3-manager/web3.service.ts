@@ -102,17 +102,18 @@ export class Web3Service {
       const w3: Web3 = txObj.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const account = w3.eth.accounts.privateKeyToAccount(this.configService.get('PRIV_KEY'));
       const to = txObj.operationType === OperationTypes.DEPLOY ? null : txObj.contract.options.address;
+      const from = txObj.from_address ?? account.address;
 
       const tx: TxPayload = {
-        nonce: await w3.eth.getTransactionCount(account.address),
+        nonce: await w3.eth.getTransactionCount(from),
         maxPriorityFeePerGas: await w3.eth.getGasPrice(),
         gas: await w3.eth.estimateGas({
-          from: account.address,
+          from,
           data: txObj.data,
           value: 0,
           to,
         }),
-        from: account.address,
+        from,
         data: txObj.data,
         value: 0,
         to,
@@ -143,16 +144,15 @@ export class Web3Service {
     return await w3.eth.getTransactionReceipt(txHash);
   }
 
-  async getMerkleRootProof(leaves: WhitelistModel[], address?: string) {
+  async getMerkleRoot(leaves: WhitelistModel[]) {
     const hashLeaves = leaves.map((x) => U.keccak256(x.address));
     const tree = new MerkleTree(hashLeaves, U.keccak256, { sortPairs: true });
-    const merkleRoot = tree.getRoot();
+    return tree.getHexRoot();
+  }
 
-    if (!address) {
-      return { merkleRoot };
-    }
-
-    const merkleProof = tree.getHexProof(U.keccak256(address));
-    return { merkleRoot, merkleProof: merkleProof };
+  async getMerkleProof(leaves: WhitelistModel[], address: string) {
+    const hashLeaves = leaves.map((x) => U.keccak256(x.address));
+    const tree = new MerkleTree(hashLeaves, U.keccak256, { sortPairs: true });
+    return tree.getHexProof(U.keccak256(address));
   }
 }

@@ -32,15 +32,15 @@ export class AppController {
 
   @MessagePattern({ cmd: CMD.DEPLOY })
   async processDeploy(data: DeployDataDto): Promise<Observable<JobResultDto>> {
-    this.logger.log(`Processing request '${CMD.DEPLOY}' with data: ${JSON.stringify(data)}`);
-    
+    this.logger.log(`Processing call '${CMD.DEPLOY}' with data: ${JSON.stringify(data)}`);
+
     return await this.web3Service.process(data, ProcessTypes.DEPLOY);
   }
 
   @MessagePattern({ cmd: CMD.CALL })
   async processCall(data: CallDataDto): Promise<Observable<JobResultDto>> {
-    this.logger.log(`Processing request '${CMD.CALL}' with data: ${JSON.stringify(data)}`);
-    
+    this.logger.log(`Processing call '${CMD.CALL}' with data: ${JSON.stringify(data)}`);
+
     if (
       data.operation_type === OperationTypes.WHITELIST_ADD ||
       data.operation_type === OperationTypes.WHITELIST_REMOVE
@@ -53,43 +53,44 @@ export class AppController {
 
   @MessagePattern({ cmd: CMD.JOB })
   async getJob(data: GetJobDto): Promise<ResponseDto> {
-    this.logger.log(`Processing request '${CMD.JOB}' with data: ${JSON.stringify(data)}`);
-    
+    this.logger.log(`Processing call '${CMD.JOB}' with data: ${JSON.stringify(data)}`);
+
     return await this.web3Service.getJob(data);
   }
 
   @MessagePattern({ cmd: CMD.GET_MERKLE_PROOF })
   async getMerkleProof(data: WhitelistDto): Promise<ResponseDto> {
-    this.logger.log(`Processing request '${CMD.GET_MERKLE_PROOF}' with data: ${JSON.stringify(data)}`);
-    
+    this.logger.log(`Processing call '${CMD.GET_MERKLE_PROOF}' with data: ${JSON.stringify(data)}`);
+
     const { contract_id, address } = data;
 
     const whitelist = (await this.dbManagerService.getAllObjects(ObjectTypes.WHITELIST, { contract_id }))
       .rows as WhitelistModel[];
 
-    const result = await this.web3Service.getMerkleRootProof(whitelist, address);
+    const merkleRoot = await this.web3Service.getMerkleRoot(whitelist);
+    const merkleProof = await this.web3Service.getMerkleProof(whitelist, address);
 
-    return new ResponseDto(HttpStatus.OK, null, result);
+    return new ResponseDto(HttpStatus.OK, null, { merkleRoot, merkleProof });
   }
 
   @MessagePattern({ cmd: CMD.ALL_OBJECTS })
   async getAllObjects(data: GetAllDto): Promise<AllObjectsDto> {
-    this.logger.log(`Processing request '${CMD.ALL_OBJECTS}' with data: ${JSON.stringify(data)}`);
-    
+    this.logger.log(`Processing call '${CMD.ALL_OBJECTS}' with data: ${JSON.stringify(data)}`);
+
     return await this.dbManagerService.getAllObjects(data.object_type, data);
   }
 
   @MessagePattern({ cmd: CMD.ONE_OBJECT })
   async getOneObject(data: GetOneDto): Promise<TokenModel | ContractModel | WhitelistModel | MetadataModel> {
-    this.logger.log(`Processing request '${CMD.ONE_OBJECT}' with data: ${JSON.stringify(data)}`);
-    
+    this.logger.log(`Processing call '${CMD.ONE_OBJECT}' with data: ${JSON.stringify(data)}`);
+
     return await this.dbManagerService.getOneObject(data.object_type, data);
   }
 
   @MessagePattern({ cmd: CMD.UPDATE_STATUS })
   async updateStatus(data: UpdateStatusDto): Promise<ResponseDto> {
-    this.logger.log(`Processing request '${CMD.UPDATE_STATUS}' with data: ${JSON.stringify(data)}`);
-    
+    this.logger.log(`Processing call '${CMD.UPDATE_STATUS}' with data: ${JSON.stringify(data)}`);
+
     let txReceipt: TransactionReceipt;
 
     if (data.tx_receipt) {
@@ -105,15 +106,15 @@ export class AppController {
 
   @MessagePattern({ cmd: CMD.UPDATE_METADATA })
   async updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto> {
-    this.logger.log(`Processing request '${CMD.UPDATE_METADATA}' with data: ${JSON.stringify(data)}`);
-    
+    this.logger.log(`Processing call '${CMD.UPDATE_METADATA}' with data: ${JSON.stringify(data)}`);
+
     return await this.dbManagerService.updateMetadata(data);
   }
 
   @Get('metadata/:id')
   async getMetaData(@Param('id') id: string): Promise<MetaDataDto> {
-    this.logger.log(`Processing request 'metadata/:id' with id: ${id}`);
-    
+    this.logger.log(`Processing GET request 'metadata' with id: ${id}`);
+
     return await this.dbManagerService.getMetadata(id);
   }
 }

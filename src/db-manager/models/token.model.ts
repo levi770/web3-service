@@ -5,7 +5,6 @@ import { MetadataModel } from './metadata.model'
 import { MintDataDto } from '../../web3-manager/dto/mintData.dto'
 import { TransactionReceipt } from 'web3-eth'
 
-
 @Table({ tableName: 'tokens' })
 export class TokenModel extends Model {
   @Column({
@@ -18,11 +17,7 @@ export class TokenModel extends Model {
   @Column({ type: DataType.STRING })
   status: string;
 
-  @Column({
-    type: DataType.INTEGER,
-    unique: true,
-    autoIncrement: true,
-  })
+  @Column({ type: DataType.INTEGER })
   token_id: number;
 
   @Column({ type: DataType.STRING })

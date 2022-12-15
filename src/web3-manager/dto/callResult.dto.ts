@@ -4,9 +4,10 @@ import { TokenModel } from '../../db-manager/models/token.model'
 import { TxResultDto } from './txResult.dto'
 
 export class CallResultDto {
-  callTx?: TxResultDto;
+  callTx?: TxResultDto | TxResultDto[];
   meta_data?: MetaDataDto;
   metadataObj?: MetadataModel;
   tokenObj?: TokenModel;
-  merkle?: object;
+  merkleRoot?: string;
+  merkleProof?: object[];
 }

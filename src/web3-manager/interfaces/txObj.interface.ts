@@ -6,6 +6,7 @@ export interface TxObj {
   execute: boolean;
   network: Networks;
   contract: Contract;
+  from_address?: string;
   data: string;
   operationType?: OperationTypes;
 }

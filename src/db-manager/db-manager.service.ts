@@ -31,32 +31,36 @@ export class DbManagerService {
   ) {}
 
   async create(
-    params: NewContractDto | NewTokenDto | WhitelistDto | NewMetadataDto,
+    objects: NewContractDto[] | NewTokenDto[] | WhitelistDto[] | NewMetadataDto[],
     objectType: ObjectTypes,
-  ): Promise<ContractModel | TokenModel | WhitelistModel | MetadataModel> {
+  ): Promise<ContractModel[] | TokenModel[] | WhitelistModel[] | MetadataModel[]> {
     switch (objectType) {
       case ObjectTypes.CONTRACT: {
-        return await this.contractRepository.create({ ...params });
+        return await this.contractRepository.bulkCreate(objects as any, { returning: true });
       }
 
       case ObjectTypes.TOKEN: {
-        const contract = await this.findById((params as NewTokenDto).contract_id, ObjectTypes.CONTRACT);
-        const token = await this.tokenRepository.create({ ...params });
-        await contract.$add('token', [token.id]);
-        return token;
+        const tokens = await this.tokenRepository.bulkCreate(objects as any, { returning: true });
+
+        tokens.forEach(async (token) => {
+          const contract = await this.findById(token.contract_id, ObjectTypes.CONTRACT);
+          await contract.$add('token', [token.id]);
+        });
+
+        return tokens;
       }
 
       case ObjectTypes.WHITELIST: {
-        return await this.whitelistRepository.create({ ...params });
+        return await this.whitelistRepository.bulkCreate(objects as any, { returning: true });
       }
 
       case ObjectTypes.METADATA: {
-        return await this.metadataRepository.create({ ...params });
+        return await this.metadataRepository.bulkCreate(objects as any, { returning: true });
       }
     }
   }
 
-  async delete(params: string | WhitelistDto, objectType: ObjectTypes): Promise<number> {
+  async delete(params: string[] | object, objectType: ObjectTypes): Promise<number> {
     switch (objectType) {
       case ObjectTypes.METADATA:
         return await this.metadataRepository.destroy({ where: { id: params } });
@@ -68,7 +72,7 @@ export class DbManagerService {
         return await this.tokenRepository.destroy({ where: { id: params } });
 
       case ObjectTypes.WHITELIST:
-        return await this.whitelistRepository.destroy({ where: { ...(params as WhitelistDto) } });
+        return await this.whitelistRepository.destroy({ where: { ...params } });
     }
   }
 
@@ -94,12 +98,15 @@ export class DbManagerService {
   async getAllObjects(objectType: ObjectTypes, params?: GetAllDto): Promise<AllObjectsDto> {
     try {
       const args: DbArgs = {
-        attributes: { exclude: ['updatedAt'] },
         offset: !params || !params?.limit || !params?.page ? null : 0 + (+params?.page - 1) * +params.limit,
         limit: !params || !params?.limit ? null : +params?.limit,
         order: [[params?.order_by || 'createdAt', params?.order || 'DESC']] as Order,
         distinct: true,
       };
+
+      if (params.where) {
+        args.where == params.where;
+      }
 
       let allObjects: AllObjectsDto;
 
@@ -137,7 +144,6 @@ export class DbManagerService {
 
         case ObjectTypes.WHITELIST:
           if (params.contract_id) {
-            args.where = { contract_id: params.contract_id };
             allObjects = await this.whitelistRepository.findAndCountAll(args);
             break;
           }
@@ -248,6 +254,10 @@ export class DbManagerService {
     return new ResponseDto(HttpStatus.OK, null, 'status not updated');
   }
 
+  async getTokenId(contract_id: string) {
+    return await this.tokenRepository.count({ where: { contract_id, status: Statuses.PROCESSED } });
+  }
+
   async setMetadata(params: SetMetadataDto, objectType: ObjectTypes): Promise<boolean> {
     const metadata = (await this.findById(params.metadata_id, ObjectTypes.METADATA)) as MetadataModel;
 
@@ -293,10 +303,9 @@ export class DbManagerService {
 
       const metadata =
         token?.metadata?.type === MetadataTypes.COMMON
-          ? ((await this.create(
-              this.createSpecifiedMetadata(token, token.metadata),
-              ObjectTypes.METADATA,
-            )) as MetadataModel)
+          ? ((
+              await this.create([this.createSpecifiedMetadata(token, token.metadata)], ObjectTypes.METADATA)
+            )[0] as MetadataModel)
           : token.metadata;
 
       for (const [key, value] of Object.entries(data.meta_data)) {

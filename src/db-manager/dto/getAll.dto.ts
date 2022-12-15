@@ -8,4 +8,5 @@ export class GetAllDto {
   order_by?: string;
   include_child?: boolean;
   contract_id?: string;
+  where?: object | object[];
 }

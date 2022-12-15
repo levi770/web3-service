@@ -9,6 +9,7 @@ export class DeployDataDto {
   abi: AbiItem[];
   bytecode: string;
   arguments: string;
+  from_address?: string;
   asset_url?: string;
   asset_type?: FileTypes;
   meta_data?: MetaDataDto;

@@ -1,5 +1,4 @@
 import * as U from 'web3-utils'
-import MerkleTree from 'merkletreejs'
 import Web3 from 'web3'
 import { CallDataDto } from './dto/callData.dto'
 import { CallResultDto } from './dto/callResult.dto'
@@ -13,10 +12,12 @@ import { Job } from 'bull'
 import { MetaDataDto } from './dto/metaData.dto'
 import { MetadataModel } from '../db-manager/models/metadata.model'
 import { MintDataDto } from './dto/mintData.dto'
+import { NewTokenDto } from '../db-manager/dto/newToken.dto'
 import { Process, Processor } from '@nestjs/bull'
 import { RpcException } from '@nestjs/microservices'
 import { TokenModel } from '../db-manager/models/token.model'
 import { TxObj } from './interfaces/txObj.interface'
+import { TxResultDto } from './dto/txResult.dto'
 import { Web3Service } from './web3.service'
 import { WhitelistDto } from './dto/whitelist.dto'
 import { WhitelistModel } from '../db-manager/models/whitelist.model'
@@ -51,37 +52,52 @@ export class Web3Processor {
       const callData: CallDataDto = job.data;
       const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
       const contractObj = (await this.dbManager.findById(callData.contract_id, ObjectTypes.CONTRACT)) as ContractModel;
+      const whitelistOptions = callData.operation_options as WhitelistDto;
 
       if (!contractObj) {
         throw new RpcException('contract not found');
       }
 
-      let merkle: { merkleRoot: any; merkleProof?: any };
-
-      const whitelistOptions = {
-        status: callData.execute ? Statuses.PROCESSED : Statuses.CREATED,
-        contract_id: contractObj.id,
-        address: (callData.operation_options as WhitelistDto).address,
-      };
-
       if (!whitelistOptions) {
         throw new RpcException('operation specific options missed');
       }
 
+      let merkleRoot: string;
+      let merkleProof: { address: string; proof: string[] }[];
+
+      let addresses = whitelistOptions.addresses.split(',').map((address) => {
+        return {
+          status: callData.execute ? Statuses.PROCESSED : Statuses.CREATED,
+          contract_id: contractObj.id,
+          address,
+        };
+      });
+
       switch (callData.operation_type) {
         case OperationTypes.WHITELIST_ADD: {
-          const addressObj = await this.dbManager.getOneObject(ObjectTypes.WHITELIST, {
-            address: whitelistOptions.address,
-            contract_id: whitelistOptions.contract_id,
+          const addressArr = addresses.map((x) => x.address);
+          const contractIdArr = addresses.map((x) => x.contract_id);
+          const exist = await this.dbManager.getAllObjects(ObjectTypes.WHITELIST, {
+            where: { address: addressArr, contract_id: contractIdArr },
           });
 
-          if (addressObj) {
-            throw new RpcException('Address already exist in whitelist');
+          if (exist.count) {
+            (exist.rows as WhitelistModel[]).forEach((row) => {
+              const index = addresses.findIndex((x) => x.address === row.address);
+
+              if (index > -1) {
+                addresses.splice(index, 1);
+              }
+            });
+
+            if (addresses.length === 0) {
+              throw new RpcException('All addresses already exist in whitelist');
+            }
           }
 
-          const whitelistObj = await this.dbManager.create(whitelistOptions, ObjectTypes.WHITELIST);
+          const whitelistObj = await this.dbManager.create(addresses, ObjectTypes.WHITELIST);
 
-          if (!whitelistObj) {
+          if (whitelistObj.length === 0) {
             throw new RpcException('Failed to create whitelist object');
           }
 
@@ -91,13 +107,29 @@ export class Web3Processor {
             })
           ).rows as WhitelistModel[];
 
-          merkle = await this.web3Service.getMerkleRootProof(whitelist, whitelistOptions.address);
+          merkleRoot = await this.web3Service.getMerkleRoot(whitelist);
+
+          merkleProof = await Promise.all(
+            addresses.map(async (x) => {
+              const proof = await this.web3Service.getMerkleProof(whitelist, x.address);
+
+              return {
+                address: x.address,
+                proof,
+              };
+            }),
+          );
 
           break;
         }
 
         case OperationTypes.WHITELIST_REMOVE: {
-          const deleted = await this.dbManager.delete(whitelistOptions, ObjectTypes.WHITELIST);
+          const addressArr = addresses.map((x) => x.address);
+          const contractIdArr = addresses.map((x) => x.contract_id);
+          const deleted = await this.dbManager.delete(
+            { address: addressArr, contract_id: contractIdArr },
+            ObjectTypes.WHITELIST,
+          );
 
           if (deleted === 0) {
             throw new RpcException('Failed to remove whitelist object');
@@ -107,9 +139,9 @@ export class Web3Processor {
             await this.dbManager.getAllObjects(ObjectTypes.WHITELIST, {
               contract_id: callData.contract_id,
             })
-          ).rows;
+          ).rows as WhitelistModel[];
 
-          merkle = await this.web3Service.getMerkleRootProof(whitelist as WhitelistModel[]);
+          merkleRoot = await this.web3Service.getMerkleRoot(whitelist);
 
           break;
         }
@@ -124,15 +156,8 @@ export class Web3Processor {
         throw new RpcException('method not found');
       }
 
-      const callArgs = [merkle.merkleRoot];
-      const isValidArgs = callArgs.length === abiObj.inputs.length;
-
-      if (!isValidArgs) {
-        throw new RpcException('arguments length is not valid');
-      }
-
+      const callArgs = [merkleRoot];
       const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
-
       const txObj: TxObj = {
         execute: callData.execute,
         network: callData.network,
@@ -140,10 +165,9 @@ export class Web3Processor {
         data: txData,
         operationType: OperationTypes.COMMON,
       };
-
       const callTx = await this.web3Service.send(txObj);
 
-      return { merkle, callTx };
+      return { merkleRoot, merkleProof, callTx };
     } catch (error) {
       throw new RpcException(error);
     }
@@ -184,18 +208,19 @@ export class Web3Processor {
         execute: callData.execute,
         network: callData.network,
         contract: contractInst,
+        from_address: !callData.execute ? callData.from_address : null,
         data: txData,
         operationType: OperationTypes.COMMON,
       };
 
       const callTx = await this.web3Service.send(txObj);
-      const tx = callData.execute ? callTx.txReceipt : null;
 
       switch (callData.operation_type) {
         case OperationTypes.COMMON:
           return { callTx };
 
         case OperationTypes.MINT:
+          const tx = callData.execute ? callTx.txReceipt : null;
           const mintOptions = callData?.operation_options as MintDataDto;
 
           if (!mintOptions) {
@@ -203,42 +228,49 @@ export class Web3Processor {
           }
 
           const status = callData.execute ? Statuses.PROCESSED : Statuses.CREATED;
+          const token_id = await this.dbManager.getTokenId(contractObj.id);
 
           const tokenObj = (await this.dbManager.create(
-            {
-              status,
-              contract_id: contractObj.id,
-              address: contractObj.address,
-              nft_number: mintOptions.nft_number,
-              mint_data: mintOptions,
-              tx_hash: tx?.transactionHash,
-              tx_receipt: tx,
-            },
+            [
+              {
+                status,
+                token_id,
+                contract_id: contractObj.id,
+                address: contractObj.address,
+                nft_number: mintOptions.nft_number,
+                mint_data: mintOptions,
+                tx_hash: tx?.transactionHash,
+                tx_receipt: tx,
+              } as NewTokenDto,
+            ],
             ObjectTypes.TOKEN,
-          )) as TokenModel;
+          )) as TokenModel[];
 
-          let metadataObj: MetadataModel;
+          let metadataObj: MetadataModel[];
 
           if (mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type) {
             const meta_data = await this.getMetadata(mintOptions);
 
             metadataObj = (await this.dbManager.create(
-              { status: Statuses.CREATED, type: MetadataTypes.SPECIFIED, token_id: tokenObj.id, meta_data },
+              [{ status: Statuses.CREATED, type: MetadataTypes.SPECIFIED, token_id: tokenObj[0].id, meta_data }],
               ObjectTypes.METADATA,
-            )) as MetadataModel;
+            )) as MetadataModel[];
 
             await this.dbManager.setMetadata(
-              { object_id: tokenObj.id, metadata_id: metadataObj.id },
+              { object_id: tokenObj[0].id, metadata_id: metadataObj[0].id },
               ObjectTypes.TOKEN,
             );
 
-            return { callTx, meta_data, metadataObj, tokenObj };
+            return { callTx, meta_data, metadataObj: metadataObj[0], tokenObj: tokenObj[0] };
           }
 
-          metadataObj = contractObj.metadata;
-          await this.dbManager.setMetadata({ object_id: tokenObj.id, metadata_id: metadataObj.id }, ObjectTypes.TOKEN);
+          metadataObj = [contractObj.metadata];
+          await this.dbManager.setMetadata(
+            { object_id: tokenObj[0].id, metadata_id: metadataObj[0].id },
+            ObjectTypes.TOKEN,
+          );
 
-          return { callTx, metadataObj, tokenObj };
+          return { callTx, metadataObj: metadataObj[0], tokenObj: tokenObj[0] };
       }
     } catch (error) {
       throw new RpcException(error);
@@ -261,6 +293,7 @@ export class Web3Processor {
         execute: deployData.execute,
         network: deployData.network,
         contract: contractInstance,
+        from_address: !deployData.execute ? deployData.from_address : null,
         data: txData.encodeABI(),
         operationType: OperationTypes.DEPLOY,
       };
@@ -269,31 +302,33 @@ export class Web3Processor {
       const tx = deployData.execute ? deployTx.txReceipt : null;
 
       const contractObj = (await this.dbManager.create(
-        {
-          status: deployData.execute ? Statuses.PROCESSED : Statuses.CREATED,
-          address: tx?.contractAddress ?? null,
-          deploy_data: deployData,
-          deploy_tx: tx,
-        },
+        [
+          {
+            status: deployData.execute ? Statuses.PROCESSED : Statuses.CREATED,
+            address: tx?.contractAddress ?? null,
+            deploy_data: deployData,
+            deploy_tx: tx,
+          },
+        ],
         ObjectTypes.CONTRACT,
-      )) as ContractModel;
+      )) as ContractModel[];
 
       if (deployData.meta_data && deployData.asset_url && deployData.asset_type) {
         const meta_data = await this.getMetadata(deployData);
         const metadataObj = (await this.dbManager.create(
-          { status: Statuses.CREATED, type: MetadataTypes.COMMON, meta_data },
+          [{ status: Statuses.CREATED, type: MetadataTypes.COMMON, meta_data }],
           ObjectTypes.METADATA,
-        )) as MetadataModel;
+        )) as MetadataModel[];
 
         await this.dbManager.setMetadata(
-          { object_id: contractObj.id, metadata_id: metadataObj.id },
+          { object_id: contractObj[0].id, metadata_id: metadataObj[0].id },
           ObjectTypes.CONTRACT,
         );
 
-        return { deployTx, meta_data, metadataObj, contractObj };
+        return { deployTx, meta_data, contractObj: contractObj[0], metadataObj: metadataObj[0] };
       }
 
-      return { deployTx, contractObj };
+      return { deployTx, contractObj: contractObj[0] };
     } catch (error) {
       throw new RpcException(error);
     }
