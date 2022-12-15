@@ -25,9 +25,7 @@ let AppModule = class AppModule {
 AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            config_1.ConfigModule.forRoot({
-                envFilePath: `.${process.env.NODE_ENV}.env`,
-            }),
+            config_1.ConfigModule.forRoot(),
             sequelize_1.SequelizeModule.forRoot({
                 dialect: 'postgres',
                 uri: process.env.POSTGRES_URI,

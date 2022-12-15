@@ -14,9 +14,7 @@ import { WhitelistModel } from './db-manager/models/whitelist.model'
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      envFilePath: `.${process.env.NODE_ENV}.env`,
-    }),
+    ConfigModule.forRoot(),
     SequelizeModule.forRoot({
       dialect: 'postgres',
       uri: process.env.POSTGRES_URI,
