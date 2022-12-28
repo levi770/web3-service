@@ -1,3 +1,4 @@
+import { TransactionReceipt } from 'web3-core';
 import { CallDataDto } from './dto/callData.dto';
 import { ConfigService } from '@nestjs/config';
 import { DeployDataDto } from './dto/deployData.dto';
@@ -19,7 +20,7 @@ export declare class Web3Service {
     getJob(data: GetJobDto): Promise<ResponseDto>;
     process(data: CallDataDto | DeployDataDto, processType: ProcessTypes): Promise<Observable<JobResultDto>>;
     send(txObj: TxObj): Promise<TxResultDto>;
-    getTxReceipt(txHash: string, network: Networks): Promise<import("web3-core").TransactionReceipt>;
+    getTxReceipt(txHash: string, network: Networks): Promise<TransactionReceipt>;
     getMerkleRoot(leaves: WhitelistModel[]): Promise<string>;
     getMerkleProof(leaves: WhitelistModel[], address: string): Promise<string[]>;
 }

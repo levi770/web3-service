@@ -1,10 +1,27 @@
-import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript'
-import { ContractModel } from './contract.model'
-import { MetaDataDto } from '../../web3-manager/dto/metaData.dto'
-import { MetadataModel } from './metadata.model'
-import { MintDataDto } from '../../web3-manager/dto/mintData.dto'
-import { TransactionReceipt } from 'web3-eth'
+import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
+import { ContractModel } from './contract.model';
+import { MetadataModel } from './metadata.model';
+import { MintDataDto } from '../../web3-manager/dto/mintData.dto';
+import { TransactionReceipt } from 'web3-eth';
 
+/**
+ * @class TokenModel - Represents a token in the database.
+ * @export
+ *
+ * @extends Model
+ * @property {string} id - Unique identifier for the token.
+ * @property {string} status - Current status of the token.
+ * @property {number} token_id - The unique ID of the token.
+ * @property {string} address - The Ethereum address of the token.
+ * @property {string} nft_number - The unique token ID in the NFT smart contract.
+ * @property {MintDataDto} mint_data - Data related to the minting of the token.
+ * @property {string} tx_hash - The Ethereum transaction hash for the token.
+ * @property {TransactionReceipt} tx_receipt - The Ethereum transaction receipt for the token.
+ * @property {string} contract_id - The ID of the contract that the token belongs to.
+ * @property {ContractModel} contract - The contract that the token belongs to.
+ * @property {string} metadata_id - The ID of the metadata associated with the token.
+ * @property {MetadataModel} metadata - The metadata associated with the token.
+ */
 @Table({ tableName: 'tokens' })
 export class TokenModel extends Model {
   @Column({

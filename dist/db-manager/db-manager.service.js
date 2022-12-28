@@ -223,7 +223,7 @@ let DbManagerService = class DbManagerService {
     async getMetadata(id) {
         const token = await this.getOneObject(constants_1.ObjectTypes.TOKEN, { token_id: id, include_child: true });
         if (!token) {
-            throw new common_1.NotFoundException('Token with this token_id not found');
+            throw new microservices_1.RpcException('Token with this token_id not found');
         }
         return token.metadata.meta_data;
     }

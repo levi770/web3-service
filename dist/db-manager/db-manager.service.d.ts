@@ -3,7 +3,7 @@ import { ContractModel } from './models/contract.model';
 import { GetAllDto } from './dto/getAll.dto';
 import { GetOneDto } from './dto/getOne.dto';
 import { MetadataModel } from './models/metadata.model';
-import { MetadataTypes, ObjectTypes, Statuses } from '../common/constants';
+import { ObjectTypes } from '../common/constants';
 import { NewContractDto } from './dto/newContract.dto';
 import { NewMetadataDto } from './dto/newMetadata.dto';
 import { NewTokenDto } from './dto/newToken.dto';
@@ -30,10 +30,5 @@ export declare class DbManagerService {
     setMetadata(params: SetMetadataDto, objectType: ObjectTypes): Promise<boolean>;
     getMetadata(id: string): Promise<any>;
     updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto>;
-    createSpecifiedMetadata(token: TokenModel, metadata: MetadataModel): {
-        status: Statuses;
-        type: MetadataTypes;
-        token_id: string;
-        meta_data: import("../web3-manager/dto/metaData.dto").MetaDataDto;
-    };
+    createSpecifiedMetadata(token: TokenModel, metadata: MetadataModel): object;
 }

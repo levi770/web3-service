@@ -7,6 +7,12 @@ import { IpfsManagerModule } from '../ipfs-manager/ipfs-manager.module';
 import { Web3Processor } from './web3.processor';
 import { Web3Service } from './web3.service';
 
+/**
+ * A module for managing web3 operations and processing jobs.
+ * 
+ * @export
+ * @class Web3ManagerModule
+ */
 @Module({
   providers: [Web3Service, Web3Processor],
   imports: [BullModule.registerQueue({ name: WEB3_QUEUE }), ConfigModule, DbManagerModule, IpfsManagerModule],
