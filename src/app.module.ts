@@ -6,11 +6,13 @@ import { ContractModel } from './db-manager/models/contract.model';
 import { DbManagerModule } from './db-manager/db-manager.module';
 import { IpfsManagerModule } from './ipfs-manager/ipfs-manager.module';
 import { MetadataModel } from './db-manager/models/metadata.model';
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { TokenModel } from './db-manager/models/token.model';
 import { Web3ManagerModule } from './web3-manager/web3-manager.module';
 import { WhitelistModel } from './db-manager/models/whitelist.model';
+
+const logger = new Logger('Sql');
 
 @Module({
   imports: [
@@ -21,7 +23,7 @@ import { WhitelistModel } from './db-manager/models/whitelist.model';
       models: [ContractModel, TokenModel, WhitelistModel, MetadataModel],
       autoLoadModels: true,
       synchronize: true,
-      logging: false,
+      logging: (sql: string, timing?: number) => logger.log(sql),
     }),
     BullModule.forRoot({
       url: process.env.REDIS_URI,

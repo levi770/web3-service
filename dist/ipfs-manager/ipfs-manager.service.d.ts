@@ -6,7 +6,6 @@ export declare class IpfsManagerService {
     private s3;
     private configService;
     private httpService;
-    private ipfs;
     constructor(s3: S3, configService: ConfigService, httpService: HttpService);
     upload(key: string): Promise<string>;
     getObjectFromS3(key: string): Promise<Buffer>;

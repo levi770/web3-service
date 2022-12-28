@@ -9,8 +9,6 @@ import { lastValueFrom, map } from 'rxjs';
 
 @Injectable()
 export class IpfsManagerService {
-  private ipfs: any;
-
   constructor(
     @InjectAwsService(S3) private s3: S3,
     private configService: ConfigService,

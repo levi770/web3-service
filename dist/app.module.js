@@ -20,6 +20,7 @@ const sequelize_1 = require("@nestjs/sequelize");
 const token_model_1 = require("./db-manager/models/token.model");
 const web3_manager_module_1 = require("./web3-manager/web3-manager.module");
 const whitelist_model_1 = require("./db-manager/models/whitelist.model");
+const logger = new common_1.Logger('Sql');
 let AppModule = class AppModule {
 };
 AppModule = __decorate([
@@ -32,7 +33,7 @@ AppModule = __decorate([
                 models: [contract_model_1.ContractModel, token_model_1.TokenModel, whitelist_model_1.WhitelistModel, metadata_model_1.MetadataModel],
                 autoLoadModels: true,
                 synchronize: true,
-                logging: false,
+                logging: (sql, timing) => logger.log(sql),
             }),
             bull_1.BullModule.forRoot({
                 url: process.env.REDIS_URI,
