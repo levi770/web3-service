@@ -5,7 +5,6 @@ import { GetAllDto } from './dto/getAll.dto'
 import { GetOneDto } from './dto/getOne.dto'
 import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/sequelize'
-import { MetaDataDto } from '../web3-manager/dto/metaData.dto'
 import { MetadataModel } from './models/metadata.model'
 import { MetadataTypes, ObjectTypes, Statuses } from '../common/constants'
 import { NewContractDto } from './dto/newContract.dto'
@@ -15,7 +14,6 @@ import { Op, Order } from 'sequelize'
 import { ResponseDto } from '../common/dto/response.dto'
 import { RpcException } from '@nestjs/microservices'
 import { SetMetadataDto } from './dto/setMetadata.dto'
-import { Token } from 'aws-sdk/lib/token'
 import { TokenModel } from './models/token.model'
 import { UpdateMetadataDto } from './dto/updateMetadata.dto'
 import { UpdateStatusDto } from './dto/updateStatus.dto'
@@ -105,7 +103,7 @@ export class DbManagerService {
       };
 
       if (params.where) {
-        args.where == params.where;
+        args.where = params.where;
       }
 
       let allObjects: AllObjectsDto;
@@ -143,11 +141,6 @@ export class DbManagerService {
           break;
 
         case ObjectTypes.WHITELIST:
-          if (params.contract_id) {
-            allObjects = await this.whitelistRepository.findAndCountAll(args);
-            break;
-          }
-
           allObjects = await this.whitelistRepository.findAndCountAll(args);
           break;
       }

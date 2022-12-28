@@ -2,7 +2,6 @@ import { AllObjectsDto } from './dto/allObjects.dto';
 import { ContractModel } from './models/contract.model';
 import { GetAllDto } from './dto/getAll.dto';
 import { GetOneDto } from './dto/getOne.dto';
-import { MetaDataDto } from '../web3-manager/dto/metaData.dto';
 import { MetadataModel } from './models/metadata.model';
 import { MetadataTypes, ObjectTypes, Statuses } from '../common/constants';
 import { NewContractDto } from './dto/newContract.dto';
@@ -35,6 +34,6 @@ export declare class DbManagerService {
         status: Statuses;
         type: MetadataTypes;
         token_id: string;
-        meta_data: MetaDataDto;
+        meta_data: import("../web3-manager/dto/metaData.dto").MetaDataDto;
     };
 }

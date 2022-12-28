@@ -1,26 +1,25 @@
-import * as U from 'web3-utils'
-import Web3 from 'web3'
-import { CallDataDto } from './dto/callData.dto'
-import { CallResultDto } from './dto/callResult.dto'
-import { ConfigService } from '@nestjs/config'
-import { ContractModel } from '../db-manager/models/contract.model'
-import { DbManagerService } from '../db-manager/db-manager.service'
-import { DeployDataDto } from './dto/deployData.dto'
-import { DeployResultDto } from './dto/deployResult.dto'
-import { IpfsManagerService } from '../ipfs-manager/ipfs-manager.service'
-import { Job } from 'bull'
-import { MetaDataDto } from './dto/metaData.dto'
-import { MetadataModel } from '../db-manager/models/metadata.model'
-import { MintDataDto } from './dto/mintData.dto'
-import { NewTokenDto } from '../db-manager/dto/newToken.dto'
-import { Process, Processor } from '@nestjs/bull'
-import { RpcException } from '@nestjs/microservices'
-import { TokenModel } from '../db-manager/models/token.model'
-import { TxObj } from './interfaces/txObj.interface'
-import { TxResultDto } from './dto/txResult.dto'
-import { Web3Service } from './web3.service'
-import { WhitelistDto } from './dto/whitelist.dto'
-import { WhitelistModel } from '../db-manager/models/whitelist.model'
+import * as U from 'web3-utils';
+import Web3 from 'web3';
+import { CallDataDto } from './dto/callData.dto';
+import { CallResultDto } from './dto/callResult.dto';
+import { ConfigService } from '@nestjs/config';
+import { ContractModel } from '../db-manager/models/contract.model';
+import { DbManagerService } from '../db-manager/db-manager.service';
+import { DeployDataDto } from './dto/deployData.dto';
+import { DeployResultDto } from './dto/deployResult.dto';
+import { IpfsManagerService } from '../ipfs-manager/ipfs-manager.service';
+import { Job } from 'bull';
+import { MetaDataDto } from './dto/metaData.dto';
+import { MetadataModel } from '../db-manager/models/metadata.model';
+import { MintDataDto } from './dto/mintData.dto';
+import { NewTokenDto } from '../db-manager/dto/newToken.dto';
+import { Process, Processor } from '@nestjs/bull';
+import { RpcException } from '@nestjs/microservices';
+import { TokenModel } from '../db-manager/models/token.model';
+import { TxObj } from './interfaces/txObj.interface';
+import { Web3Service } from './web3.service';
+import { WhitelistDto } from './dto/whitelist.dto';
+import { WhitelistModel } from '../db-manager/models/whitelist.model';
 import {
   FileTypes,
   MetadataTypes,

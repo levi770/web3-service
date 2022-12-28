@@ -84,7 +84,7 @@ let DbManagerService = class DbManagerService {
                 distinct: true,
             };
             if (params.where) {
-                args.where == params.where;
+                args.where = params.where;
             }
             let allObjects;
             switch (objectType) {
@@ -116,10 +116,6 @@ let DbManagerService = class DbManagerService {
                     allObjects = await this.contractRepository.findAndCountAll(args);
                     break;
                 case constants_1.ObjectTypes.WHITELIST:
-                    if (params.contract_id) {
-                        allObjects = await this.whitelistRepository.findAndCountAll(args);
-                        break;
-                    }
                     allObjects = await this.whitelistRepository.findAndCountAll(args);
                     break;
             }

@@ -1,16 +1,16 @@
-import { AppController } from './app.controller'
-import { AwsSdkModule } from 'nest-aws-sdk'
-import { BullModule } from '@nestjs/bull'
-import { ConfigModule } from '@nestjs/config'
-import { ContractModel } from './db-manager/models/contract.model'
-import { DbManagerModule } from './db-manager/db-manager.module'
-import { IpfsManagerModule } from './ipfs-manager/ipfs-manager.module'
-import { MetadataModel } from './db-manager/models/metadata.model'
-import { Module } from '@nestjs/common'
-import { SequelizeModule } from '@nestjs/sequelize'
-import { TokenModel } from './db-manager/models/token.model'
-import { Web3ManagerModule } from './web3-manager/web3-manager.module'
-import { WhitelistModel } from './db-manager/models/whitelist.model'
+import { AppController } from './app.controller';
+import { AwsSdkModule } from 'nest-aws-sdk';
+import { BullModule } from '@nestjs/bull';
+import { ConfigModule } from '@nestjs/config';
+import { ContractModel } from './db-manager/models/contract.model';
+import { DbManagerModule } from './db-manager/db-manager.module';
+import { IpfsManagerModule } from './ipfs-manager/ipfs-manager.module';
+import { MetadataModel } from './db-manager/models/metadata.model';
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { TokenModel } from './db-manager/models/token.model';
+import { Web3ManagerModule } from './web3-manager/web3-manager.module';
+import { WhitelistModel } from './db-manager/models/whitelist.model';
 
 @Module({
   imports: [
