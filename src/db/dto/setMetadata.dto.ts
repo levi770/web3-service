@@ -1,5 +1,3 @@
-import { MetaDataDto } from '../../web3/dto/metaData.dto';
-
 /**
  * @class SetMetadataDto - A data transfer object for passing data to associate metadata with a model object.
  * @export

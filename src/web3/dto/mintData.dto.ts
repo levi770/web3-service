@@ -1,10 +1,10 @@
-import { FileTypes, Networks } from '../../common/constants';
+import { FileTypes } from '../../common/constants';
 import { MetaDataDto } from './metaData.dto';
 
 /**
  * @class MintDataDto - A data transfer object for passing mint data.
  * @export
- * 
+ *
  * @param {string} [nft_number] - The number of NFTs to mint.
  * @param {string} [mint_to] - The address to mint the NFTs to.
  * @param {string} [asset_url] - The URL of the NFT asset.

@@ -1,8 +1,8 @@
-import { Order } from 'sequelize'
+import { Order } from 'sequelize';
 
 /**
  * An interface for passing database query arguments.
- * 
+ *
  * @param {object} [attributes] - An object specifying the attributes to include or exclude in the result.
  * @param {number} [offset] - The number of rows to skip in the result.
  * @param {number} [limit] - The maximum number of rows to return in the result.
@@ -10,7 +10,7 @@ import { Order } from 'sequelize'
  * @param {any} [include] - An array of associations to include in the result.
  * @param {any} [where] - A where clause to filter the result.
  * @param {boolean} [distinct] - Indicates whether to return distinct rows.
- * 
+ *
  * @export
  * @interface DbArgs
  */

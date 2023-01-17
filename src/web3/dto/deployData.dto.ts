@@ -1,11 +1,11 @@
-import { AbiItem } from 'web3-utils'
-import { FileTypes, Networks } from '../../common/constants'
-import { MetaDataDto } from './metaData.dto'
+import { AbiItem } from 'web3-utils';
+import { FileTypes, Networks } from '../../common/constants';
+import { MetaDataDto } from './metaData.dto';
 
 /**
  * @class DeployDataDto - A data transfer object for passing deploy data.
  * @export
- * 
+ *
  * @param {boolean} execute - Indicates whether the deployment should be executed or just simulated.
  * @param {Networks} network - The network to use for the deployment.
  * @param {AbiItem[]} abi - The ABI of the contract to be deployed.

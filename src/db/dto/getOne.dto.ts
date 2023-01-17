@@ -1,9 +1,9 @@
-import { ObjectTypes } from '../../common/constants'
+import { ObjectTypes } from '../../common/constants';
 
 /**
  * @class GetOneDto - A data transfer object for passing parameters to retrieve a single model object.
  * @export
- * 
+ *
  * @param {ObjectTypes} [object_type] - The type of the model object to retrieve.
  * @param {string} [id] - The ID of the model object to retrieve.
  * @param {string} [token_id] - The token ID of the model object to retrieve.

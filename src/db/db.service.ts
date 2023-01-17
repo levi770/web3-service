@@ -3,7 +3,7 @@ import { ContractModel } from './models/contract.model';
 import { DbArgs } from './interfaces/dbArgs.interface';
 import { GetAllDto } from './dto/getAll.dto';
 import { GetOneDto } from './dto/getOne.dto';
-import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { MetadataModel } from './models/metadata.model';
 import { MetadataTypes, ObjectTypes, Statuses } from '../common/constants';
@@ -239,7 +239,7 @@ export class DbService {
         throw new RpcException('id or address or token_id is required');
       }
 
-      let args: DbArgs = {
+      const args: DbArgs = {
         attributes: { exclude: ['updatedAt'] },
         where: params.id
           ? { id: params.id }
@@ -344,25 +344,25 @@ export class DbService {
       case ObjectTypes.CONTRACT:
         const contract = await this.contractRepository.findOne({ where: { id } });
         await contract.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt });
-        return new ResponseDto(HttpStatus.OK, null, 'status updated');
+        return new ResponseDto(HttpStatus.OK, 'status updated', null);
 
       case ObjectTypes.TOKEN:
         const token = await this.tokenRepository.findOne({ where: { id } });
         await token.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt });
-        return new ResponseDto(HttpStatus.OK, null, 'status updated');
+        return new ResponseDto(HttpStatus.OK, 'status updated', null);
 
       case ObjectTypes.WHITELIST:
         const whitelist = await this.whitelistRepository.findOne({ where: { id } });
         await whitelist.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt });
-        return new ResponseDto(HttpStatus.OK, null, 'status updated');
+        return new ResponseDto(HttpStatus.OK, 'status updated', null);
 
       case ObjectTypes.TRANSACTION:
         const tx = await this.transactionsRepository.findOne({ where: { id } });
         await tx.update({ status: data.status, tx_receipt: data.tx_receipt });
-        return new ResponseDto(HttpStatus.OK, null, 'status updated');
+        return new ResponseDto(HttpStatus.OK, 'status updated', null);
     }
 
-    return new ResponseDto(HttpStatus.OK, null, 'status not updated');
+    return new ResponseDto(HttpStatus.OK, 'status not updated', null);
   }
 
   /**
@@ -456,7 +456,7 @@ export class DbService {
       metadata.changed('meta_data', true);
       await metadata.save();
 
-      return new ResponseDto(HttpStatus.OK, null, 'data updated');
+      return new ResponseDto(HttpStatus.OK, 'data updated', null);
     } catch (error) {
       throw new RpcException(error);
     }

@@ -1,10 +1,10 @@
-import { Networks, ObjectTypes, Statuses } from '../../common/constants'
-import { TransactionReceipt } from 'web3-core'
+import { Networks, ObjectTypes, Statuses } from '../../common/constants';
+import { TransactionReceipt } from 'web3-core';
 
 /**
  * @class UpdateStatusDto - A data transfer object for passing data to update the status of a model object.
  * @export
- * 
+ *
  * @param {Networks} network - The network chainId number.
  * @param {ObjectTypes} object_type - The type of the object to update the status for.
  * @param {string} object_id - The ID of the object to update the status for.

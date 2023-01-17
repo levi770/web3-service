@@ -3,13 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bull';
 import { Web3Service } from './web3.service';
 import { Networks, FileTypes, OperationTypes, ProcessTypes, WEB3_QUEUE } from '../common/constants';
-import { Observable, lastValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
 import { getQueueToken } from '@nestjs/bull';
 import { WhitelistModel } from '../db/models/whitelist.model';
 
 describe('Web3Service', () => {
   let web3Service: Web3Service;
-  let configService: ConfigService;
   let web3Queue: Queue;
 
   beforeEach(async () => {
@@ -45,7 +44,6 @@ describe('Web3Service', () => {
     }).compile();
 
     web3Service = module.get<Web3Service>(Web3Service);
-    configService = module.get<ConfigService>(ConfigService);
     web3Queue = module.get<Queue>(getQueueToken(WEB3_QUEUE));
   });
 
@@ -74,6 +72,7 @@ describe('Web3Service', () => {
         execute: true,
         network: Networks.ETHEREUM,
         contract_id: '12345',
+        from_address: '12345',
         method_name: 'buyFree',
         arguments: '1::[123456]',
         operation_type: OperationTypes.MINT,

@@ -32,7 +32,7 @@ const logger = new Logger('Sql');
       models: [ContractModel, TokenModel, WhitelistModel, MetadataModel, WalletModel, TransactionModel],
       autoLoadModels: true,
       synchronize: true,
-      logging: (sql: string, timing?: number) => logger.log(sql),
+      logging: (sql: string) => logger.log(sql),
     }),
     BullModule.forRoot({
       url: process.env.REDIS_URI,

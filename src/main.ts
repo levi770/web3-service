@@ -1,15 +1,15 @@
-import compression from 'compression'
-import cookieParser from 'cookie-parser'
-import { AppModule } from './app.module'
-import { Logger } from '@nestjs/common'
-import { MicroserviceOptions, Transport } from '@nestjs/microservices'
-import { NestExpressApplication } from '@nestjs/platform-express'
-import { NestFactory } from '@nestjs/core'
+import compression from 'compression';
+import cookieParser from 'cookie-parser';
+import { AppModule } from './app.module';
+import { Logger } from '@nestjs/common';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { NestFactory } from '@nestjs/core';
 
 /**
-* Bootstraps the application by creating an instance of NestExpressApplication and starting the server.
-* It also connects the application to a Redis microservice using the BullModule.
-*/
+ * Bootstraps the application by creating an instance of NestExpressApplication and starting the server.
+ * It also connects the application to a Redis microservice using the BullModule.
+ */
 async function bootstrap() {
   const logger: Logger = new Logger('App');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);

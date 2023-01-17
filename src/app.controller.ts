@@ -1,7 +1,7 @@
 import { AllObjectsDto } from './db/dto/allObjects.dto';
 import { CallDataDto } from './web3/dto/callData.dto';
 import { CMD, ObjectTypes, OperationTypes, ProcessTypes, Statuses } from './common/constants';
-import { Controller, Get, HttpCode, HttpStatus, Logger, Param, Query } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Logger, Param } from '@nestjs/common';
 import { DeployDataDto } from './web3/dto/deployData.dto';
 import { GetAllDto } from './db/dto/getAll.dto';
 import { GetJobDto } from './web3/dto/getJob.dto';
@@ -11,7 +11,7 @@ import { MessagePattern } from '@nestjs/microservices';
 import { MetaDataDto } from './web3/dto/metaData.dto';
 import { Observable } from 'rxjs';
 import { ResponseDto } from './common/dto/response.dto';
-import { TransactionReceipt, EncryptedKeystoreV3Json } from 'web3-core';
+import { TransactionReceipt } from 'web3-core';
 import { UpdateMetadataDto } from './db/dto/updateMetadata.dto';
 import { UpdateStatusDto } from './db/dto/updateStatus.dto';
 import { Web3Service } from './web3/web3.service';
@@ -36,10 +36,10 @@ export class AppController {
   }
 
   /**
-   * Processes a deployment.
+   * Creates a new encrypted wallet keystore in DB.
    *
-   * @param {DeployDataDto} data - The deployment data.
-   * @returns {Promise<Observable<JobResultDto>>} A promise that resolves to an observable of the deployment result.
+   * @param {DeployDataDto} data - The wallet data.
+   * @returns {Promise<Observable<JobResultDto>>} A result with wallet address.
    */
   @MessagePattern({ cmd: CMD.CREATE_WALLET })
   async createWallet(data: CreateWalletDto): Promise<ResponseDto> {
@@ -190,7 +190,7 @@ export class AppController {
   /**
    * Gets the health status.
    *
-   * @return {string} - 200 status with "OK" message.
+   * @return {ResponseDto} - 200 status with "OK" message.
    */
   @Get('health')
   async getHealth(): Promise<ResponseDto> {
