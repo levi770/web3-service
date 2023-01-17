@@ -172,6 +172,7 @@ export class Web3Service {
       const txObj = (await this.dbService.create(
         [
           {
+            network: txOptions.network,
             status: Statuses.CREATED,
             address: txOptions.from_address,
             tx_payload: tx,

@@ -134,6 +134,7 @@ let Web3Service = class Web3Service {
             };
             const txObj = (await this.dbService.create([
                 {
+                    network: txOptions.network,
                     status: constants_1.Statuses.CREATED,
                     address: txOptions.from_address,
                     tx_payload: tx,
