@@ -15,10 +15,8 @@ async function bootstrap() {
   const logger: Logger = new Logger('App');
   // instantiate the application
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  // Enable compression and cookie parsing middleware
   app.use(compression());
   app.use(cookieParser());
-  // Disable the "x-powered-by" header and enable CORS
   app.disable('x-powered-by');
   app.enableCors({
     origin: true,
@@ -26,7 +24,6 @@ async function bootstrap() {
     methods: 'GET',
     credentials: true,
   });
-  // Connect the application to the Redis microservice
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.REDIS,
     options: {
@@ -34,7 +31,6 @@ async function bootstrap() {
       port: +process.env.REDIS_PORT,
     },
   });
-  // Start all microservices and the server
   await app.startAllMicroservices();
   await app.listen(process.env.PORT || 5000, '127.0.0.1', async () =>
     logger.log(`Server started on port ${await app.getUrl()}`),

@@ -1,12 +1,4 @@
-import { DeployDataDto } from '../../web3-manager/dto/deployData.dto';
-import { MintDataDto } from '../../web3-manager/dto/mintData.dto';
-import { ContractModel } from '../../db-manager/models/contract.model';
-import { TokenModel } from '../../db-manager/models/token.model';
-
-/**
- * @type Data - A type representing the possible data types for the `data` field in the `JobResultDto` class.
- */
-type Data = DeployDataDto | MintDataDto | ContractModel | TokenModel | string | null;
+import { Data } from '../types';
 
 /**
  * @class JobResultDto - A data transfer object for passing job result data.

@@ -1,3 +1,7 @@
+export const WEB3_QUEUE = 'web3';
+export const CRON_QUEUE = 'cron';
+export const TX_WORKER = 'tx';
+
 /**
  * An enum representing the types of metadata.
  *
@@ -22,6 +26,7 @@ export enum Statuses {
   MINTED = 'minted',
   UPDATED = 'updated',
   DELETED = 'deleted',
+  PENDING = 'pending',
 }
 
 /**
@@ -59,6 +64,8 @@ export enum ObjectTypes {
   TOKEN = 'token',
   WHITELIST = 'whitelist',
   METADATA = 'metadata',
+  WALLET = 'wallet',
+  TRANSACTION = 'transaction',
 }
 
 /**
@@ -95,11 +102,5 @@ export enum CMD {
   UPDATE_METADATA = 'updatemetadata',
   UPDATE_STATUS = 'updatestatus',
   GET_MERKLE_PROOF = 'getmerkleproof',
+  CREATE_WALLET = 'createwallet',
 }
-
-/**
- * A constant representing the name of the web3 queue.
- *
- * @constant {string}
- */
-export const WEB3_QUEUE = 'web3';
