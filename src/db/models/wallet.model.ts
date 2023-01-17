@@ -1,6 +1,5 @@
 import { Column, DataType, HasMany, Model, Table } from 'sequelize-typescript';
 import { TokenModel } from './token.model';
-import { WhitelistModel } from './whitelist.model';
 import { ContractModel } from './contract.model';
 import { EncryptedKeystoreV3Json } from 'web3-core';
 

@@ -36,7 +36,7 @@ const logger = new Logger('Sql');
       autoLoadModels: true,
       // Synchronize the models with the database
       synchronize: true,
-      logging: (sql: string, timing?: number) => logger.log(sql),
+      logging: (sql: string) => logger.log(sql),
     }),
     BullModule.forRoot({
       // The URL of the Redis server

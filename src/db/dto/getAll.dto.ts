@@ -1,9 +1,9 @@
-import { ObjectTypes } from '../../common/constants'
+import { ObjectTypes } from '../../common/constants';
 
 /**
  * @class GetAllDto - A data transfer object for passing parameters to retrieve multiple model objects.
  * @export
- * 
+ *
  * @param {ObjectTypes} [object_type] - The type of the model objects to retrieve.
  * @param {number} [page] - The page number to retrieve.
  * @param {number} [limit] - The number of model objects to retrieve per page.

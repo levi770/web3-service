@@ -7,7 +7,6 @@ import { RpcException } from '@nestjs/microservices';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map } from 'rxjs';
 
-
 /**
  * A service for managing files on IPFS.
  *

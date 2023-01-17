@@ -9,7 +9,7 @@
  * @param {number} [nonce] - The nonce to use for the transaction.
  * @param {number} [chainId] - The chain ID to use for the transaction.
  * @param {string} [maxPriorityFeePerGas] - The maximum priority fee to pay per gas unit.
- * 
+ *
  * @export
  * @interface TxPayload
  */

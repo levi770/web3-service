@@ -1,7 +1,7 @@
 /**
  * @class Attribute - represents a trait or characteristic of something. It contains a trait_type property, which
  * describes the type of trait it is, and a value property, which holds the value of the trait.
- * 
+ *
  * @param {string} trait_type - Attribute trait type.
  * @param {string} value - Attribute trait value.
  */

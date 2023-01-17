@@ -1,7 +1,7 @@
 import * as U from 'web3-utils';
 import MerkleTree from 'merkletreejs';
 import Web3 from 'web3';
-import { TransactionReceipt, EncryptedKeystoreV3Json } from 'web3-core';
+import { TransactionReceipt } from 'web3-core';
 import { CallDataDto } from './dto/callData.dto';
 import { ConfigService } from '@nestjs/config';
 import { ContractModel } from '../db/models/contract.model';
@@ -9,7 +9,7 @@ import { DeployDataDto } from './dto/deployData.dto';
 import { GetJobDto } from './dto/getJob.dto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
-import { Job, JobPromise, Queue } from 'bull';
+import { Job, Queue } from 'bull';
 import { JobResultDto } from '../common/dto/jobResult.dto';
 import { MintDataDto } from './dto/mintData.dto';
 import {
@@ -95,7 +95,7 @@ export class Web3Service {
     const jobId = uuidv4();
 
     const job$: Observable<JobResultDto> = new Observable((observer) => {
-      const active = (job: Job<MintDataDto | DeployDataDto>, jobPromise: JobPromise) => {
+      const active = (job: Job<MintDataDto | DeployDataDto>, _: any) => {
         checkSubscriptions();
         if (job.id === jobId) {
           observer.next(new JobResultDto(job.id, 'active', job.data));

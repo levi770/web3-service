@@ -48,7 +48,7 @@ let Web3Processor = class Web3Processor {
             }
             let merkleRoot;
             let merkleProof;
-            let addresses = whitelistOptions.addresses.split(',').map((address) => {
+            const addresses = whitelistOptions.addresses.split(',').map((address) => {
                 return {
                     status: callData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED,
                     contract_id: contractObj.id,

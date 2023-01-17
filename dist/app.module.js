@@ -36,7 +36,7 @@ AppModule = __decorate([
                 models: [contract_model_1.ContractModel, token_model_1.TokenModel, whitelist_model_1.WhitelistModel, metadata_model_1.MetadataModel, wallet_model_1.WalletModel, transaction_model_1.TransactionModel],
                 autoLoadModels: true,
                 synchronize: true,
-                logging: (sql, timing) => logger.log(sql),
+                logging: (sql) => logger.log(sql),
             }),
             bull_1.BullModule.forRoot({
                 url: process.env.REDIS_URI,

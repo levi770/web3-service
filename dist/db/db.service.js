@@ -169,7 +169,7 @@ let DbService = class DbService {
             if (!params.id && !params.address && !params.token_id) {
                 throw new microservices_1.RpcException('id or address or token_id is required');
             }
-            let args = {
+            const args = {
                 attributes: { exclude: ['updatedAt'] },
                 where: params.id
                     ? { id: params.id }
@@ -247,21 +247,21 @@ let DbService = class DbService {
             case constants_1.ObjectTypes.CONTRACT:
                 const contract = await this.contractRepository.findOne({ where: { id } });
                 await contract.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt });
-                return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, 'status updated');
+                return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, 'status updated', null);
             case constants_1.ObjectTypes.TOKEN:
                 const token = await this.tokenRepository.findOne({ where: { id } });
                 await token.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt });
-                return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, 'status updated');
+                return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, 'status updated', null);
             case constants_1.ObjectTypes.WHITELIST:
                 const whitelist = await this.whitelistRepository.findOne({ where: { id } });
                 await whitelist.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt });
-                return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, 'status updated');
+                return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, 'status updated', null);
             case constants_1.ObjectTypes.TRANSACTION:
                 const tx = await this.transactionsRepository.findOne({ where: { id } });
                 await tx.update({ status: data.status, tx_receipt: data.tx_receipt });
-                return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, 'status updated');
+                return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, 'status updated', null);
         }
-        return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, 'status not updated');
+        return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, 'status not updated', null);
     }
     async getTokenId(contract_id) {
         return await this.tokenRepository.count({ where: { contract_id, status: constants_1.Statuses.PROCESSED } });
@@ -306,7 +306,7 @@ let DbService = class DbService {
             }
             metadata.changed('meta_data', true);
             await metadata.save();
-            return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, null, 'data updated');
+            return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, 'data updated', null);
         }
         catch (error) {
             throw new microservices_1.RpcException(error);

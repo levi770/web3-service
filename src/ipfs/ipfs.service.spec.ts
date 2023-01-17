@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { IpfsManagerService } from './ipfs.service';
 import { S3 } from 'aws-sdk';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { HttpModule, HttpService } from '@nestjs/axios';
+import { ConfigModule } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
 import { AwsSdkModule } from 'nest-aws-sdk';
 
 describe('IpfsManagerService', () => {
   let service: IpfsManagerService;
   let s3Object: any = undefined;
-  let fileKey: string = 'b8dfd07f-4572-472c-b11c-a6b1354c26c6.original.Dubai.jpg';
+  const fileKey = 'b8dfd07f-4572-472c-b11c-a6b1354c26c6.original.Dubai.jpg';
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
