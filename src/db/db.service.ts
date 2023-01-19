@@ -127,7 +127,7 @@ export class DbService {
         return await this.whitelistRepository.findOne({ where: { [Op.or]: [{ id }, { address: id }] } });
 
       case ObjectTypes.WALLET:
-        return await this.walletsRepository.findOne({ where: { [Op.or]: [{ id }, { address: id }] } });
+        return await this.walletsRepository.findOne({ where: { address: id } });
 
       case ObjectTypes.TRANSACTION:
         return await this.transactionsRepository.findOne({ where: { [Op.or]: [{ id }, { address: id }] } });
@@ -183,6 +183,10 @@ export class DbService {
                 model: MetadataModel,
                 attributes: { exclude: ['contract_id', 'updatedAt'] },
               },
+              {
+                model: TransactionModel,
+                attributes: { exclude: ['contract_id', 'updatedAt'] },
+              },
             ];
           }
 
@@ -203,6 +207,10 @@ export class DbService {
               {
                 model: TokenModel,
                 attributes: { exclude: ['updatedAt'] },
+              },
+              {
+                model: TransactionModel,
+                attributes: { exclude: ['contract_id', 'updatedAt'] },
               },
             ];
           }
@@ -282,6 +290,10 @@ export class DbService {
                 model: MetadataModel,
                 attributes: { exclude: ['contract_id', 'updatedAt'] },
               },
+              {
+                model: TransactionModel,
+                attributes: { exclude: ['contract_id', 'updatedAt'] },
+              },
             ];
           }
 
@@ -352,8 +364,10 @@ export class DbService {
         return new ResponseDto(HttpStatus.OK, 'status updated', null);
 
       case ObjectTypes.WHITELIST:
-        const whitelist = await this.whitelistRepository.findOne({ where: { id } });
-        await whitelist.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt });
+        const whitelist = await this.whitelistRepository.update(
+          { status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt },
+          { where: { id } },
+        );
         return new ResponseDto(HttpStatus.OK, 'status updated', null);
 
       case ObjectTypes.TRANSACTION:

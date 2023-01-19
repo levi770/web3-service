@@ -30,6 +30,8 @@ import {
 } from '../common/constants';
 import { DbService } from '../db/db.service';
 import { WalletModel } from '../db/models/wallet.model';
+import { CreatedObjects } from '../common/types';
+import { TxResultDto } from './dto/txResult.dto';
 
 /**
  * A class that processes web3 jobs.
@@ -108,10 +110,10 @@ export class Web3Processor {
     try {
       // Extract the relevant data from the job
       const callData: CallDataDto = job.data;
-      // Determine which Web3 instance to use based on the network
       const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
 
       const wallet = (await this.dbManager.findOneById(callData.from_address, ObjectTypes.WALLET)) as WalletModel;
+
       if (callData.execute && !wallet) {
         throw new RpcException('team wallet by "from_address" not found');
       }
@@ -121,12 +123,11 @@ export class Web3Processor {
         ObjectTypes.CONTRACT,
       )) as ContractModel;
 
-      const whitelistOptions = callData.operation_options as WhitelistDto;
-
-      // If the contract or whitelist options are not found, throw an error
       if (!contractObj) {
         throw new RpcException('contract not found');
       }
+
+      const whitelistOptions = callData.operation_options as WhitelistDto;
 
       if (!whitelistOptions) {
         throw new RpcException('operation specific options missed');
@@ -135,19 +136,22 @@ export class Web3Processor {
       // Initialize variables to store the Merkle root and proof
       let merkleRoot: string;
       let merkleProof: { address: string; proof: string[] }[];
-
-      const addresses = whitelistOptions.addresses.split(',').map((address) => {
-        return {
-          status: callData.execute ? Statuses.PROCESSED : Statuses.CREATED,
-          contract_id: contractObj.id,
-          address,
-        };
-      });
+      let whitelistObj: WhitelistModel[];
+      let operationType: OperationTypes;
 
       // Check the operation type and perform the appropriate action
       switch (callData.operation_type) {
         case OperationTypes.WHITELIST_ADD: {
-          // Get any existing whitelist objects with the same addresses and contract IDs as the new objects
+          operationType = OperationTypes.WHITELIST_ADD;
+
+          const addresses = whitelistOptions.addresses.split(',').map((address) => {
+            return {
+              status: Statuses.CREATED,
+              contract_id: contractObj.id,
+              address,
+            };
+          });
+
           const addressArr = addresses.map((x) => x.address);
           const contractIdArr = addresses.map((x) => x.contract_id);
 
@@ -170,8 +174,7 @@ export class Web3Processor {
             }
           }
 
-          // Creates a new whitelist object in the database for each of the given addresses.
-          const whitelistObj = await this.dbManager.create(addresses, ObjectTypes.WHITELIST);
+          whitelistObj = (await this.dbManager.create(addresses, ObjectTypes.WHITELIST)) as WhitelistModel[];
 
           // If the whitelist object was not created, throw an error
           if (whitelistObj.length === 0) {
@@ -205,7 +208,16 @@ export class Web3Processor {
         }
 
         case OperationTypes.WHITELIST_REMOVE: {
-          // Remove the addresses from the whitelist in the database
+          operationType = OperationTypes.WHITELIST_REMOVE;
+
+          const addresses = whitelistOptions.addresses.split(',').map((address) => {
+            return {
+              status: Statuses.DELETED,
+              contract_id: contractObj.id,
+              address,
+            };
+          });
+
           const addressArr = addresses.map((x) => x.address);
           const contractIdArr = addresses.map((x) => x.contract_id);
 
@@ -236,7 +248,6 @@ export class Web3Processor {
 
       // Create an instance of the contract using the contract's ABI and its deployed address
       const contractInst = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[], contractObj.address);
-      // Find the ABI object of the method to be called from the contract's ABI or thrpw an error if it is not found
       const abiObj = (contractObj as ContractModel).deploy_data.abi.find(
         (x) => x.name === callData.method_name && x.type === 'function',
       );
@@ -247,23 +258,26 @@ export class Web3Processor {
 
       // Create an array of arguments to be passed to the method
       const callArgs = [merkleRoot];
-      // Encode the function call using the ABI object and the arguments array
       const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
 
-      const txObj: TxOptions = {
+      const txOptions: TxOptions = {
         execute: callData.execute,
         network: callData.network,
         contract: contractInst,
         from_address: callData.from_address,
         data: txData,
-        operationType: OperationTypes.COMMON,
         keystore: callData.execute ? wallet.keystore : null,
+        operationType,
+        contractObj,
       };
 
-      const callTx = await this.web3Service.send(txObj);
+      if (callData.operation_type === OperationTypes.WHITELIST_ADD) {
+        txOptions.whitelistObj = whitelistObj;
+      }
 
-      // Return the merkle root, merkle proof, and transaction receipt or payload object of the whitelist transaction.
-      return { merkleRoot, merkleProof, callTx };
+      const tx = await this.web3Service.send(txOptions);
+
+      return { merkleRoot, merkleProof, tx };
     } catch (error) {
       // If an error occurs, throw an exception.
       throw new RpcException(error);
@@ -278,22 +292,15 @@ export class Web3Processor {
    * @throws {RpcException} If the contract or method is not found, or if the operation specific options are missing.
    */
   @Process(ProcessTypes.COMMON)
-  /**
-   * Processes a job with a common process type.
-   *
-   * @param {Job} job - The job to be processed.
-   * @returns {Promise<CallResultDto>} The result of the job processing.
-   * @throws {RpcException} If the contract or method is not found, or if the operation specific options are missing.
-   */
-  async processCall(job: Job): Promise<CallResultDto> {
+  async processCall(job: Job): Promise<TxResultDto> {
     try {
       // Extract the call data from the job
       const callData: CallDataDto = job.data;
-      // Determine which Web3 instance to use based on the network
       const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
 
-      const wallet = (await this.dbManager.findOneById(callData.from_address, ObjectTypes.WALLET)) as WalletModel;
-      if (callData.execute && !wallet) {
+      const walletObj = (await this.dbManager.findOneById(callData.from_address, ObjectTypes.WALLET)) as WalletModel;
+
+      if (callData.execute && !walletObj) {
         throw new RpcException('team wallet by "from_address" not found');
       }
 
@@ -325,82 +332,66 @@ export class Web3Processor {
       // Otherwise, encode the function call as a transaction
       const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any[]);
 
-      const txObj: TxOptions = {
+      const txOptions: TxOptions = {
         execute: callData.execute,
         network: callData.network,
         contract: contractInst,
         from_address: callData.from_address,
         data: txData,
         operationType: OperationTypes.COMMON,
-        keystore: callData.execute ? wallet.keystore : null,
+        keystore: callData.execute ? walletObj.keystore : null,
+        contractObj,
       };
 
       const mintOptions = callData?.operation_options as MintDataDto;
-      if (OperationTypes.MINT && !mintOptions) {
-        throw new RpcException('operation specific options missed');
-      }
 
-      const callTx = await this.web3Service.send(txObj);
+      if (OperationTypes.MINT) {
+        if (!mintOptions) {
+          throw new RpcException('operation specific options missed');
+        }
 
-      // Check the operation type and perform the appropriate action
-      switch (callData.operation_type) {
-        // If the operation type is COMMON, return the call transaction object.
-        case OperationTypes.COMMON:
-          return { callTx };
+        const tokenObj = (await this.dbManager.create(
+          [
+            {
+              status: Statuses.CREATED,
+              contract_id: contractObj.id,
+              address: contractObj.address,
+              nft_number: mintOptions.nft_number,
+              mint_data: mintOptions,
+            } as TokenDto,
+          ],
+          ObjectTypes.TOKEN,
+        )) as TokenModel[];
 
-        // If the operation type is MINT, do the following:
-        case OperationTypes.MINT:
-          // If the execute flag is set, set the tx variable to the transaction receipt of the call transaction.
-          // Otherwise, set it to null.
-          const tx = callData.execute ? callTx.txReceipt : null;
-          const status = callData.execute ? Statuses.PROCESSED : Statuses.CREATED;
-          // Get the token ID for the contract.
-          const token_id = await this.dbManager.getTokenId(contractObj.id);
-          const tokenObj = (await this.dbManager.create(
-            [
-              {
-                status,
-                token_id,
-                contract_id: contractObj.id,
-                address: contractObj.address,
-                nft_number: mintOptions.nft_number,
-                mint_data: mintOptions,
-                tx_hash: tx?.transactionHash,
-                tx_receipt: tx,
-              } as TokenDto,
-            ],
+        txOptions.tokenObj = tokenObj[0];
+
+        const tx = await this.web3Service.send(txOptions);
+
+        let metadataObj: MetadataModel[];
+
+        if (mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type) {
+          const meta_data = await this.getMetadata(mintOptions);
+          metadataObj = (await this.dbManager.create(
+            [{ status: Statuses.CREATED, type: MetadataTypes.SPECIFIED, token_id: tokenObj[0].id, meta_data }],
+            ObjectTypes.METADATA,
+          )) as MetadataModel[];
+          await this.dbManager.setMetadata(
+            { object_id: tokenObj[0].id, metadata_id: metadataObj[0].id },
             ObjectTypes.TOKEN,
-          )) as TokenModel[];
-
-          // If the mint options include metadata, asset URL, and asset type, do the following:
-          // Create a variable to store the metadata object
-          let metadataObj: MetadataModel[];
-
-          if (mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type) {
-            // Get the metadata for the mint options.
-            const meta_data = await this.getMetadata(mintOptions);
-            metadataObj = (await this.dbManager.create(
-              [{ status: Statuses.CREATED, type: MetadataTypes.SPECIFIED, token_id: tokenObj[0].id, meta_data }],
-              ObjectTypes.METADATA,
-            )) as MetadataModel[];
-            await this.dbManager.setMetadata(
-              { object_id: tokenObj[0].id, metadata_id: metadataObj[0].id },
-              ObjectTypes.TOKEN,
-            );
-            // Return the call transaction object, metadata, created metadata object, and created token object.
-            return { callTx, meta_data, metadataObj: metadataObj[0], tokenObj: tokenObj[0] };
-          }
-          // If the mint options do not include metadata, asset URL, and asset type, do the following:
-          // Define metadataObj as metadata of the contract object
+          );
+        } else {
           metadataObj = [contractObj.metadata];
 
           await this.dbManager.setMetadata(
             { object_id: tokenObj[0].id, metadata_id: metadataObj[0].id },
             ObjectTypes.TOKEN,
           );
+        }
 
-          return { callTx, metadataObj: metadataObj[0], tokenObj: tokenObj[0] };
+        return tx;
       }
+
+      return await this.web3Service.send(txOptions);
     } catch (error) {
       // If an error occurs, throw an exception.
       throw new RpcException(error);
@@ -416,63 +407,50 @@ export class Web3Processor {
    * @throws {RpcException} - If an error occurs during deployment.
    */
   @Process(ProcessTypes.DEPLOY)
-  /**
-   * Deploys a smart contract on the Ethereum or Polygon network.
-   *
-   * @param {Job} job - The job object containing the deploy data.
-   * @returns {Promise<DeployResultDto>} - A promise that resolves with the deploy transaction object,
-   * contract object, metadata object (if applicable), and metadata (if applicable).
-   * @throws {RpcException} - If an error occurs during deployment.
-   */
-  async deploy(job: Job): Promise<DeployResultDto> {
+  async deploy(job: Job): Promise<TxResultDto> {
     try {
       // Extract the deploy data from the job.
       const deployData: DeployDataDto = job.data;
 
-      const wallet = (await this.dbManager.findOneById(deployData.from_address, ObjectTypes.WALLET)) as WalletModel;
-      if (!wallet) {
+      const walletObj = (await this.dbManager.findOneById(deployData.from_address, ObjectTypes.WALLET)) as WalletModel;
+
+      if (!walletObj) {
         throw new RpcException('team wallet by "from_address" not found');
       }
 
       const w3: Web3 = deployData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
-      // Create an instance of the contract using its ABI.
+
       const contractInstance = new w3.eth.Contract(deployData.abi as U.AbiItem[]);
-      // Create a deploy transaction object with the contract instance, bytecode, and arguments.
-      const txData = contractInstance.deploy({
-        data: deployData.bytecode,
-        arguments: deployData.arguments.split('::'),
-      });
-
-      const txObj: TxOptions = {
-        execute: deployData.execute,
-        network: deployData.network,
-        contract: contractInstance,
-        from_address: !deployData.execute ? deployData.from_address : null,
-        data: txData.encodeABI(), // Encode the transaction object as ABI data.
-        operationType: OperationTypes.DEPLOY,
-        keystore: wallet.keystore,
-      };
-
-      //
-
-      const deployTx = await this.web3Service.send(txObj);
-      // If the execute flag is set, set the tx variable to the transaction receipt of the deploy transaction.
-      // Otherwise, set it to null.
-      const tx = deployData.execute ? deployTx.txReceipt : null;
-      // Create a new contract object with the obtained data and store it in the database.
       const contractObj = (await this.dbManager.create(
         [
           {
-            status: deployData.execute ? Statuses.PROCESSED : Statuses.CREATED,
-            address: tx?.contractAddress ?? null,
+            status: Statuses.CREATED,
             deploy_data: deployData,
-            deploy_tx: tx,
           },
         ],
         ObjectTypes.CONTRACT,
       )) as ContractModel[];
 
-      await wallet.$add('contract', contractObj[0]);
+      const txData = contractInstance.deploy({
+        data: deployData.bytecode,
+        arguments: deployData.arguments.split('::'),
+      });
+
+      const txOptions: TxOptions = {
+        execute: deployData.execute,
+        network: deployData.network,
+        contract: contractInstance,
+        contractObj: contractObj[0],
+        from_address: deployData.from_address,
+        data: txData.encodeABI(),
+        operationType: OperationTypes.DEPLOY,
+        keystore: walletObj.keystore,
+      };
+
+      const tx = await this.web3Service.send(txOptions);
+
+      await walletObj.$add('contract', contractObj[0]);
+      await walletObj.$add('transaction', tx.txObj);
 
       if (deployData.meta_data && deployData.asset_url && deployData.asset_type) {
         const meta_data = await this.getMetadata(deployData);
@@ -485,11 +463,9 @@ export class Web3Processor {
           { object_id: contractObj[0].id, metadata_id: metadataObj[0].id },
           ObjectTypes.CONTRACT,
         );
-        //Return the deploy transaction object, contract object, and metadata object (if applicable).
-        return { deployTx, meta_data, contractObj: contractObj[0], metadataObj: metadataObj[0] };
       }
-      // If metadata is not provided, return the deploy transaction object and contract object.
-      return { deployTx, contractObj: contractObj[0] };
+
+      return tx;
     } catch (error) {
       // If an error occurs, throw an exception.
       throw new RpcException(error);

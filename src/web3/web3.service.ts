@@ -152,7 +152,8 @@ export class Web3Service {
   async send(txOptions: TxOptions): Promise<TxResultDto> {
     try {
       const w3: Web3 = txOptions.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
-      const to = txOptions.operationType === OperationTypes.DEPLOY ? null : txOptions.contract.options.address;
+      const contractObj = txOptions.contractObj;
+      const contract = txOptions.contract;
 
       const tx: TxPayload = {
         nonce: await w3.eth.getTransactionCount(txOptions.from_address),
@@ -161,13 +162,15 @@ export class Web3Service {
           from: txOptions.from_address,
           data: txOptions.data,
           value: 0,
-          to,
         }),
         from: txOptions.from_address,
         data: txOptions.data,
         value: 0,
-        to,
       };
+
+      if (txOptions.operationType != OperationTypes.DEPLOY) {
+        tx.to = contract.options.address;
+      }
 
       const txObj = (await this.dbService.create(
         [
@@ -192,6 +195,8 @@ export class Web3Service {
         return { tx, comission, balance };
       }
 
+      await contractObj.$add('transaction', txObj[0]);
+
       const account = w3.eth.accounts.decrypt(txOptions.keystore, this.configService.get('DEFAULT_PASSWORD'));
       const signed = await account.signTransaction(tx);
 
@@ -206,14 +211,40 @@ export class Web3Service {
           txObj[0].status = Statuses.PROCESSED;
           txObj[0].tx_receipt = receipt;
           await txObj[0].save();
+
+          if (txOptions.operationType === OperationTypes.DEPLOY) {
+            contractObj.status = Statuses.PROCESSED;
+            contractObj.address = receipt.contractAddress;
+            await contractObj.save();
+          }
+
+          if (txOptions.operationType === OperationTypes.MINT) {
+            const tokenObj = txOptions.tokenObj;
+            tokenObj.status = Statuses.PROCESSED;
+            tokenObj.address = receipt.contractAddress;
+            tokenObj.tx_hash = receipt.transactionHash;
+            tokenObj.tx_receipt = receipt;
+            await tokenObj.save();
+          }
+
+          if (txOptions.operationType === OperationTypes.WHITELIST_ADD) {
+            const ids = txOptions.whitelistObj.map((obj) => obj.id);
+            await this.dbService.updateStatus({
+              object_id: ids,
+              object_type: ObjectTypes.WHITELIST,
+              status: Statuses.PROCESSED,
+              tx_hash: receipt.transactionHash,
+              tx_receipt: receipt,
+            });
+          }
         })
-        .on('error', async (e) => {
+        .on('error', async (err) => {
           txObj[0].status = Statuses.FAILED;
-          txObj[0].error = e;
+          txObj[0].error = err;
           await txObj[0].save();
         });
 
-      return { tx, comission, balance, txHash: txObj[0].tx_hash };
+      return { tx, comission, balance, txObj: txObj[0] };
     } catch (error) {
       throw new RpcException(error);
     }

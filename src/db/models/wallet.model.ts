@@ -2,6 +2,7 @@ import { Column, DataType, HasMany, Model, Table } from 'sequelize-typescript';
 import { TokenModel } from './token.model';
 import { ContractModel } from './contract.model';
 import { EncryptedKeystoreV3Json } from 'web3-core';
+import { TransactionModel } from './transaction.model';
 
 /**
  * @class WalletModel - Representing a smart contract.
@@ -38,4 +39,7 @@ export class WalletModel extends Model {
 
   @HasMany(() => TokenModel)
   tokens: TokenModel[];
+
+  @HasMany(() => TransactionModel)
+  transactions: TransactionModel[];
 }

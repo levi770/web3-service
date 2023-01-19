@@ -1,7 +1,9 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import { Column, DataType, Model, Table, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { TransactionReceipt } from 'web3-eth';
 import { TxPayload } from '../../web3/interfaces/tx.interface';
 import { Networks } from '../../common/constants';
+import { ContractModel } from './contract.model';
+import { WalletModel } from './wallet.model';
 
 /**
  * @class ContractModel - Representing a smart contract.
@@ -45,4 +47,16 @@ export class TransactionModel extends Model {
 
   @Column({ type: DataType.JSON })
   error: object;
+
+  @ForeignKey(() => ContractModel)
+  contract_id: string;
+
+  @BelongsTo(() => ContractModel)
+  contract: ContractModel;
+
+  @ForeignKey(() => WalletModel)
+  wallet_id: string;
+
+  @BelongsTo(() => WalletModel)
+  wallet: WalletModel;
 }

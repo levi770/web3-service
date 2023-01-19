@@ -1,3 +1,4 @@
+import Contract from './contract';
 import { sequelize } from './db_instance';
 import { Model, DataTypes } from 'sequelize';
 
@@ -15,6 +16,8 @@ class Transaction extends Model {
   tx_hash: string;
   tx_receipt: object;
   error: object;
+  contract_id: string;
+  contract: Contract;
 }
 
 Transaction.init(
@@ -44,6 +47,14 @@ Transaction.init(
     },
     error: {
       type: DataTypes.JSON,
+    },
+    contract: {
+      type: DataTypes.STRING,
+      field: 'contract_id',
+      references: {
+        model: 'Contract',
+        key: 'id',
+      },
     },
   },
   config,

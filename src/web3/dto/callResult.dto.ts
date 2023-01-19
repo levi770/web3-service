@@ -15,10 +15,7 @@ import { TxResultDto } from './txResult.dto';
  * @param {object[]} [merkleProof] - The merkle proof of the call.
  */
 export class CallResultDto {
-  callTx?: TxResultDto | TxResultDto[];
-  meta_data?: MetaDataDto;
-  metadataObj?: MetadataModel;
-  tokenObj?: TokenModel;
+  tx?: TxResultDto | TxResultDto[];
   merkleRoot?: string;
   merkleProof?: object[];
 }
