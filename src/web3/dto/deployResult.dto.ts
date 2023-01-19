@@ -13,8 +13,5 @@ import { TxResultDto } from './txResult.dto';
  * @param {ContractModel} contractObj - The contract model object for the deployment.
  */
 export class DeployResultDto {
-  deployTx?: TxResultDto;
-  meta_data?: MetaDataDto;
-  metadataObj?: MetadataModel;
-  contractObj: ContractModel;
+  tx?: TxResultDto;
 }

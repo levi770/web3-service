@@ -13,9 +13,9 @@ import { TransactionReceipt } from 'web3-core';
  * @param {Statuses} [status] - The updated status of the object.
  */
 export class UpdateStatusDto {
-  network: Networks;
+  network?: Networks;
   object_type: ObjectTypes;
-  object_id: string;
+  object_id: string | string[];
   tx_hash: string;
   tx_receipt?: TransactionReceipt;
   status?: Statuses;

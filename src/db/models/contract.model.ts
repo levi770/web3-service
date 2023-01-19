@@ -5,6 +5,7 @@ import { TokenModel } from './token.model';
 import { TransactionReceipt } from 'web3-eth';
 import { WhitelistModel } from './whitelist.model';
 import { WalletModel } from './wallet.model';
+import { TransactionModel } from './transaction.model';
 
 /**
  * @class ContractModel - Representing a smart contract.
@@ -39,17 +40,14 @@ export class ContractModel extends Model {
   @Column({ type: DataType.JSON })
   deploy_data: DeployDataDto;
 
-  @Column({ type: DataType.STRING })
-  tx_hash: string;
-
-  @Column({ type: DataType.JSON })
-  tx_receipt: TransactionReceipt;
-
   @HasOne(() => MetadataModel, { onDelete: 'CASCADE' })
   metadata: MetadataModel;
 
   @HasMany(() => TokenModel, { onDelete: 'CASCADE' })
   tokens: TokenModel[];
+
+  @HasMany(() => TransactionModel, { onDelete: 'CASCADE' })
+  transactions: TransactionModel[];
 
   @HasMany(() => WhitelistModel, { onDelete: 'CASCADE' })
   whitelist: WhitelistModel[];
