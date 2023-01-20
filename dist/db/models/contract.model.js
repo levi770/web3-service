@@ -16,6 +16,7 @@ const metadata_model_1 = require("./metadata.model");
 const token_model_1 = require("./token.model");
 const whitelist_model_1 = require("./whitelist.model");
 const wallet_model_1 = require("./wallet.model");
+const transaction_model_1 = require("./transaction.model");
 let ContractModel = class ContractModel extends sequelize_typescript_1.Model {
 };
 __decorate([
@@ -39,14 +40,6 @@ __decorate([
     __metadata("design:type", deployData_dto_1.DeployDataDto)
 ], ContractModel.prototype, "deploy_data", void 0);
 __decorate([
-    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING }),
-    __metadata("design:type", String)
-], ContractModel.prototype, "tx_hash", void 0);
-__decorate([
-    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.JSON }),
-    __metadata("design:type", Object)
-], ContractModel.prototype, "tx_receipt", void 0);
-__decorate([
     (0, sequelize_typescript_1.HasOne)(() => metadata_model_1.MetadataModel, { onDelete: 'CASCADE' }),
     __metadata("design:type", metadata_model_1.MetadataModel)
 ], ContractModel.prototype, "metadata", void 0);
@@ -54,6 +47,10 @@ __decorate([
     (0, sequelize_typescript_1.HasMany)(() => token_model_1.TokenModel, { onDelete: 'CASCADE' }),
     __metadata("design:type", Array)
 ], ContractModel.prototype, "tokens", void 0);
+__decorate([
+    (0, sequelize_typescript_1.HasMany)(() => transaction_model_1.TransactionModel, { onDelete: 'CASCADE' }),
+    __metadata("design:type", Array)
+], ContractModel.prototype, "transactions", void 0);
 __decorate([
     (0, sequelize_typescript_1.HasMany)(() => whitelist_model_1.WhitelistModel, { onDelete: 'CASCADE' }),
     __metadata("design:type", Array)

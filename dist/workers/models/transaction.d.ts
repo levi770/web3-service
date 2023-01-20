@@ -1,3 +1,4 @@
+import Contract from './contract';
 import { Model } from 'sequelize';
 declare class Transaction extends Model {
     id: string;
@@ -8,5 +9,7 @@ declare class Transaction extends Model {
     tx_hash: string;
     tx_receipt: object;
     error: object;
+    contract_id: string;
+    contract: Contract;
 }
 export default Transaction;

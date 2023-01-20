@@ -13,6 +13,7 @@ exports.WalletModel = void 0;
 const sequelize_typescript_1 = require("sequelize-typescript");
 const token_model_1 = require("./token.model");
 const contract_model_1 = require("./contract.model");
+const transaction_model_1 = require("./transaction.model");
 let WalletModel = class WalletModel extends sequelize_typescript_1.Model {
 };
 __decorate([
@@ -43,6 +44,10 @@ __decorate([
     (0, sequelize_typescript_1.HasMany)(() => token_model_1.TokenModel),
     __metadata("design:type", Array)
 ], WalletModel.prototype, "tokens", void 0);
+__decorate([
+    (0, sequelize_typescript_1.HasMany)(() => transaction_model_1.TransactionModel),
+    __metadata("design:type", Array)
+], WalletModel.prototype, "transactions", void 0);
 WalletModel = __decorate([
     (0, sequelize_typescript_1.Table)({ tableName: 'wallets' })
 ], WalletModel);
