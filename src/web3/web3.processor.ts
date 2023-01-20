@@ -46,6 +46,16 @@ export class Web3Processor {
   private ethereum: Web3;
   private polygon: Web3;
 
+  /**
+   * Creates an instance of Web3Processor.
+   *
+   * @param {ConfigService} configService - A service for getting configuration data.
+   * @param {DbManagerService} dbManager - A service for managing database operations.
+   * @param {IpfsManagerService} ipfsManger - A service for managing IPFS operations.
+   * @param {Web3Service} web3Service - A service for interacting with the web3 provider.
+   * @memberof Web3Processor
+   * @constructor
+   */
   constructor(
     private configService: ConfigService,
     private dbManager: DbService,
@@ -198,6 +208,7 @@ export class Web3Processor {
       }
 
       const contractInst = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[], contractObj.address);
+
       const abiObj = (contractObj as ContractModel).deploy_data.abi.find(
         (x) => x.name === callData.method_name && x.type === 'function',
       );
@@ -207,6 +218,7 @@ export class Web3Processor {
       }
 
       const callArgs = [merkleRoot];
+
       const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
 
       const txOptions: TxOptions = {
@@ -243,6 +255,7 @@ export class Web3Processor {
   async processCall(job: Job): Promise<TxResultDto> {
     try {
       const callData: CallDataDto = job.data;
+
       const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
 
       const contractObj = (await this.dbManager.getOneObject(ObjectTypes.CONTRACT, {
@@ -319,12 +332,10 @@ export class Web3Processor {
 
         if (mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type) {
           const meta_data = await this.getMetadata(mintOptions);
-
           metadataObj = (await this.dbManager.create(
             [{ status: Statuses.CREATED, type: MetadataTypes.SPECIFIED, token_id: tokenObj[0].id, meta_data }],
             ObjectTypes.METADATA,
           )) as MetadataModel[];
-
           await this.dbManager.setMetadata(
             { object_id: tokenObj[0].id, metadata_id: metadataObj[0].id },
             ObjectTypes.TOKEN,

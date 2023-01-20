@@ -237,13 +237,11 @@ export class Web3Service {
           });
         }
       };
-
       const txErrorHandler = async (err: Error) => {
         txObj[0].status = Statuses.FAILED;
         txObj[0].error = err;
         await txObj[0].save();
       };
-
       w3.eth
         .sendSignedTransaction(signed.rawTransaction)
         .on('transactionHash', hashHandler)
