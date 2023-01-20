@@ -2,14 +2,12 @@ import { Column, DataType, HasMany, HasOne, Model, Table, ForeignKey, BelongsTo 
 import { DeployDataDto } from '../../web3/dto/deployData.dto';
 import { MetadataModel } from './metadata.model';
 import { TokenModel } from './token.model';
-import { TransactionReceipt } from 'web3-eth';
 import { WhitelistModel } from './whitelist.model';
 import { WalletModel } from './wallet.model';
 import { TransactionModel } from './transaction.model';
 
 /**
  * @class ContractModel - Representing a smart contract.
- * @export
  *
  * @extends {Model}
  * @property {string} id - The ID of the contract.

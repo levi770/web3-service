@@ -24,32 +24,24 @@ const logger = new Logger('Sql');
  * @class AppModule
  */
 @Module({
-  // Import required modules
   imports: [
     ConfigModule.forRoot(),
     SequelizeModule.forRoot({
-      // Use PostgreSQL as the database
       dialect: 'postgres',
-      // The URI of the database
       uri: process.env.POSTGRES_URI,
       models: [ContractModel, TokenModel, WhitelistModel, MetadataModel, WalletModel, TransactionModel],
       autoLoadModels: true,
-      // Synchronize the models with the database
       synchronize: true,
       logging: (sql: string) => logger.log(sql),
     }),
     BullModule.forRoot({
-      // The URL of the Redis server
       url: process.env.REDIS_URI,
       // Alternatively, use Redis host and port
       // redis: { host: process.env.REDIS_HOST, port: +process.env.REDIS_PORT },
     }),
     AwsSdkModule.forRoot({
-      // The default options for AWS services
       defaultServiceOptions: {
-        // The region to use
         region: process.env.AWS_REGION,
-        // The AWS credentials
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY,
           secretAccessKey: process.env.AWS_SECRET_KEY,
@@ -61,7 +53,6 @@ const logger = new Logger('Sql');
     DbManagerModule,
     IpfsManagerModule,
   ],
-  // The controllers of the application
   controllers: [AppController],
 })
 export class AppModule {}

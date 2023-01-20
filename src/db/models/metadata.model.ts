@@ -5,7 +5,6 @@ import { TokenModel } from './token.model';
 
 /**
  * @class MetadataModel - Representing metadata for contracts and tokens.
- * @export
  *
  * @extends Model
  * @property {string} id - ID of the metadata entry

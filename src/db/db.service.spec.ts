@@ -57,7 +57,6 @@ describe('DbManagerService', () => {
           status: Statuses.CREATED,
           address: null,
           deploy_data: null,
-          deploy_tx: null,
         },
       ],
       ObjectTypes.CONTRACT,

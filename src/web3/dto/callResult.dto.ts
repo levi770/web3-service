@@ -1,6 +1,3 @@
-import { MetaDataDto } from './metaData.dto';
-import { MetadataModel } from '../../db/models/metadata.model';
-import { TokenModel } from '../../db/models/token.model';
 import { TxResultDto } from './txResult.dto';
 
 /**

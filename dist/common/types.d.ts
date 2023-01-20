@@ -13,11 +13,11 @@ import { DeployDataDto } from '../web3/dto/deployData.dto';
 import { MintDataDto } from '../web3/dto/mintData.dto';
 import { WhitelistDto } from '../web3/dto/whitelist.dto';
 import { EncryptedKeystoreV3Json } from 'web3-core';
-export declare type Data = DeployDataDto | MintDataDto | ContractModel | TokenModel | string | null;
-export declare type Wallet = {
+export type Data = DeployDataDto | MintDataDto | ContractModel | TokenModel | string | null;
+export type Wallet = {
     address: string;
     keystore: EncryptedKeystoreV3Json;
 };
-export declare type CreateObjects = ContractDto[] | TokenDto[] | WhitelistDto[] | MetadataDto[] | WalletDto[] | TransactionDto[];
-export declare type CreatedObjects = ContractModel[] | TokenModel[] | WhitelistModel[] | MetadataModel[] | WalletModel[] | TransactionModel[];
-export declare type FindModelResult = ContractModel | TokenModel | WhitelistModel | MetadataModel | WalletModel | TransactionModel;
+export type CreateObjects = ContractDto[] | TokenDto[] | WhitelistDto[] | MetadataDto[] | WalletDto[] | TransactionDto[];
+export type CreatedObjects = ContractModel[] | TokenModel[] | WhitelistModel[] | MetadataModel[] | WalletModel[] | TransactionModel[];
+export type FindModelResult = ContractModel | TokenModel | WhitelistModel | MetadataModel | WalletModel | TransactionModel;

@@ -29,7 +29,6 @@ import {
 } from '../common/constants';
 import { DbService } from '../db/db.service';
 import { WalletModel } from '../db/models/wallet.model';
-import { CreatedObjects } from '../common/types';
 import { TxResultDto } from './dto/txResult.dto';
 
 /**
@@ -43,48 +42,17 @@ import { TxResultDto } from './dto/txResult.dto';
  * @class Web3Processor
  */
 @Processor('web3')
-/**
- * A class that processes web3 jobs.
- *
- * @param {ConfigService} configService - A service for getting configuration data.
- * @param {DbManagerService} dbManager - A service for managing database operations.
- * @param {IpfsManagerService} ipfsManger - A service for managing IPFS operations.
- * @param {Web3Service} web3Service - A service for interacting with the web3 provider.
- * @export
- * @class Web3Processor
- */
 export class Web3Processor {
-  /**
-   * The Ethereum web3 instance.
-   * @private
-   */
   private ethereum: Web3;
-
-  /**
-   * The Polygon web3 instance.
-   * @private
-   */
   private polygon: Web3;
 
-  /**
-   * Creates an instance of Web3Processor.
-   *
-   * @param {ConfigService} configService - A service for getting configuration data.
-   * @param {DbManagerService} dbManager - A service for managing database operations.
-   * @param {IpfsManagerService} ipfsManger - A service for managing IPFS operations.
-   * @param {Web3Service} web3Service - A service for interacting with the web3 provider.
-   * @memberof Web3Processor
-   * @constructor
-   */
   constructor(
     private configService: ConfigService,
     private dbManager: DbService,
     private ipfsManger: IpfsManagerService,
     private web3Service: Web3Service,
   ) {
-    // Initialize a Web3 instance for Ethereum using the HTTP provider with the host specified in the config service
     this.ethereum = new Web3(new Web3.providers.HttpProvider(this.configService.get('ETHEREUM_HOST')));
-    // Initialize a Web3 instance for Polygon using the HTTP provider with the host specified in the config service
     this.polygon = new Web3(new Web3.providers.HttpProvider(this.configService.get('POLYGON_HOST')));
   }
 
@@ -97,18 +65,10 @@ export class Web3Processor {
    * all addresses already exist in the whitelist, or if the method or ABI object is not found.
    */
   @Process(ProcessTypes.WHITELIST)
-  /**
-   * Processes a whitelist job by adding or removing addresses from a whitelist.
-   *
-   * @param {Job} job - The job to be processed.
-   * @returns {Promise<CallResultDto>} A promise that resolves with the result of the whitelist operation.
-   * @throws {RpcException} If the contract is not found, operation specific options are missed,
-   * all addresses already exist in the whitelist, or if the method or ABI object is not found.
-   */
   async processWhitelist(job: Job): Promise<CallResultDto> {
     try {
-      // Extract the relevant data from the job
       const callData: CallDataDto = job.data;
+
       const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
 
       const wallet = (await this.dbManager.findOneById(callData.from_address, ObjectTypes.WALLET)) as WalletModel;
@@ -132,13 +92,11 @@ export class Web3Processor {
         throw new RpcException('operation specific options missed');
       }
 
-      // Initialize variables to store the Merkle root and proof
       let merkleRoot: string;
       let merkleProof: { address: string; proof: string[] }[];
       let whitelistObj: WhitelistModel[];
       let operationType: OperationTypes;
 
-      // Check the operation type and perform the appropriate action
       switch (callData.operation_type) {
         case OperationTypes.WHITELIST_ADD: {
           operationType = OperationTypes.WHITELIST_ADD;
@@ -187,10 +145,7 @@ export class Web3Processor {
             })
           ).rows as WhitelistModel[];
 
-          // Calculates the Merkle root of the whitelist objects.
           merkleRoot = await this.web3Service.getMerkleRoot(whitelist);
-
-          // Calculates the Merkle proof for each of the given addresses.
           merkleProof = await Promise.all(
             addresses.map(async (x) => {
               const proof = await this.web3Service.getMerkleProof(whitelist, x.address);
@@ -202,7 +157,6 @@ export class Web3Processor {
             }),
           );
 
-          // Break out of the switch statement
           break;
         }
 
@@ -237,15 +191,12 @@ export class Web3Processor {
             })
           ).rows as WhitelistModel[];
 
-          // Calculate the Merkle root for the updated whitelist
           merkleRoot = await this.web3Service.getMerkleRoot(whitelist);
 
-          // Break out of the switch statement
           break;
         }
       }
 
-      // Create an instance of the contract using the contract's ABI and its deployed address
       const contractInst = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[], contractObj.address);
       const abiObj = (contractObj as ContractModel).deploy_data.abi.find(
         (x) => x.name === callData.method_name && x.type === 'function',
@@ -255,7 +206,6 @@ export class Web3Processor {
         throw new RpcException('method not found');
       }
 
-      // Create an array of arguments to be passed to the method
       const callArgs = [merkleRoot];
       const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
 
@@ -278,7 +228,6 @@ export class Web3Processor {
 
       return { merkleRoot, merkleProof, tx };
     } catch (error) {
-      // If an error occurs, throw an exception.
       throw new RpcException(error);
     }
   }
@@ -293,7 +242,6 @@ export class Web3Processor {
   @Process(ProcessTypes.COMMON)
   async processCall(job: Job): Promise<TxResultDto> {
     try {
-      // Extract the call data from the job
       const callData: CallDataDto = job.data;
       const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
 
@@ -314,7 +262,6 @@ export class Web3Processor {
         throw new RpcException('method not found');
       }
 
-      // Get the arguments for the method call based on the ABI object
       const callArgs = callData.arguments ? await this.getArgs(callData.arguments, abiObj.inputs) : [];
 
       // If the operation type is a read contract, call the method and return the result
@@ -372,10 +319,12 @@ export class Web3Processor {
 
         if (mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type) {
           const meta_data = await this.getMetadata(mintOptions);
+
           metadataObj = (await this.dbManager.create(
             [{ status: Statuses.CREATED, type: MetadataTypes.SPECIFIED, token_id: tokenObj[0].id, meta_data }],
             ObjectTypes.METADATA,
           )) as MetadataModel[];
+
           await this.dbManager.setMetadata(
             { object_id: tokenObj[0].id, metadata_id: metadataObj[0].id },
             ObjectTypes.TOKEN,
@@ -394,7 +343,6 @@ export class Web3Processor {
 
       return await this.web3Service.send(txOptions);
     } catch (error) {
-      // If an error occurs, throw an exception.
       throw new RpcException(error);
     }
   }
@@ -410,7 +358,6 @@ export class Web3Processor {
   @Process(ProcessTypes.DEPLOY)
   async deploy(job: Job): Promise<TxResultDto> {
     try {
-      // Extract the deploy data from the job.
       const deployData: DeployDataDto = job.data;
 
       const walletObj = (await this.dbManager.findOneById(deployData.from_address, ObjectTypes.WALLET)) as WalletModel;
@@ -468,7 +415,6 @@ export class Web3Processor {
 
       return tx;
     } catch (error) {
-      // If an error occurs, throw an exception.
       throw new RpcException(error);
     }
   }
@@ -480,12 +426,9 @@ export class Web3Processor {
    * @returns {Promise<MetaDataDto>} The metadata for the contract.
    */
   async getMetadata(data: MintDataDto | DeployDataDto): Promise<MetaDataDto> {
-    // Upload the asset to IPFS and get its file ID.
     const fileId = await this.ipfsManger.upload(data.asset_url);
-    // Get the metadata from the data input.
     const metadata = data.meta_data;
 
-    // Check the asset type and update the metadata accordingly.
     switch (data.asset_type) {
       case FileTypes.IMAGE:
         metadata.image = `${this.configService.get('PINATA_GATEWAY')}${fileId}`;
@@ -496,7 +439,6 @@ export class Web3Processor {
         break;
     }
 
-    // Return the updated metadata.
     return metadata;
   }
 
@@ -510,20 +452,17 @@ export class Web3Processor {
    */
   async getArgs(args: string, inputs: U.AbiInput[]): Promise<any[]> {
     try {
-      // Split the string of arguments into an array.
       const argsArr = args.split('::');
       if (argsArr.length !== inputs.length) {
         throw new RpcException('arguments length is not valid');
       }
       return argsArr.map((value, index) => {
-        // If the ABI input type is 'bytes32[]', parse the value as JSON.
         if (inputs[index].type === 'bytes32[]') {
           return JSON.parse(value);
         }
         return value;
       });
     } catch (error) {
-      // If an error occurs, throw an exception.
       throw new RpcException('Failed to get arguments: ' + error);
     }
   }

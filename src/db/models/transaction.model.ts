@@ -7,7 +7,6 @@ import { WalletModel } from './wallet.model';
 
 /**
  * @class ContractModel - Representing a smart contract.
- * @export
  *
  * @extends {Model}
  * @property {string} id - The ID of the transaction.

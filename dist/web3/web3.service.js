@@ -75,7 +75,7 @@ let Web3Service = class Web3Service {
     async process(data, processType) {
         const jobId = (0, uuid_1.v4)();
         const job$ = new rxjs_1.Observable((observer) => {
-            const active = (job, _) => {
+            const active = (job) => {
                 checkSubscriptions();
                 if (job.id === jobId) {
                     observer.next(new jobResult_dto_1.JobResultDto(job.id, 'active', job.data));

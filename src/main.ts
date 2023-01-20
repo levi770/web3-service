@@ -11,9 +11,7 @@ import { NestFactory } from '@nestjs/core';
  * It also connects the application to a Redis microservice using the BullModule.
  */
 async function bootstrap() {
-  // A root logger.
   const logger: Logger = new Logger('App');
-  // instantiate the application
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.use(compression());
   app.use(cookieParser());

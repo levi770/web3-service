@@ -47,14 +47,6 @@ export class Web3Service {
   private ethereum: Web3;
   private polygon: Web3;
 
-  /**
-   * Creates an instance of Web3Service.
-   *
-   * @param {Queue} web3Queue - The Web3 queue to use for processing jobs.
-   * @param {ConfigService} configService - The config service for accessing configuration values.
-   * @memberof Web3Service
-   * @constructor
-   */
   constructor(
     @InjectQueue(WEB3_QUEUE) private web3Queue: Queue,
     @InjectQueue(CRON_QUEUE) private cronQueue: Queue,
@@ -65,7 +57,7 @@ export class Web3Service {
     this.polygon = new Web3(new Web3.providers.HttpProvider(configService.get('POLYGON_HOST')));
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_10_SECONDS)
   async handleCron() {
     return await this.cronQueue.add(TX_WORKER, { db: this.dbService });
   }
@@ -95,7 +87,7 @@ export class Web3Service {
     const jobId = uuidv4();
 
     const job$: Observable<JobResultDto> = new Observable((observer) => {
-      const active = (job: Job<MintDataDto | DeployDataDto>, _: any) => {
+      const active = (job: Job<MintDataDto | DeployDataDto>) => {
         checkSubscriptions();
         if (job.id === jobId) {
           observer.next(new JobResultDto(job.id, 'active', job.data));
@@ -245,13 +237,13 @@ export class Web3Service {
           });
         }
       };
-      
+
       const txErrorHandler = async (err: Error) => {
         txObj[0].status = Statuses.FAILED;
         txObj[0].error = err;
         await txObj[0].save();
       };
-      
+
       w3.eth
         .sendSignedTransaction(signed.rawTransaction)
         .on('transactionHash', hashHandler)
@@ -301,6 +293,11 @@ export class Web3Service {
     return tree.getHexProof(U.keccak256(address));
   }
 
+  /**
+   * Creates a new Ethereum account.
+   *
+   * @returns {Promise<Wallet>} - A Promise that resolves to an object containing the address and keystore of the new account.
+   */
   async newWallet(): Promise<Wallet> {
     const password = await this.configService.get('DEFAULT_PASSWORD');
     const account = this.ethereum.eth.accounts.create();

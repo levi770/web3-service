@@ -1,6 +1,3 @@
-import { ContractModel } from '../../db/models/contract.model';
-import { MetaDataDto } from './metaData.dto';
-import { MetadataModel } from '../../db/models/metadata.model';
 import { TxResultDto } from './txResult.dto';
 
 /**

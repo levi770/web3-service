@@ -1,6 +1,6 @@
 import Web3 from 'web3';
 import { Job, DoneCallback } from 'bull';
-import { Networks, Statuses } from '../common/constants';
+import { Networks, Statuses } from '../../common/constants';
 import Transaction from './models/transaction';
 import Contract from './models/contract';
 
@@ -22,22 +22,22 @@ async function txWorker(job: Job, doneCallback: DoneCallback) {
         continue;
       } else if (txReciept.status) {
         const contract = await Contract.findOne({ where: { id: tx.contract } });
-        
+
         if (contract) {
           contract.address = txReciept.contractAddress;
           await contract.save();
         }
-        
+
         tx.status = Statuses.PROCESSED;
         tx.tx_receipt = txReciept;
         await tx.save();
-        
+
         continue;
       } else if (!txReciept.status) {
         tx.status = Statuses.FAILED;
         tx.tx_receipt = txReciept;
         await tx.save();
-        
+
         continue;
       }
     }

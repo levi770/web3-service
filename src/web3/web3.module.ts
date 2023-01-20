@@ -24,7 +24,7 @@ import { join } from 'path';
         processors: [
           {
             name: TX_WORKER,
-            path: join(__dirname, `../workers/tx.worker.${process.env.NAME === 'base' ? 'js' : 'ts'}`),
+            path: join(__dirname, `../web3/worker/tx.worker.${process.env.NAME === 'base' ? 'js' : 'ts'}`),
           },
         ],
       },

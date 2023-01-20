@@ -4,7 +4,6 @@ import { TransactionReceipt } from 'web3-eth';
 
 /**
  * @class WhitelistModel - Representing a whitelist in the database.
- * @export
  *
  * @extends Model
  * @property {string} id - ID of the whitelist entry

@@ -28,17 +28,7 @@ import { CreateWalletDto } from './web3/dto/createWallet.dto';
  * @class AppController
  */
 @Controller()
-/**
- * A controller for handling web3 and database operations.
- *
- * @export
- * @class AppController
- */
 export class AppController {
-  /**
-   * A logger for logging messages.
-   * @private
-   */
   private logger: Logger;
 
   constructor(private web3Service: Web3Service, private dbManagerService: DbService) {
@@ -66,14 +56,7 @@ export class AppController {
    * @returns {Promise<Observable<JobResultDto>>} A promise that resolves to an observable of the deployment result.
    */
   @MessagePattern({ cmd: CMD.DEPLOY })
-  /**
-   * Processes a deployment.
-   *
-   * @param {DeployDataDto} data - The deployment data.
-   * @returns {Promise<Observable<JobResultDto>>} A promise that resolves to an observable of the deployment result.
-   */
   async processDeploy(data: DeployDataDto): Promise<Observable<JobResultDto>> {
-    // Log the received data
     this.logger.log(`Processing call '${CMD.DEPLOY}' with data: ${JSON.stringify(data)}`);
     return await this.web3Service.process(data, ProcessTypes.DEPLOY);
   }
@@ -85,18 +68,9 @@ export class AppController {
    * @returns {Promise<Observable<JobResultDto>>} A promise that resolves to an observable of the call result.
    */
   @MessagePattern({ cmd: CMD.CALL })
-  /**
-   * Processes a call.
-   *
-   * @param {CallDataDto} data - The call data.
-   * @returns {Promise<Observable<JobResultDto>>} A promise that resolves to an observable of the call result.
-   */
   async processCall(data: CallDataDto): Promise<Observable<JobResultDto>> {
-    // Log the received data
     this.logger.log(`Processing call '${CMD.CALL}' with data: ${JSON.stringify(data)}`);
 
-    // If the operation type is a whitelist add or remove, process the call using the Web3 service
-    //and the "whitelist" process type
     if (
       data.operation_type === OperationTypes.WHITELIST_ADD ||
       data.operation_type === OperationTypes.WHITELIST_REMOVE
@@ -104,7 +78,6 @@ export class AppController {
       return await this.web3Service.process(data, ProcessTypes.WHITELIST);
     }
 
-    // Otherwise, process the call using the Web3 service and the "common" process type
     return await this.web3Service.process(data, ProcessTypes.COMMON);
   }
 
@@ -115,14 +88,7 @@ export class AppController {
    * @returns {Promise<ResponseDto>} A promise that resolves to the job result.
    */
   @MessagePattern({ cmd: CMD.JOB })
-  /**
-   * Gets the result of a job.
-   *
-   * @param {GetJobDto} data - The job data.
-   * @returns {Promise<ResponseDto>} A promise that resolves to the job result.
-   */
   async getJob(data: GetJobDto): Promise<ResponseDto> {
-    // Log the received data
     this.logger.log(`Processing call '${CMD.JOB}' with data: ${JSON.stringify(data)}`);
     return await this.web3Service.getJob(data);
   }
@@ -134,25 +100,15 @@ export class AppController {
    * @returns {Promise<ResponseDto>} A promise that resolves to the proof.
    */
   @MessagePattern({ cmd: CMD.GET_MERKLE_PROOF })
-  /**
-   * Gets a Merkle proof for a given address.
-   *
-   * @param {WhitelistDto} data - The data for the proof.
-   * @returns {Promise<ResponseDto>} A promise that resolves to the proof.
-   */
   async getMerkleProof(data: WhitelistDto): Promise<ResponseDto> {
-    // Log the received data
     this.logger.log(`Processing call '${CMD.GET_MERKLE_PROOF}' with data: ${JSON.stringify(data)}`);
 
-    // Destructure the contract ID and address from the data
     const { contract_id, address } = data;
     const whitelist = (await this.dbManagerService.getAllObjects(ObjectTypes.WHITELIST, { contract_id }))
       .rows as WhitelistModel[];
     const merkleRoot = await this.web3Service.getMerkleRoot(whitelist);
-    // Get the Merkle proof for the given address
     const merkleProof = await this.web3Service.getMerkleProof(whitelist, address);
 
-    // Return the Merkle root and proof in a response object
     return new ResponseDto(HttpStatus.OK, null, { merkleRoot, merkleProof });
   }
 
@@ -164,15 +120,7 @@ export class AppController {
    * and the total number of objects.
    */
   @MessagePattern({ cmd: CMD.ALL_OBJECTS })
-  /**
-   * Gets all objects of a specified type.
-   *
-   * @param {GetAllDto} data - The data for the objects to retrieve.
-   * @return {Promise<AllObjectsDto>} - A promise that resolves to an object with the retrieved objects
-   * and the total number of objects.
-   */
   async getAllObjects(data: GetAllDto): Promise<AllObjectsDto> {
-    // Log the received data
     this.logger.log(`Processing call '${CMD.ALL_OBJECTS}' with data: ${JSON.stringify(data)}`);
     return await this.dbManagerService.getAllObjects(data.object_type, data);
   }
@@ -198,32 +146,19 @@ export class AppController {
    * of the update.
    */
   @MessagePattern({ cmd: CMD.UPDATE_STATUS })
-  /**
-   * Updates the status of a job.
-   *
-   * @param {UpdateStatusDto} data - The data for the status update.
-   * @return {Promise<ResponseDto>} - A promise that resolves to a response object indicating the success or failure
-   * of the update.
-   */
   async updateStatus(data: UpdateStatusDto): Promise<ResponseDto> {
-    // Log the received data
     this.logger.log(`Processing call '${CMD.UPDATE_STATUS}' with data: ${JSON.stringify(data)}`);
 
     let txReceipt: TransactionReceipt;
 
-    // If a transaction receipt is provided, use it
     if (data.tx_receipt) {
       txReceipt = data.tx_receipt;
-    }
-    // Otherwise, retrieve the transaction receipt using the transaction hash and network
-    else {
+    } else {
       txReceipt = await this.web3Service.getTxReceipt(data.tx_hash, data.network);
     }
 
-    // Determine the status based on the transaction receipt
     const status = !txReceipt ? Statuses.UNKNOWN : txReceipt.status ? Statuses.PROCESSED : Statuses.FAILED;
 
-    // Update the status using the status and other data
     return await this.dbManagerService.updateStatus({ status, ...data });
   }
 
@@ -235,15 +170,7 @@ export class AppController {
    * of the update.
    */
   @MessagePattern({ cmd: CMD.UPDATE_METADATA })
-  /**
-   * Updates the metadata of a contract.
-   *
-   * @param {UpdateMetadataDto} data - The data for the metadata update.
-   * @return {Promise<ResponseDto>} - A promise that resolves to a response object indicating the success or failure
-   * of the update.
-   */
   async updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto> {
-    // Log the received data
     this.logger.log(`Processing call '${CMD.UPDATE_METADATA}' with data: ${JSON.stringify(data)}`);
     return await this.dbManagerService.updateMetadata(data);
   }
@@ -255,14 +182,7 @@ export class AppController {
    * @return {Promise<MetaDataDto>} - A promise that resolves to the metadata of the contract.
    */
   @Get('metadata/:id')
-  /**
-   * Gets the metadata of a contract.
-   *
-   * @param {string} id - The ID of the contract.
-   * @return {Promise<MetaDataDto>} - A promise that resolves to the metadata of the contract.
-   */
   async getMetaData(@Param('id') id: string): Promise<MetaDataDto> {
-    // Log the received ID
     this.logger.log(`Processing GET request 'metadata' with id: ${id}`);
     return await this.dbManagerService.getMetadata(id);
   }

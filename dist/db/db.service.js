@@ -265,7 +265,7 @@ let DbService = class DbService {
                 await token.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt });
                 return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, 'status updated', null);
             case constants_1.ObjectTypes.WHITELIST:
-                const whitelist = await this.whitelistRepository.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt }, { where: { id } });
+                await this.whitelistRepository.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt }, { where: { id } });
                 return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, 'status updated', null);
             case constants_1.ObjectTypes.TRANSACTION:
                 const tx = await this.transactionsRepository.findOne({ where: { id } });

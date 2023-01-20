@@ -22,7 +22,6 @@ import { TransactionModel } from './models/transaction.model';
 /**
  * A service for managing objects in a database.
  *
- * @export
  * @class DbService
  */
 @Injectable()
@@ -140,8 +139,6 @@ export class DbService {
    * @param {ObjectTypes} objectType - The type of objects to retrieve.
    * @param {GetAllDto} [params] - An optional object with query parameters.
    * @return {Promise<AllObjectsDto>} - A promise that resolves to an object with the retrieved objects and the total number of objects.
-   *
-   * @throws {RpcException} If an error occurs while retrieving the objects.
    */
   async getAllObjects(objectType: ObjectTypes, params?: GetAllDto): Promise<AllObjectsDto> {
     try {
@@ -235,8 +232,6 @@ export class DbService {
    * @param {ObjectTypes} objectType - The type of object to retrieve.
    * @param {GetOneDto} params - An object with the ID, address, or token ID of the object to retrieve.
    * @return {Promise<FindModelResult>} - A promise that resolves to the retrieved object.
-   *
-   * @throws {RpcException} If an error occurs while retrieving the object.
    */
   async getOneObject(objectType: ObjectTypes, params: GetOneDto): Promise<FindModelResult> {
     try {
@@ -340,14 +335,7 @@ export class DbService {
    * Updates the status of an object.
    *
    * @param {UpdateStatusDto} data - An object with the ID, type, and new status of the object to update.
-   * @param {string} data.object_id - The ID of the object to update.
-   * @param {ObjectTypes} data.object_type - The type of object to update.
-   * @param {number} data.status - The new status of the object.
-   * @param {string} [data.tx_hash] - The transaction hash of the update.
-   * @param {string} [data.tx_receipt] - The transaction receipt of the update.
    * @return {Promise<ResponseDto>} - A promise that resolves to a response object indicating the result of the update.
-   *
-   * @throws {RpcException} If an error occurs while updating the status.
    */
   async updateStatus(data: UpdateStatusDto): Promise<ResponseDto> {
     const id = data.object_id;
@@ -364,7 +352,7 @@ export class DbService {
         return new ResponseDto(HttpStatus.OK, 'status updated', null);
 
       case ObjectTypes.WHITELIST:
-        const whitelist = await this.whitelistRepository.update(
+        await this.whitelistRepository.update(
           { status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt },
           { where: { id } },
         );
@@ -384,8 +372,6 @@ export class DbService {
    *
    * @param {string} contract_id - The ID of the contract to search.
    * @return {Promise<number>} - A promise that resolves to the number of processed tokens.
-   *
-   * @throws {RpcException} If an error occurs while counting the tokens.
    */
   async getTokenId(contract_id: string): Promise<number> {
     return await this.tokenRepository.count({ where: { contract_id, status: Statuses.PROCESSED } });
@@ -395,12 +381,8 @@ export class DbService {
    * Associates metadata with an object.
    *
    * @param {SetMetadataDto} params - An object with the metadata ID and the object ID to associate.
-   * @param {string} params.metadata_id - The ID of the metadata to associate.
-   * @param {string} params.object_id - The ID of the object to associate the metadata with.
    * @param {ObjectTypes} objectType - The type of object to associate the metadata with.
    * @return {Promise<boolean>} - A promise that resolves to a boolean indicating whether the metadata was successfully associated.
-   *
-   * @throws {RpcException} If an error occurs while setting the metadata.
    */
   async setMetadata(params: SetMetadataDto, objectType: ObjectTypes): Promise<boolean> {
     const metadata = (await this.findOneById(params.metadata_id, ObjectTypes.METADATA)) as MetadataModel;
@@ -427,8 +409,6 @@ export class DbService {
    *
    * @param {string} id - The ID of the token to search for metadata.
    * @return {Promise<any>} - A promise that resolves to the metadata.
-   *
-   * @throws {RpcException} If an error occurs while getting the metadata.
    */
   async getMetadata(id: string): Promise<any> {
     const token = await this.getOneObject(ObjectTypes.TOKEN, { token_id: id, include_child: true });
@@ -443,8 +423,6 @@ export class DbService {
    *
    * @param {UpdateMetadataDto} data - The data to update the metadata with.
    * @return {Promise<ResponseDto>} - A promise that resolves to a response object indicating whether the metadata was updated successfully.
-   *
-   * @throws {RpcException} If an error occurs while updating the metadata.
    */
   async updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto> {
     try {

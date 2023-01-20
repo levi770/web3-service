@@ -7,7 +7,6 @@ import { WalletModel } from './wallet.model';
 
 /**
  * @class TokenModel - Represents a token in the database.
- * @export
  *
  * @extends Model
  * @property {string} id - Unique identifier for the token.
