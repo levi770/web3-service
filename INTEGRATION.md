@@ -83,6 +83,7 @@ Input data:
   "abi": "AbiItem[]",
   "bytecode": "string",
   "arguments": "string",
+  "from_address": "string",
   "asset_url": "string",
   "asset_type": "FileTypes",
   "meta_data": "MetaDataDto"
@@ -94,6 +95,7 @@ Input data:
 - `"abi"` is the contract ABI, required for collection deployment operations and processing contract method calls.
 - `"bytecode"` is required for contract deployment on the blockchain.
 - `"arguments"` is a double colon (::) separated list of fields for the contract constructor (e.g. `"argItem1::argItem2::["argArrayItem1","argArrayItem2"]::argItem3"`).
+- `"from_address"` is the wallet address from which the transaction will be sent.
 - `"asset_url"`, `"asset_type"`, and `"meta_data"` are optional fields. If set, the service will create a common metadata object for this collection.
 - `"asset_url"` is a file key in AWS S3. It will be downloaded from S3 and uploaded to the Pinata IPFS node, and the IPFS URL will be set in the metadata object.
 
@@ -101,17 +103,11 @@ Output data:
 
 ```json
 {
-  "deployTx": "TxResultDto",
-  "meta_data": "MetaDataDto",
-  "metadataObj": "MetadataModel",
-  "contractObj": "ContractModel"
+  "tx": "TxResultDto"
 }
 ```
 
-- If `"execute:true"`, the `"deployTx"` will contain the transaction receipt and related data. If `"execute:false"`, the `"deployTx"` will contain the transaction payload for execution on the client side.
-- If the input fields `"asset_url"`, `"asset_type"`, and `"meta_data"` were not empty, the `"meta_data"` output will contain metadata from the payload.
-- If the input fields `"asset_url"`, `"asset_type"`, and `"meta_data"` were not empty, a `"metadataObj"` will be created in the database and linked to the contract as a related object.
-- `"contractObj"` is the contract entity created in the database.
+- If `"execute:true"`, the `"tx"` will contain the transaction receipt and related data. If `"execute:false"`, the `"tx"` will contain the transaction payload for execution on the client side.
 
 [Go to top](#table-of-contents)
 
@@ -134,6 +130,7 @@ Input data:
   "contract_id": "string",
   "method_name": "string",
   "arguments": "string",
+  "from_address": "string",
   "operation_type": "OperationTypes",
   "operation_options": "Model<T>"
 }
@@ -144,6 +141,7 @@ Input data:
 - `"contract_id"` is the ID of an existing contract in the database for calling methods.
 - `"method_name"` is the name of the contract method (e.g. `"toggleSaleActive"`, `"toggleSaleFree"`, `"editSaleRestrictions"`).
 - `"arguments"` is a double colon (::) separated list of data fields for the contract method call (e.g. `"argItem1::argItem2::[\"argArrayItem1\",\"argArrayItem2\"]::argItem3"`).
+- `"from_address"` is the wallet address from which the transaction will be sent.
 - `"operation_type"` is an operation flag (e.g. `"mint"`, `"whitelistadd"`, `"whitelistremove"`, or `"common"`).
 - `"operation_options"` is a set of operation-specific options for executing the method call (e.g. an address for adding or removing from the whitelist, or token minting payload data).
 
@@ -151,19 +149,14 @@ Output data:
 
 ```json
 {
-  "callTx": "TxResultDto",
-  "meta_data": "MetaDataDto",
-  "metadataObj": "MetadataModel",
-  "tokenObj": "TokenModel",
-  "merkleProof": "string[]"
+  "tx": "TxResultDto",
+  "merkleProof": "string[]",
+  "merkleRoot": "string"
 }
 ```
 
-- If `"execute:true"`, the `"callTx"` object will contain the transaction receipt and related data. If `"execute:false"`, the `"callTx"` will contain the transaction payload for execution on the client side.
-- If `"operation_type"` is `"mint"`, the `"meta_data"` field will contain metadata for the token mint from the input payload.
-- If `"operation_type"` is `"mint"`, a `"metadataObj"` will be created in the database and linked to the token entity as a related object. If the metadata fields in the operation-specific payload are empty, the common metadata object from the collection entity will be linked to this token entity as a related object.
-- `"tokenObj"` is the token entity created in the database.
-- If `"operation_type"` is `"whitelistadd"`, the `"merkleProof"` array will be created and returned after updating the merkle root for this contract.
+- If `"execute:true"`, the `"tx"` object will contain the transaction receipt and related data. If `"execute:false"`, the `"tx"` will contain the transaction payload for execution on the client side.
+- `"merkleProof"` and `"merkleRoot"` are optional fields. If set, the service will generate a Merkle proof for the transaction receipt and the Merkle root for the contract.
 
 [Go to top](#table-of-contents)
 
