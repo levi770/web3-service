@@ -12,6 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionModel = void 0;
 const sequelize_typescript_1 = require("sequelize-typescript");
 const constants_1 = require("../../common/constants");
+const contract_model_1 = require("./contract.model");
+const wallet_model_1 = require("./wallet.model");
 let TransactionModel = class TransactionModel extends sequelize_typescript_1.Model {
 };
 __decorate([
@@ -50,6 +52,22 @@ __decorate([
     (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.JSON }),
     __metadata("design:type", Object)
 ], TransactionModel.prototype, "error", void 0);
+__decorate([
+    (0, sequelize_typescript_1.ForeignKey)(() => contract_model_1.ContractModel),
+    __metadata("design:type", String)
+], TransactionModel.prototype, "contract_id", void 0);
+__decorate([
+    (0, sequelize_typescript_1.BelongsTo)(() => contract_model_1.ContractModel),
+    __metadata("design:type", contract_model_1.ContractModel)
+], TransactionModel.prototype, "contract", void 0);
+__decorate([
+    (0, sequelize_typescript_1.ForeignKey)(() => wallet_model_1.WalletModel),
+    __metadata("design:type", String)
+], TransactionModel.prototype, "wallet_id", void 0);
+__decorate([
+    (0, sequelize_typescript_1.BelongsTo)(() => wallet_model_1.WalletModel),
+    __metadata("design:type", wallet_model_1.WalletModel)
+], TransactionModel.prototype, "wallet", void 0);
 TransactionModel = __decorate([
     (0, sequelize_typescript_1.Table)({ tableName: 'transactions' })
 ], TransactionModel);

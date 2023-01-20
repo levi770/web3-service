@@ -40,8 +40,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Web3Service = void 0;
 const U = __importStar(require("web3-utils"));
-const merkletreejs_1 = __importDefault(require("merkletreejs"));
 const web3_1 = __importDefault(require("web3"));
+const merkletreejs_1 = __importDefault(require("merkletreejs"));
 const config_1 = require("@nestjs/config");
 const common_1 = require("@nestjs/common");
 const bull_1 = require("@nestjs/bull");
@@ -117,29 +117,31 @@ let Web3Service = class Web3Service {
     async send(txOptions) {
         try {
             const w3 = txOptions.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
-            const to = txOptions.operationType === constants_1.OperationTypes.DEPLOY ? null : txOptions.contract.options.address;
+            const contractObj = txOptions.contractObj;
+            const contract = txOptions.contract;
             const tx = {
                 nonce: await w3.eth.getTransactionCount(txOptions.from_address),
                 maxPriorityFeePerGas: await w3.eth.getGasPrice(),
-                gas: await w3.eth.estimateGas({
-                    from: txOptions.from_address,
-                    data: txOptions.data,
-                    value: 0,
-                    to,
-                }),
                 from: txOptions.from_address,
                 data: txOptions.data,
                 value: 0,
-                to,
             };
-            const txObj = (await this.dbService.create([
-                {
-                    network: txOptions.network,
-                    status: constants_1.Statuses.CREATED,
-                    address: txOptions.from_address,
-                    tx_payload: tx,
-                },
-            ], constants_1.ObjectTypes.TRANSACTION));
+            if (txOptions.operationType != constants_1.OperationTypes.DEPLOY) {
+                tx.to = contract.options.address;
+                tx.gas = await w3.eth.estimateGas({
+                    from: txOptions.from_address,
+                    to: contract.options.address,
+                    data: txOptions.data,
+                    value: 0,
+                });
+            }
+            else {
+                tx.gas = await w3.eth.estimateGas({
+                    from: txOptions.from_address,
+                    data: txOptions.data,
+                    value: 0,
+                });
+            }
             const comission = (+tx.gas * +tx.maxPriorityFeePerGas).toString();
             const balance = await w3.eth.getBalance(txOptions.from_address);
             if (+balance < +comission) {
@@ -148,26 +150,62 @@ let Web3Service = class Web3Service {
             if (!txOptions.execute) {
                 return { tx, comission, balance };
             }
+            const txObj = (await this.dbService.create([
+                {
+                    network: txOptions.network,
+                    status: constants_1.Statuses.CREATED,
+                    address: txOptions.from_address,
+                    tx_payload: tx,
+                },
+            ], constants_1.ObjectTypes.TRANSACTION));
+            await contractObj.$add('transaction', txObj[0]);
             const account = w3.eth.accounts.decrypt(txOptions.keystore, this.configService.get('DEFAULT_PASSWORD'));
             const signed = await account.signTransaction(tx);
-            w3.eth
-                .sendSignedTransaction(signed.rawTransaction)
-                .on('transactionHash', async (hash) => {
+            const hashHandler = async (hash) => {
                 txObj[0].status = constants_1.Statuses.PENDING;
                 txObj[0].tx_hash = hash;
                 await txObj[0].save();
-            })
-                .on('receipt', async (receipt) => {
+            };
+            const receiptHandler = async (receipt) => {
                 txObj[0].status = constants_1.Statuses.PROCESSED;
                 txObj[0].tx_receipt = receipt;
                 await txObj[0].save();
-            })
-                .on('error', async (e) => {
+                if (txOptions.operationType === constants_1.OperationTypes.DEPLOY) {
+                    contractObj.status = constants_1.Statuses.PROCESSED;
+                    contractObj.address = receipt.contractAddress;
+                    await contractObj.save();
+                }
+                if (txOptions.operationType === constants_1.OperationTypes.MINT) {
+                    const tokenObj = txOptions.tokenObj;
+                    tokenObj.status = constants_1.Statuses.PROCESSED;
+                    tokenObj.token_id = await this.dbService.getTokenId(contractObj.id);
+                    tokenObj.address = receipt.contractAddress;
+                    tokenObj.tx_hash = receipt.transactionHash;
+                    tokenObj.tx_receipt = receipt;
+                    await tokenObj.save();
+                }
+                if (txOptions.operationType === constants_1.OperationTypes.WHITELIST_ADD) {
+                    const ids = txOptions.whitelistObj.map((obj) => obj.id);
+                    await this.dbService.updateStatus({
+                        object_id: ids,
+                        object_type: constants_1.ObjectTypes.WHITELIST,
+                        status: constants_1.Statuses.PROCESSED,
+                        tx_hash: receipt.transactionHash,
+                        tx_receipt: receipt,
+                    });
+                }
+            };
+            const txErrorHandler = async (err) => {
                 txObj[0].status = constants_1.Statuses.FAILED;
-                txObj[0].error = e;
+                txObj[0].error = err;
                 await txObj[0].save();
-            });
-            return { tx, comission, balance, txHash: txObj[0].tx_hash };
+            };
+            w3.eth
+                .sendSignedTransaction(signed.rawTransaction)
+                .on('transactionHash', hashHandler)
+                .on('receipt', receiptHandler)
+                .on('error', txErrorHandler);
+            return { tx, comission, balance, txObj: txObj[0] };
         }
         catch (error) {
             throw new microservices_1.RpcException(error);

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const web3_1 = __importDefault(require("web3"));
 const constants_1 = require("../common/constants");
 const transaction_1 = __importDefault(require("./models/transaction"));
+const contract_1 = __importDefault(require("./models/contract"));
 const ethereum = new web3_1.default(new web3_1.default.providers.HttpProvider(process.env.ETHEREUM_HOST));
 const polygon = new web3_1.default(new web3_1.default.providers.HttpProvider(process.env.POLYGON_HOST));
 async function txWorker(job, doneCallback) {
@@ -21,6 +22,11 @@ async function txWorker(job, doneCallback) {
                 continue;
             }
             else if (txReciept.status) {
+                const contract = await contract_1.default.findOne({ where: { id: tx.contract } });
+                if (contract) {
+                    contract.address = txReciept.contractAddress;
+                    await contract.save();
+                }
                 tx.status = constants_1.Statuses.PROCESSED;
                 tx.tx_receipt = txReciept;
                 await tx.save();

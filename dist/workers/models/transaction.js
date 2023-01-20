@@ -35,6 +35,14 @@ Transaction.init({
     error: {
         type: sequelize_1.DataTypes.JSON,
     },
+    contract: {
+        type: sequelize_1.DataTypes.STRING,
+        field: 'contract_id',
+        references: {
+            model: 'Contract',
+            key: 'id',
+        },
+    },
 }, config);
 exports.default = Transaction;
 //# sourceMappingURL=transaction.js.map

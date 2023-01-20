@@ -39,24 +39,27 @@ let Web3Processor = class Web3Processor {
                 throw new microservices_1.RpcException('team wallet by "from_address" not found');
             }
             const contractObj = (await this.dbManager.findOneById(callData.contract_id, constants_1.ObjectTypes.CONTRACT));
-            const whitelistOptions = callData.operation_options;
             if (!contractObj) {
                 throw new microservices_1.RpcException('contract not found');
             }
+            const whitelistOptions = callData.operation_options;
             if (!whitelistOptions) {
                 throw new microservices_1.RpcException('operation specific options missed');
             }
             let merkleRoot;
             let merkleProof;
-            const addresses = whitelistOptions.addresses.split(',').map((address) => {
-                return {
-                    status: callData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED,
-                    contract_id: contractObj.id,
-                    address,
-                };
-            });
+            let whitelistObj;
+            let operationType;
             switch (callData.operation_type) {
                 case constants_1.OperationTypes.WHITELIST_ADD: {
+                    operationType = constants_1.OperationTypes.WHITELIST_ADD;
+                    const addresses = whitelistOptions.addresses.split(',').map((address) => {
+                        return {
+                            status: constants_1.Statuses.CREATED,
+                            contract_id: contractObj.id,
+                            address,
+                        };
+                    });
                     const addressArr = addresses.map((x) => x.address);
                     const contractIdArr = addresses.map((x) => x.contract_id);
                     const exist = await this.dbManager.getAllObjects(constants_1.ObjectTypes.WHITELIST, {
@@ -73,7 +76,7 @@ let Web3Processor = class Web3Processor {
                             throw new microservices_1.RpcException('All addresses already exist in whitelist');
                         }
                     }
-                    const whitelistObj = await this.dbManager.create(addresses, constants_1.ObjectTypes.WHITELIST);
+                    whitelistObj = (await this.dbManager.create(addresses, constants_1.ObjectTypes.WHITELIST));
                     if (whitelistObj.length === 0) {
                         throw new microservices_1.RpcException('Failed to create whitelist object');
                     }
@@ -91,6 +94,14 @@ let Web3Processor = class Web3Processor {
                     break;
                 }
                 case constants_1.OperationTypes.WHITELIST_REMOVE: {
+                    operationType = constants_1.OperationTypes.WHITELIST_REMOVE;
+                    const addresses = whitelistOptions.addresses.split(',').map((address) => {
+                        return {
+                            status: constants_1.Statuses.DELETED,
+                            contract_id: contractObj.id,
+                            address,
+                        };
+                    });
                     const addressArr = addresses.map((x) => x.address);
                     const contractIdArr = addresses.map((x) => x.contract_id);
                     const deleted = await this.dbManager.delete({ address: addressArr, contract_id: contractIdArr }, constants_1.ObjectTypes.WHITELIST);
@@ -111,17 +122,21 @@ let Web3Processor = class Web3Processor {
             }
             const callArgs = [merkleRoot];
             const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
-            const txObj = {
+            const txOptions = {
                 execute: callData.execute,
                 network: callData.network,
                 contract: contractInst,
                 from_address: callData.from_address,
                 data: txData,
-                operationType: constants_1.OperationTypes.COMMON,
                 keystore: callData.execute ? wallet.keystore : null,
+                operationType,
+                contractObj,
             };
-            const callTx = await this.web3Service.send(txObj);
-            return { merkleRoot, merkleProof, callTx };
+            if (callData.operation_type === constants_1.OperationTypes.WHITELIST_ADD) {
+                txOptions.whitelistObj = whitelistObj;
+            }
+            const tx = await this.web3Service.send(txOptions);
+            return { merkleRoot, merkleProof, tx };
         }
         catch (error) {
             throw new microservices_1.RpcException(error);
@@ -131,10 +146,6 @@ let Web3Processor = class Web3Processor {
         try {
             const callData = job.data;
             const w3 = callData.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
-            const wallet = (await this.dbManager.findOneById(callData.from_address, constants_1.ObjectTypes.WALLET));
-            if (callData.execute && !wallet) {
-                throw new microservices_1.RpcException('team wallet by "from_address" not found');
-            }
             const contractObj = (await this.dbManager.getOneObject(constants_1.ObjectTypes.CONTRACT, {
                 id: callData.contract_id,
                 include_child: true,
@@ -152,51 +163,51 @@ let Web3Processor = class Web3Processor {
                 const callResult = await contractInst.methods[callData.method_name](...callArgs).call();
                 return { [callData.method_name]: callResult };
             }
+            const walletObj = (await this.dbManager.findOneById(callData.from_address, constants_1.ObjectTypes.WALLET));
+            if (callData.execute && !walletObj) {
+                throw new microservices_1.RpcException('team wallet by "from_address" not found');
+            }
             const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
-            const txObj = {
+            const txOptions = {
                 execute: callData.execute,
                 network: callData.network,
                 contract: contractInst,
                 from_address: callData.from_address,
                 data: txData,
                 operationType: constants_1.OperationTypes.COMMON,
-                keystore: callData.execute ? wallet.keystore : null,
+                keystore: callData.execute ? walletObj.keystore : null,
+                contractObj,
             };
             const mintOptions = callData?.operation_options;
-            if (constants_1.OperationTypes.MINT && !mintOptions) {
-                throw new microservices_1.RpcException('operation specific options missed');
-            }
-            const callTx = await this.web3Service.send(txObj);
-            switch (callData.operation_type) {
-                case constants_1.OperationTypes.COMMON:
-                    return { callTx };
-                case constants_1.OperationTypes.MINT:
-                    const tx = callData.execute ? callTx.txReceipt : null;
-                    const status = callData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED;
-                    const token_id = await this.dbManager.getTokenId(contractObj.id);
-                    const tokenObj = (await this.dbManager.create([
-                        {
-                            status,
-                            token_id,
-                            contract_id: contractObj.id,
-                            address: contractObj.address,
-                            nft_number: mintOptions.nft_number,
-                            mint_data: mintOptions,
-                            tx_hash: tx?.transactionHash,
-                            tx_receipt: tx,
-                        },
-                    ], constants_1.ObjectTypes.TOKEN));
-                    let metadataObj;
-                    if (mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type) {
-                        const meta_data = await this.getMetadata(mintOptions);
-                        metadataObj = (await this.dbManager.create([{ status: constants_1.Statuses.CREATED, type: constants_1.MetadataTypes.SPECIFIED, token_id: tokenObj[0].id, meta_data }], constants_1.ObjectTypes.METADATA));
-                        await this.dbManager.setMetadata({ object_id: tokenObj[0].id, metadata_id: metadataObj[0].id }, constants_1.ObjectTypes.TOKEN);
-                        return { callTx, meta_data, metadataObj: metadataObj[0], tokenObj: tokenObj[0] };
-                    }
+            if (callData.operation_type === constants_1.OperationTypes.MINT) {
+                txOptions.operationType = constants_1.OperationTypes.MINT;
+                if (!mintOptions) {
+                    throw new microservices_1.RpcException('operation specific options missed');
+                }
+                const tokenObj = (await this.dbManager.create([
+                    {
+                        status: constants_1.Statuses.CREATED,
+                        contract_id: contractObj.id,
+                        address: contractObj.address,
+                        nft_number: mintOptions.nft_number,
+                        mint_data: mintOptions,
+                    },
+                ], constants_1.ObjectTypes.TOKEN));
+                txOptions.tokenObj = tokenObj[0];
+                const tx = await this.web3Service.send(txOptions);
+                let metadataObj;
+                if (mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type) {
+                    const meta_data = await this.getMetadata(mintOptions);
+                    metadataObj = (await this.dbManager.create([{ status: constants_1.Statuses.CREATED, type: constants_1.MetadataTypes.SPECIFIED, token_id: tokenObj[0].id, meta_data }], constants_1.ObjectTypes.METADATA));
+                    await this.dbManager.setMetadata({ object_id: tokenObj[0].id, metadata_id: metadataObj[0].id }, constants_1.ObjectTypes.TOKEN);
+                }
+                else {
                     metadataObj = [contractObj.metadata];
                     await this.dbManager.setMetadata({ object_id: tokenObj[0].id, metadata_id: metadataObj[0].id }, constants_1.ObjectTypes.TOKEN);
-                    return { callTx, metadataObj: metadataObj[0], tokenObj: tokenObj[0] };
+                }
+                return tx;
             }
+            return await this.web3Service.send(txOptions);
         }
         catch (error) {
             throw new microservices_1.RpcException(error);
@@ -205,43 +216,41 @@ let Web3Processor = class Web3Processor {
     async deploy(job) {
         try {
             const deployData = job.data;
-            const wallet = (await this.dbManager.findOneById(deployData.from_address, constants_1.ObjectTypes.WALLET));
-            if (!wallet) {
+            const walletObj = (await this.dbManager.findOneById(deployData.from_address, constants_1.ObjectTypes.WALLET));
+            if (!walletObj) {
                 throw new microservices_1.RpcException('team wallet by "from_address" not found');
             }
             const w3 = deployData.network === constants_1.Networks.ETHEREUM ? this.ethereum : this.polygon;
             const contractInstance = new w3.eth.Contract(deployData.abi);
+            const contractObj = (await this.dbManager.create([
+                {
+                    status: constants_1.Statuses.CREATED,
+                    deploy_data: deployData,
+                },
+            ], constants_1.ObjectTypes.CONTRACT));
             const txData = contractInstance.deploy({
                 data: deployData.bytecode,
                 arguments: deployData.arguments.split('::'),
             });
-            const txObj = {
+            const txOptions = {
                 execute: deployData.execute,
                 network: deployData.network,
                 contract: contractInstance,
-                from_address: !deployData.execute ? deployData.from_address : null,
+                contractObj: contractObj[0],
+                from_address: deployData.from_address,
                 data: txData.encodeABI(),
                 operationType: constants_1.OperationTypes.DEPLOY,
-                keystore: wallet.keystore,
+                keystore: walletObj.keystore,
             };
-            const deployTx = await this.web3Service.send(txObj);
-            const tx = deployData.execute ? deployTx.txReceipt : null;
-            const contractObj = (await this.dbManager.create([
-                {
-                    status: deployData.execute ? constants_1.Statuses.PROCESSED : constants_1.Statuses.CREATED,
-                    address: tx?.contractAddress ?? null,
-                    deploy_data: deployData,
-                    deploy_tx: tx,
-                },
-            ], constants_1.ObjectTypes.CONTRACT));
-            await wallet.$add('contract', contractObj[0]);
+            const tx = await this.web3Service.send(txOptions);
+            await walletObj.$add('contract', contractObj[0]);
+            await walletObj.$add('transaction', tx.txObj);
             if (deployData.meta_data && deployData.asset_url && deployData.asset_type) {
                 const meta_data = await this.getMetadata(deployData);
                 const metadataObj = (await this.dbManager.create([{ status: constants_1.Statuses.CREATED, type: constants_1.MetadataTypes.COMMON, meta_data }], constants_1.ObjectTypes.METADATA));
                 await this.dbManager.setMetadata({ object_id: contractObj[0].id, metadata_id: metadataObj[0].id }, constants_1.ObjectTypes.CONTRACT);
-                return { deployTx, meta_data, contractObj: contractObj[0], metadataObj: metadataObj[0] };
             }
-            return { deployTx, contractObj: contractObj[0] };
+            return tx;
         }
         catch (error) {
             throw new microservices_1.RpcException(error);

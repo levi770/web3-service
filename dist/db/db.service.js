@@ -88,7 +88,7 @@ let DbService = class DbService {
             case constants_1.ObjectTypes.WHITELIST:
                 return await this.whitelistRepository.findOne({ where: { [sequelize_2.Op.or]: [{ id }, { address: id }] } });
             case constants_1.ObjectTypes.WALLET:
-                return await this.walletsRepository.findOne({ where: { [sequelize_2.Op.or]: [{ id }, { address: id }] } });
+                return await this.walletsRepository.findOne({ where: { address: id } });
             case constants_1.ObjectTypes.TRANSACTION:
                 return await this.transactionsRepository.findOne({ where: { [sequelize_2.Op.or]: [{ id }, { address: id }] } });
         }
@@ -129,6 +129,10 @@ let DbService = class DbService {
                                 model: metadata_model_1.MetadataModel,
                                 attributes: { exclude: ['contract_id', 'updatedAt'] },
                             },
+                            {
+                                model: transaction_model_1.TransactionModel,
+                                attributes: { exclude: ['contract_id', 'updatedAt'] },
+                            },
                         ];
                     }
                     allObjects = await this.contractRepository.findAndCountAll(args);
@@ -146,6 +150,10 @@ let DbService = class DbService {
                             {
                                 model: token_model_1.TokenModel,
                                 attributes: { exclude: ['updatedAt'] },
+                            },
+                            {
+                                model: transaction_model_1.TransactionModel,
+                                attributes: { exclude: ['contract_id', 'updatedAt'] },
                             },
                         ];
                     }
@@ -206,6 +214,10 @@ let DbService = class DbService {
                                 model: metadata_model_1.MetadataModel,
                                 attributes: { exclude: ['contract_id', 'updatedAt'] },
                             },
+                            {
+                                model: transaction_model_1.TransactionModel,
+                                attributes: { exclude: ['contract_id', 'updatedAt'] },
+                            },
                         ];
                     }
                     result = await this.contractRepository.findOne(args);
@@ -253,8 +265,7 @@ let DbService = class DbService {
                 await token.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt });
                 return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, 'status updated', null);
             case constants_1.ObjectTypes.WHITELIST:
-                const whitelist = await this.whitelistRepository.findOne({ where: { id } });
-                await whitelist.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt });
+                const whitelist = await this.whitelistRepository.update({ status: data.status, tx_hash: data.tx_hash, tx_receipt: data.tx_receipt }, { where: { id } });
                 return new response_dto_1.ResponseDto(common_1.HttpStatus.OK, 'status updated', null);
             case constants_1.ObjectTypes.TRANSACTION:
                 const tx = await this.transactionsRepository.findOne({ where: { id } });
