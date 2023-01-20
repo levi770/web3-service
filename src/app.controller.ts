@@ -7,7 +7,7 @@ import { GetAllDto } from './db/dto/getAll.dto';
 import { GetJobDto } from './web3/dto/getJob.dto';
 import { GetOneDto } from './db/dto/getOne.dto';
 import { JobResultDto } from './common/dto/jobResult.dto';
-import { Client, ClientProxy, MessagePattern, Transport } from '@nestjs/microservices';
+import { MessagePattern } from '@nestjs/microservices';
 import { MetaDataDto } from './web3/dto/metaData.dto';
 import { Observable } from 'rxjs';
 import { ResponseDto } from './common/dto/response.dto';

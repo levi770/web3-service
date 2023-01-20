@@ -1,6 +1,6 @@
 import * as U from 'web3-utils';
-import MerkleTree from 'merkletreejs';
 import Web3 from 'web3';
+import MerkleTree from 'merkletreejs';
 import { TransactionReceipt } from 'web3-core';
 import { CallDataDto } from './dto/callData.dto';
 import { ConfigService } from '@nestjs/config';
@@ -158,11 +158,6 @@ export class Web3Service {
       const tx: TxPayload = {
         nonce: await w3.eth.getTransactionCount(txOptions.from_address),
         maxPriorityFeePerGas: await w3.eth.getGasPrice(),
-        gas: await w3.eth.estimateGas({
-          from: txOptions.from_address,
-          data: txOptions.data,
-          value: 0,
-        }),
         from: txOptions.from_address,
         data: txOptions.data,
         value: 0,
@@ -170,6 +165,29 @@ export class Web3Service {
 
       if (txOptions.operationType != OperationTypes.DEPLOY) {
         tx.to = contract.options.address;
+        tx.gas = await w3.eth.estimateGas({
+          from: txOptions.from_address,
+          to: contract.options.address,
+          data: txOptions.data,
+          value: 0,
+        });
+      } else {
+        tx.gas = await w3.eth.estimateGas({
+          from: txOptions.from_address,
+          data: txOptions.data,
+          value: 0,
+        });
+      }
+
+      const comission = (+tx.gas * +tx.maxPriorityFeePerGas).toString();
+      const balance = await w3.eth.getBalance(txOptions.from_address);
+
+      if (+balance < +comission) {
+        throw new RpcException('Not enough balance');
+      }
+
+      if (!txOptions.execute) {
+        return { tx, comission, balance };
       }
 
       const txObj = (await this.dbService.create(
@@ -184,65 +202,61 @@ export class Web3Service {
         ObjectTypes.TRANSACTION,
       )) as TransactionModel[];
 
-      const comission = (+tx.gas * +tx.maxPriorityFeePerGas).toString();
-      const balance = await w3.eth.getBalance(txOptions.from_address);
-
-      if (+balance < +comission) {
-        throw new RpcException('Not enough balance');
-      }
-
-      if (!txOptions.execute) {
-        return { tx, comission, balance };
-      }
-
       await contractObj.$add('transaction', txObj[0]);
 
       const account = w3.eth.accounts.decrypt(txOptions.keystore, this.configService.get('DEFAULT_PASSWORD'));
       const signed = await account.signTransaction(tx);
 
+      const hashHandler = async (hash: string) => {
+        txObj[0].status = Statuses.PENDING;
+        txObj[0].tx_hash = hash;
+        await txObj[0].save();
+      };
+
+      const receiptHandler = async (receipt: TransactionReceipt) => {
+        txObj[0].status = Statuses.PROCESSED;
+        txObj[0].tx_receipt = receipt;
+        await txObj[0].save();
+
+        if (txOptions.operationType === OperationTypes.DEPLOY) {
+          contractObj.status = Statuses.PROCESSED;
+          contractObj.address = receipt.contractAddress;
+          await contractObj.save();
+        }
+
+        if (txOptions.operationType === OperationTypes.MINT) {
+          const tokenObj = txOptions.tokenObj;
+          tokenObj.status = Statuses.PROCESSED;
+          tokenObj.token_id = await this.dbService.getTokenId(contractObj.id);
+          tokenObj.address = receipt.contractAddress;
+          tokenObj.tx_hash = receipt.transactionHash;
+          tokenObj.tx_receipt = receipt;
+          await tokenObj.save();
+        }
+
+        if (txOptions.operationType === OperationTypes.WHITELIST_ADD) {
+          const ids = txOptions.whitelistObj.map((obj) => obj.id);
+          await this.dbService.updateStatus({
+            object_id: ids,
+            object_type: ObjectTypes.WHITELIST,
+            status: Statuses.PROCESSED,
+            tx_hash: receipt.transactionHash,
+            tx_receipt: receipt,
+          });
+        }
+      };
+      
+      const txErrorHandler = async (err: Error) => {
+        txObj[0].status = Statuses.FAILED;
+        txObj[0].error = err;
+        await txObj[0].save();
+      };
+      
       w3.eth
         .sendSignedTransaction(signed.rawTransaction)
-        .on('transactionHash', async (hash) => {
-          txObj[0].status = Statuses.PENDING;
-          txObj[0].tx_hash = hash;
-          await txObj[0].save();
-        })
-        .on('receipt', async (receipt) => {
-          txObj[0].status = Statuses.PROCESSED;
-          txObj[0].tx_receipt = receipt;
-          await txObj[0].save();
-
-          if (txOptions.operationType === OperationTypes.DEPLOY) {
-            contractObj.status = Statuses.PROCESSED;
-            contractObj.address = receipt.contractAddress;
-            await contractObj.save();
-          }
-
-          if (txOptions.operationType === OperationTypes.MINT) {
-            const tokenObj = txOptions.tokenObj;
-            tokenObj.status = Statuses.PROCESSED;
-            tokenObj.address = receipt.contractAddress;
-            tokenObj.tx_hash = receipt.transactionHash;
-            tokenObj.tx_receipt = receipt;
-            await tokenObj.save();
-          }
-
-          if (txOptions.operationType === OperationTypes.WHITELIST_ADD) {
-            const ids = txOptions.whitelistObj.map((obj) => obj.id);
-            await this.dbService.updateStatus({
-              object_id: ids,
-              object_type: ObjectTypes.WHITELIST,
-              status: Statuses.PROCESSED,
-              tx_hash: receipt.transactionHash,
-              tx_receipt: receipt,
-            });
-          }
-        })
-        .on('error', async (err) => {
-          txObj[0].status = Statuses.FAILED;
-          txObj[0].error = err;
-          await txObj[0].save();
-        });
+        .on('transactionHash', hashHandler)
+        .on('receipt', receiptHandler)
+        .on('error', txErrorHandler);
 
       return { tx, comission, balance, txObj: txObj[0] };
     } catch (error) {
