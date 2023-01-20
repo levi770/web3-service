@@ -1,13 +1,12 @@
 import * as U from 'web3-utils';
 import Web3 from 'web3';
+import { Job } from 'bull';
 import { CallDataDto } from './dto/callData.dto';
 import { CallResultDto } from './dto/callResult.dto';
 import { ConfigService } from '@nestjs/config';
 import { ContractModel } from '../db/models/contract.model';
 import { DeployDataDto } from './dto/deployData.dto';
-import { DeployResultDto } from './dto/deployResult.dto';
 import { IpfsManagerService } from '../ipfs/ipfs.service';
-import { Job } from 'bull';
 import { MetaDataDto } from './dto/metaData.dto';
 import { MetadataModel } from '../db/models/metadata.model';
 import { MintDataDto } from './dto/mintData.dto';
@@ -298,12 +297,6 @@ export class Web3Processor {
       const callData: CallDataDto = job.data;
       const w3: Web3 = callData.network === Networks.ETHEREUM ? this.ethereum : this.polygon;
 
-      const walletObj = (await this.dbManager.findOneById(callData.from_address, ObjectTypes.WALLET)) as WalletModel;
-
-      if (callData.execute && !walletObj) {
-        throw new RpcException('team wallet by "from_address" not found');
-      }
-
       const contractObj = (await this.dbManager.getOneObject(ObjectTypes.CONTRACT, {
         id: callData.contract_id,
         include_child: true,
@@ -316,6 +309,7 @@ export class Web3Processor {
       const contractInst = new w3.eth.Contract(contractObj.deploy_data.abi as U.AbiItem[], contractObj.address);
 
       const abiObj = contractObj.deploy_data.abi.find((x) => x.name === callData.method_name && x.type === 'function');
+
       if (!abiObj) {
         throw new RpcException('method not found');
       }
@@ -329,7 +323,12 @@ export class Web3Processor {
         return { [callData.method_name]: callResult };
       }
 
-      // Otherwise, encode the function call as a transaction
+      const walletObj = (await this.dbManager.findOneById(callData.from_address, ObjectTypes.WALLET)) as WalletModel;
+
+      if (callData.execute && !walletObj) {
+        throw new RpcException('team wallet by "from_address" not found');
+      }
+
       const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any[]);
 
       const txOptions: TxOptions = {
@@ -345,7 +344,9 @@ export class Web3Processor {
 
       const mintOptions = callData?.operation_options as MintDataDto;
 
-      if (OperationTypes.MINT) {
+      if (callData.operation_type === OperationTypes.MINT) {
+        txOptions.operationType = OperationTypes.MINT;
+
         if (!mintOptions) {
           throw new RpcException('operation specific options missed');
         }

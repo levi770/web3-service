@@ -1,19 +1,19 @@
+import Web3 from 'web3';
+import * as U from 'web3-utils';
 import request from 'supertest';
+import { Account } from 'web3-core';
+import { lastValueFrom } from 'rxjs';
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { ClientProxy, ClientsModule, Transport } from '@nestjs/microservices';
 import { AppModule } from '../src/app.module';
-import { lastValueFrom } from 'rxjs';
 import { CMD } from '../src/common/constants';
 import { CreateWalletDto } from '../src/web3/dto/createWallet.dto';
-import Web3 from 'web3';
-import { Account } from 'web3-core';
 import { ResponseDto } from '../src/common/dto/response.dto';
-import * as U from 'web3-utils';
-import { DeployDataDto } from '../src/web3/dto/deployData.dto';
 import { JobResultDto } from '../src/common/dto/jobResult.dto';
-import deploy_data from './dto/deploy_data.dto.json';
 import { DeployResultDto } from '../src/web3/dto/deployResult.dto';
+
+import deploy_data from './dto/deploy_data.dto.json';
 
 jest.useRealTimers();
 
