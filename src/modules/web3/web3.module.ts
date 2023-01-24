@@ -1,12 +1,11 @@
 import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { CRON_QUEUE, TX_WORKER, WEB3_QUEUE } from '../../common/constants';
+import { WEB3_QUEUE } from '../../common/constants';
 import { DbModule } from '../db/db.module';
 import { IpfsModule } from '../ipfs/ipfs.module';
 import { Web3Processor } from './web3.processor';
 import { Web3Service } from './web3.service';
-import { join } from 'path';
 import { Web3Controller } from './web3.controller';
 
 /**
