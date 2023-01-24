@@ -1,14 +1,15 @@
 import { Controller, Get, HttpStatus, Logger, Param } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
-import { CMD, DB_CONTROLLER, Statuses } from '../../common/constants';
-import { ResponseDto } from '../../common/dto/response.dto';
-import { MetaDataDto } from '../web3/dto/metaData.dto';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { CMD, DB_CONTROLLER, ExceptionTypes, Statuses } from '../../common/constants';
+import { Response } from '../../common/dto/response.dto';
+import { MetaData } from '../web3/interfaces/metaData.interface';
 import { DbService } from './db.service';
-import { GetAllDto } from './dto/getAll.dto';
-import { GetOneDto } from './dto/getOne.dto';
-import { UpdateMetadataDto } from './dto/updateMetadata.dto';
-import { UpdateStatusDto } from './dto/updateStatus.dto';
-import { GetMetadataDto } from './dto/getMetadata.dto';
+import { GetAllRequest } from './dto/requests/getAll.request';
+import { GetOneRequest } from './dto/requests/getOne.request';
+import { UpdateMetadataRequest } from './dto/requests/updateMetadata.request';
+import { UpdateStatusRequest } from './dto/requests/updateStatus.request';
+import { GetMetadataRequest } from './dto/requests/getMetadata.request';
+import { ValidationPipe } from '../../common/pipes/validation.pipe';
 
 /**
  * A controller for handling database operations.
@@ -25,48 +26,41 @@ export class DbController {
    * Gets all objects of a specified type.
    */
   @MessagePattern({ cmd: CMD.ALL_OBJECTS })
-  async getAllObjects(data: GetAllDto): Promise<ResponseDto> {
+  async getAllObjects(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetAllRequest): Promise<Response> {
     this.logger.log(`Processing call '${CMD.ALL_OBJECTS}' with data: ${JSON.stringify(data)}`);
-    if (data.object_type === undefined) {
-      return new ResponseDto(HttpStatus.BAD_REQUEST, 'Missing object_type', null);
-    }
     const result = await this.dbManagerService.getAllObjects(data.object_type, data);
-    return new ResponseDto(HttpStatus.OK, Statuses.SUCCESS, result);
+    return new Response(HttpStatus.OK, Statuses.SUCCESS, result);
   }
 
   /**
    * Gets a single object of a specified type.
    */
   @MessagePattern({ cmd: CMD.ONE_OBJECT })
-  async getOneObject(data: GetOneDto): Promise<ResponseDto> {
+  async getOneObject(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetOneRequest): Promise<Response> {
     this.logger.log(`Processing call '${CMD.ONE_OBJECT}' with data: ${JSON.stringify(data)}`);
-    if (data.object_type === undefined) {
-      return new ResponseDto(HttpStatus.BAD_REQUEST, 'Missing object_type', null);
-    }
     const result = await this.dbManagerService.getOneObject(data.object_type, data);
-    return new ResponseDto(HttpStatus.OK, Statuses.SUCCESS, result);
+    return new Response(HttpStatus.OK, Statuses.SUCCESS, result);
   }
 
   /**
    * Updates the status of a job.
    */
   @MessagePattern({ cmd: CMD.UPDATE_STATUS })
-  async updateStatus(data: UpdateStatusDto): Promise<ResponseDto> {
+  async updateStatus(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: UpdateStatusRequest): Promise<Response> {
     this.logger.log(`Processing call '${CMD.UPDATE_STATUS}' with data: ${JSON.stringify(data)}`);
-    if (data.object_type === undefined) {
-      return new ResponseDto(HttpStatus.BAD_REQUEST, 'Missing object_type', null);
-    }
     const result = await this.dbManagerService.updateStatus(data, data.object_type);
-    return new ResponseDto(HttpStatus.OK, Statuses.SUCCESS, result);
+    return new Response(HttpStatus.OK, Statuses.SUCCESS, result);
   }
 
   /**
    * Updates the metadata of token.
    */
   @MessagePattern({ cmd: CMD.UPDATE_METADATA })
-  async updateMetadata(data: UpdateMetadataDto): Promise<ResponseDto> {
+  async updateMetadata(
+    @Payload(new ValidationPipe(ExceptionTypes.RPC)) data: UpdateMetadataRequest,
+  ): Promise<Response> {
     this.logger.log(`Processing call '${CMD.UPDATE_METADATA}' with data: ${JSON.stringify(data)}`);
     const result = await this.dbManagerService.updateMetadata(data);
-    return new ResponseDto(HttpStatus.OK, Statuses.SUCCESS, result);
+    return new Response(HttpStatus.OK, Statuses.SUCCESS, result);
   }
 }

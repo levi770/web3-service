@@ -4,6 +4,11 @@ export const TX_WORKER = 'tx';
 export const WEB3_CONTROLLER = 'Web3Controller';
 export const DB_CONTROLLER = 'DbController';
 
+export enum ExceptionTypes {
+  RPC = 'rpc',
+  HTTP = 'http',
+}
+
 export enum MetadataTypes {
   COMMON = 'common',
   SPECIFIED = 'specified',

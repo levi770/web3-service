@@ -1,8 +1,10 @@
-import { Controller, Get, HttpStatus, Logger, Param } from '@nestjs/common';
-import { ResponseDto } from './common/dto/response.dto';
+import { Controller, Get, HttpStatus, Logger, Param, UsePipes } from '@nestjs/common';
+import { Response } from './common/dto/response.dto';
 import { DbService } from './modules/db/db.service';
-import { GetMetadataDto } from './modules/db/dto/getMetadata.dto';
-import { MetaDataDto } from './modules/web3/dto/metaData.dto';
+import { GetMetadataRequest } from './modules/db/dto/requests/getMetadata.request';
+import { MetaData } from './modules/web3/interfaces/metaData.interface';
+import { ValidationPipe } from './common/pipes/validation.pipe';
+import { ExceptionTypes } from './common/constants';
 
 /**
  * A controller for handling web3 and database operations.
@@ -19,16 +21,17 @@ export class AppController {
    * Gets the health status of microservice.
    */
   @Get('health')
-  async getHealth(): Promise<ResponseDto> {
+  async getHealth(): Promise<Response> {
     this.logger.log(`Processing GET request 'health'`);
-    return new ResponseDto(HttpStatus.OK, 'active', null);
+    return new Response(HttpStatus.OK, 'active', null);
   }
 
   /**
    * Gets the metadata of token.
    */
   @Get('metadata/:address/:id')
-  async getMetaData(@Param() params: GetMetadataDto): Promise<MetaDataDto> {
+  @UsePipes(new ValidationPipe(ExceptionTypes.RPC))
+  async getMetaData(@Param() params: GetMetadataRequest): Promise<MetaData> {
     this.logger.log(`Processing GET request 'metadata' with id: ${JSON.stringify(params)}`);
     return await this.dbManagerService.getMetadata(params);
   }
