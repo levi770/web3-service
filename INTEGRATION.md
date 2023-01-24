@@ -27,40 +27,14 @@ There are three types of job results from the web3 service:
 
 ## Create a new encrypted wallet keystore in DB
 
-Message pattern:
+| Message pattern             |
+| :-------------------------- |
+| `{ "cmd": "createwallet" }` |
 
-```json
-{
-  "cmd": "createwallet"
-}
-```
-
-Input data:
-
-```json
-{
-  "team_id": "string"
-}
-```
-
-- `"team_id"` is a team ID from CRM side.
-
-Output data:
-
-```json
-{
-  "status": "number",
-  "message": "string",
-  "result": {
-    "id": "string",
-    "address": "string"
-  }
-}
-```
-
-- `"status"` is a HTTP status code.
-- `"message"` is a message for the user.
-- `"result"` is an object with the wallet address and the wallet ID in DB.
+| Input data example:                       | Output data example:                                                                                                                                            |
+| :---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{ "team_id": "123456" }`                 | `{ "status": "200", "message": "success", "result": { "id": "49a63085-52c7...", "address": "0x4Fab8903..." }  `                                                 |
+| - `"team_id"` is a team ID from CRM side. | - `"status"` is a HTTP status code. <br>- `"message"` is a message for the user. <br>- `"result"` is an object with the wallet address and the wallet ID in DB. |
 
 [Go to top](#table-of-contents)
 
