@@ -27,14 +27,14 @@ There are three types of job results from the web3 service:
 
 ## Create a new encrypted wallet keystore in DB
 
-| Message pattern                                           |
-| :-------------------------------------------------------- |
-| <code>{<br>&nbsp;&nbsp;"cmd": "createwallet"<br> }</code> |
+| Message pattern                                          |
+| :------------------------------------------------------- |
+| <pre> {<br>&emsp;&emsp;"cmd": "createwallet"<br> }</pre> |
 
-| Input example                                                                         | Output example                                                                                                                                                                                                                                                                                  |
-| :------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <code>{<br>&nbsp;&nbsp;"team_id": "7a31a433-7fbe-4daf-b179-e1d19ba5988d"<br> }</code> | <code>{<br>&nbsp;&nbsp;"status": 201,<br>&nbsp;&nbsp;"message": "success",<br>&nbsp;&nbsp;"result": {<br>&nbsp;&nbsp;&nbsp;&nbsp;"id": "a9761962-e193-49fb-b197-bea802528adf",<br>&nbsp;&nbsp;&nbsp;&nbsp;"address": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18"<br>&nbsp;&nbsp;}<br> }</code> |
-| - `"team_id"` is team ID from CRM side                                                | - `"status"` is HTTP status code<br> - `"message"` is status message for the user<br> - `"id"` is wallet ID in DB <br> - `"address"` is wallet address in blockchain                                                                                                                            |
+| Input example                                                                        | Output example                                                                                                                                                                                                                                                                     |
+| :----------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <pre> {<br>&emsp;&emsp;"team_id": "7a31a433-7fbe-4daf-b179-e1d19ba5988d"<br> }</pre> | <pre> {<br>&emsp;&emsp;"status": 201,<br>&emsp;&emsp;"message": "success",<br>&emsp;&emsp;"result": {<br>&emsp;&emsp;&emsp;&emsp;"id": "a9761962-e193-49fb-b197-bea802528adf",<br>&emsp;&emsp;&emsp;&emsp;"address": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18"<br>&emsp;&emsp;}<br> }</pre> |
+| - "team_id" is team ID from CRM side                                                 | - "status" is HTTP status code<br> - "message" is status message for the user<br> - "id" is wallet ID in DB <br> - "address" is wallet address in blockchain                                                                                                                       |
 
 Related DTOs:
 
