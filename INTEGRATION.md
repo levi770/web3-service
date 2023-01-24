@@ -27,38 +27,19 @@ There are three types of job results from the web3 service:
 
 ## Create a new encrypted wallet keystore in DB
 
-Message pattern:
+| Message pattern                                           |
+| :-------------------------------------------------------- |
+| <code>{<br>&nbsp;&nbsp;"cmd": "createwallet"<br> }</code> |
 
-```json
-{
-  "cmd": "createwallet"
-}
-```
-
-Input example:
-
-```json
-{
-  "team_id": "7a31a433-7fbe-4daf-b179-e1d19ba5988d" // team ID from CRM side
-}
-```
-
-Output example:
-
-```json
-{
-  "status": 201, // HTTP status code
-  "message": "success", // message for the user
-  "result": {
-    "id": "a9761962-e193-49fb-b197-bea802528adf", // wallet ID in DB
-    "address": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18" // wallet address
-  }
-}
-```
+| Input example                                                                         | Output example                                                                                                                                                                                                                                                                                  |
+| :------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <code>{<br>&nbsp;&nbsp;"team_id": "7a31a433-7fbe-4daf-b179-e1d19ba5988d"<br> }</code> | <code>{<br>&nbsp;&nbsp;"status": 201,<br>&nbsp;&nbsp;"message": "success",<br>&nbsp;&nbsp;"result": {<br>&nbsp;&nbsp;&nbsp;&nbsp;"id": "a9761962-e193-49fb-b197-bea802528adf",<br>&nbsp;&nbsp;&nbsp;&nbsp;"address": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18"<br>&nbsp;&nbsp;}<br> }</code> |
+| - `"team_id"` is team ID from CRM side                                                | - `"status"` is HTTP status code<br> - `"message"` is status message for the user<br> - `"id"` is wallet ID in DB <br> - `"address"` is wallet address in blockchain                                                                                                                            |
 
 Related DTOs:
 
 - [CreateWalletRequest](./src/modules/web3/dto/requests/createWallet.request.ts)
+- [JobResult](./src/common/dto/jobResult.dto.ts)
 
 [Go to top](#table-of-contents)
 
