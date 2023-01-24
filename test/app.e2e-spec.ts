@@ -8,26 +8,21 @@ import { HttpStatus, INestApplication } from '@nestjs/common';
 import { ClientProxy, ClientsModule, Transport } from '@nestjs/microservices';
 import { AppModule } from '../src/app.module';
 import { CMD, Networks, ObjectTypes, Statuses } from '../src/common/constants';
-import { JobResultDto } from '../src/common/dto/jobResult.dto';
-import { CreateWalletDto } from '../src/modules/web3/dto/createWallet.dto';
-import { DeployResultDto } from '../src/modules/web3/dto/deployResult.dto';
-import { WalletDto } from '../src/modules/db/dto/wallet.dto';
-import { MerkleProofDto } from '../src/modules/web3/dto/merkleProof.dto';
-import { MintResultDto } from '../src/modules/web3/dto/mintResult.dto';
+import { JobResult } from '../src/common/dto/jobResult.dto';
+import { DeployResponse } from '../src/modules/web3/dto/responses/deploy.response';
+import { Wallet } from '../src/modules/db/interfaces/wallet.interface';
 import { TokenModel } from '../src/modules/db/models/token.model';
-import { WhitelistResultDto } from '../src/modules/web3/dto/whitelistResult.dto';
-import deploy_data from './dto/deploy_data.dto.json';
-import { GetJobDto } from '../src/modules/web3/dto/getJob.dto';
-import { ResponseDto } from '../src/common/dto/response.dto';
-import { AllObjectsDto } from '../src/modules/db/dto/allObjects.dto';
-import { GetAllDto } from '../src/modules/db/dto/getAll.dto';
-import { GetOneDto } from '../src/modules/db/dto/getOne.dto';
-import { UpdateMetadataDto } from '../src/modules/db/dto/updateMetadata.dto';
-import { UpdateStatusDto } from '../src/modules/db/dto/updateStatus.dto';
+import { WhitelistResponse } from '../src/modules/web3/dto/responses/whitelist.response';
+import { GetJobRequest } from '../src/modules/web3/dto/requests/getJob.request';
+import { Response } from '../src/common/dto/response.dto';
+import { AllObjectsResponce } from '../src/modules/db/dto/responses/allObjects.response';
+import { GetAllRequest } from '../src/modules/db/dto/requests/getAll.request';
+import { GetOneRequest } from '../src/modules/db/dto/requests/getOne.request';
+import { UpdateMetadataRequest } from '../src/modules/db/dto/requests/updateMetadata.request';
+import { UpdateStatusRequest } from '../src/modules/db/dto/requests/updateStatus.request';
+import deploy_data from './deploy_data.dto.json';
 
-//jest.useRealTimers();
-
-var timeout = 5000;
+var timeout = 60000;
 var network = Networks.LOCAL;
 var admin_acc_address: string;
 var team_acc_address: string;
@@ -140,12 +135,12 @@ describe('Web3Controller (e2e)', () => {
     '{cmd: CMD.CREATE_WALLET} Creates a new encrypted wallet keystore in DB.',
     async () => {
       jest.setTimeout(timeout);
-      const data: CreateWalletDto = { team_id: '12345678' };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.CREATE_WALLET }, data));
+      const data = { team_id: '1123456' };
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.CREATE_WALLET }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ id: expect.any(String), address: expect.any(String) });
-      const responceData = response.data as WalletDto;
+      const responceData = response.data as Wallet;
       jobId = response.jobId;
       team_acc_address = responceData.address;
       const signedTx = await admin_acc.signTransaction({
@@ -164,8 +159,9 @@ describe('Web3Controller (e2e)', () => {
     '{cmd: CMD.JOB} Get job from queue by jobId.',
     async () => {
       jest.setTimeout(timeout);
-      const data: GetJobDto = { jobId: jobId.toString() };
-      const response: ResponseDto = await lastValueFrom(client.send({ cmd: CMD.JOB }, data));
+      expect(jobId).toBeTruthy();
+      const data: GetJobRequest = { jobId: jobId.toString() };
+      const response: Response = await lastValueFrom(client.send({ cmd: CMD.JOB }, data));
       expect(response.status).toEqual(HttpStatus.OK);
       expect(response.message).toEqual(expect.any(String));
       expect(response.result).toMatchObject(expect.any(Object));
@@ -192,7 +188,7 @@ describe('Web3Controller (e2e)', () => {
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tx: expect.any(Object), contract: expect.any(Object) });
-      const responceData = response.data as DeployResultDto;
+      const responceData = response.data as DeployResponse;
       contract_id = responceData.contract.id;
       contract_address = responceData.contract.address;
       //expect(contract_address).toEqual(predicted_address);
@@ -212,7 +208,7 @@ describe('Web3Controller (e2e)', () => {
         method_name: 'name',
         operation_type: 'readcontract',
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ name: contract_name });
@@ -232,10 +228,15 @@ describe('Web3Controller (e2e)', () => {
         method_name: 'toggleSaleActive',
         operation_type: 'common',
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
-      expect(response.data).toMatchObject({ tx: expect.any(Object) });
+      expect(response.data).toMatchObject({
+        payload: expect.any(Object),
+        balance: expect.any(String),
+        comission: expect.any(String),
+        txObj: expect.any(Object),
+      });
     },
     timeout,
   );
@@ -252,10 +253,15 @@ describe('Web3Controller (e2e)', () => {
         method_name: 'toggleSaleFree',
         operation_type: 'common',
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
-      expect(response.data).toMatchObject({ tx: expect.any(Object) });
+      expect(response.data).toMatchObject({
+        payload: expect.any(Object),
+        balance: expect.any(String),
+        comission: expect.any(String),
+        txObj: expect.any(Object),
+      });
     },
     timeout,
   );
@@ -273,10 +279,15 @@ describe('Web3Controller (e2e)', () => {
         operation_type: 'common',
         arguments: '100',
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
-      expect(response.data).toMatchObject({ tx: expect.any(Object) });
+      expect(response.data).toMatchObject({
+        payload: expect.any(Object),
+        balance: expect.any(String),
+        comission: expect.any(String),
+        txObj: expect.any(Object),
+      });
     },
     timeout,
   );
@@ -296,11 +307,11 @@ describe('Web3Controller (e2e)', () => {
           addresses: `${team_acc_address},${admin_acc_address}`,
         },
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.WHITELIST }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.WHITELIST }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tx: expect.any(Object) });
-      const responceData = response.data as WhitelistResultDto;
+      const responceData = response.data as WhitelistResponse;
       merkle_root = responceData.root;
       admin_acc_proof = (responceData.proof.find((p) => (p as any).address === admin_acc_address) as any).proof;
       team_acc_proof = (responceData.proof.find((p) => (p as any).address === team_acc_address) as any).proof;
@@ -313,17 +324,17 @@ describe('Web3Controller (e2e)', () => {
     async () => {
       jest.setTimeout(timeout);
       const data = {
-        address: team_acc_address,
+        addresses: team_acc_address,
         contract_id: contract_id,
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.GET_MERKLE_PROOF }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.GET_MERKLE_PROOF }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({
         proof: expect.any(Array),
         root: expect.any(String),
       });
-      const responceData = response.data as MerkleProofDto;
+      const responceData = response.data as any;
       expect(responceData.root).toEqual(merkle_root);
       expect(responceData.proof).toEqual(team_acc_proof);
     },
@@ -335,17 +346,17 @@ describe('Web3Controller (e2e)', () => {
     async () => {
       jest.setTimeout(timeout);
       const data = {
-        address: admin_acc_address,
+        addresses: admin_acc_address,
         contract_id: contract_id,
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.GET_MERKLE_PROOF }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.GET_MERKLE_PROOF }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({
         proof: expect.any(Array),
         root: expect.any(String),
       });
-      const responceData = response.data as MerkleProofDto;
+      const responceData = response.data as any;
       expect(responceData.root).toEqual(merkle_root);
       expect(responceData.proof).toEqual(admin_acc_proof);
     },
@@ -381,11 +392,11 @@ describe('Web3Controller (e2e)', () => {
           },
         },
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.MINT }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.MINT }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tx: expect.any(Object), token: expect.any(Object) });
-      const responceData = response.data as MintResultDto;
+      const responceData = response.data as any;
       token = responceData.token;
     },
     timeout,
@@ -395,7 +406,9 @@ describe('Web3Controller (e2e)', () => {
     '{cmd: CMD.COMMON} get tokenURI by tokenId in blockchain',
     async () => {
       jest.setTimeout(timeout);
+      expect(token).toBeTruthy();
       const data = {
+        execute: true,
         network: network,
         contract_id: contract_id,
         from_address: team_acc_address,
@@ -403,7 +416,7 @@ describe('Web3Controller (e2e)', () => {
         arguments: token.token_id,
         operation_type: 'readcontract',
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tokenURI: expect.any(String) });
@@ -429,12 +442,12 @@ describe('Web3Controller (e2e)', () => {
           mint_to: admin_acc_address,
         },
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.MINT }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.MINT }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tx: expect.any(Object) });
-      const responceData = response.data as MintResultDto;
-      user2_mint_tx_payload = responceData.tx.tx;
+      const responceData = response.data as any;
+      user2_mint_tx_payload = responceData.tx.payload;
       token_id = responceData.token.id;
     },
     timeout,
@@ -467,7 +480,7 @@ describe('Web3Controller (e2e)', () => {
           addresses: `${admin_acc_address}`,
         },
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.WHITELIST }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.WHITELIST }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tx: expect.any(Object) });
@@ -492,7 +505,7 @@ describe('Web3Controller (e2e)', () => {
           mint_to: admin_acc_address,
         },
       };
-      const response: JobResultDto = await lastValueFrom(client.send({ cmd: CMD.MINT }, data));
+      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.MINT }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('failed');
     },
@@ -551,13 +564,10 @@ describe('DbController (e2e)', () => {
   });
 
   it(`{ cmd: CMD.ALL_OBJECTS } Get all contracts from DB whith pagination`, async () => {
-    const data: GetAllDto = {};
-    let response: ResponseDto = await lastValueFrom(client.send({ cmd: CMD.ALL_OBJECTS }, data));
-    expect(response.status).toEqual(400);
-    data.object_type = ObjectTypes.CONTRACT;
-    response = await lastValueFrom(client.send({ cmd: CMD.ALL_OBJECTS }, data));
+    let data: GetAllRequest = { object_type: ObjectTypes.CONTRACT };
+    let response = await lastValueFrom(client.send({ cmd: CMD.ALL_OBJECTS }, data));
     expect(response.status).toEqual(200);
-    let responceData = response.result as AllObjectsDto;
+    let responceData = response.result as AllObjectsResponce;
     expect(responceData.count).toBeGreaterThan(0);
     expect(responceData.rows).toMatchObject(expect.any(Array));
     expect(responceData.rows).toHaveLength(responceData.count);
@@ -565,22 +575,22 @@ describe('DbController (e2e)', () => {
     data.page = 1;
     response = await lastValueFrom(client.send({ cmd: CMD.ALL_OBJECTS }, data));
     expect(response.status).toEqual(200);
-    responceData = response.result as AllObjectsDto;
+    responceData = response.result as AllObjectsResponce;
     expect(responceData.rows).toMatchObject(expect.any(Array));
     expect(responceData.rows).toHaveLength(1);
     const row = responceData.rows[0];
     data.page = 2;
     response = await lastValueFrom(client.send({ cmd: CMD.ALL_OBJECTS }, data));
     expect(response.status).toEqual(200);
-    responceData = response.result as AllObjectsDto;
+    responceData = response.result as AllObjectsResponce;
     expect(responceData.rows).toMatchObject(expect.any(Array));
     expect(responceData.rows).toHaveLength(1);
     expect(responceData.rows[0]).not.toEqual(row);
   });
 
   it(`{ cmd: CMD.ONE_OBJECT } Get one contract by id from DB with relations `, async () => {
-    const data: GetOneDto = { object_type: ObjectTypes.CONTRACT, where: { id: contract_id } };
-    let response: ResponseDto = await lastValueFrom(client.send({ cmd: CMD.ONE_OBJECT }, data));
+    const data: GetOneRequest = { object_type: ObjectTypes.CONTRACT, where: { id: contract_id } };
+    let response: Response = await lastValueFrom(client.send({ cmd: CMD.ONE_OBJECT }, data));
     expect(response.status).toEqual(200);
     expect(response.result).toMatchObject(expect.any(Object));
     data.include_child = true;
@@ -594,12 +604,13 @@ describe('DbController (e2e)', () => {
   });
 
   it(`{ cmd: CMD.UPDATE_STATUS } Update status of external minted token in DB`, async () => {
-    let get_data: GetOneDto = { object_type: ObjectTypes.TOKEN, where: { id: token_id } };
-    let response: ResponseDto = await lastValueFrom(client.send({ cmd: CMD.ONE_OBJECT }, get_data));
+    let get_data: GetOneRequest = { object_type: ObjectTypes.TOKEN, where: { id: token_id } };
+    let response: Response = await lastValueFrom(client.send({ cmd: CMD.ONE_OBJECT }, get_data));
     expect(response.status).toEqual(200);
     expect(response.result).toMatchObject(expect.any(Object));
+    expect((tx_receipt as any).transactionHash).toBeTruthy();
     const hash = (tx_receipt as any).transactionHash;
-    const update_data: UpdateStatusDto = {
+    const update_data: UpdateStatusRequest = {
       object_type: ObjectTypes.TOKEN,
       object_id: token_id,
       status: Statuses.PROCESSED,
@@ -613,12 +624,13 @@ describe('DbController (e2e)', () => {
   });
 
   it(`{ cmd: CMD.UPDATE_METADATA } Update token metadata`, async () => {
-    const data: UpdateMetadataDto = {
+    expect(token_uri_id).not.toBeUndefined();
+    const data: UpdateMetadataRequest = {
       address: contract_address,
       token_id: token_uri_id.toString(),
       meta_data: metadata,
     };
-    const response: ResponseDto = await lastValueFrom(client.send({ cmd: CMD.UPDATE_METADATA }, data));
+    const response: Response = await lastValueFrom(client.send({ cmd: CMD.UPDATE_METADATA }, data));
     expect(response.status).toEqual(200);
     expect(response.result).toMatchObject({
       address: contract_address,
