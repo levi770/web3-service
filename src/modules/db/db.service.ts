@@ -1,25 +1,22 @@
-import { AllObjectsDto } from './dto/allObjects.dto';
+import { AllObjectsResponce } from './dto/responses/allObjects.response';
 import { ContractModel } from './models/contract.model';
 import { DbArgs } from './interfaces/dbArgs.interface';
-import { GetAllDto } from './dto/getAll.dto';
-import { GetOneDto } from './dto/getOne.dto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { MetadataModel } from './models/metadata.model';
 import { MetadataTypes, ObjectTypes, Statuses } from '../../common/constants';
 import { Order } from 'sequelize';
-import { ResponseDto } from '../../common/dto/response.dto';
 import { RpcException } from '@nestjs/microservices';
-import { SetMetadataDto } from './dto/setMetadata.dto';
 import { TokenModel } from './models/token.model';
-import { UpdateMetadataDto } from './dto/updateMetadata.dto';
-import { UpdateStatusDto } from './dto/updateStatus.dto';
+import { UpdateMetadataRequest } from './dto/requests/updateMetadata.request';
 import { WhitelistModel } from './models/whitelist.model';
-import { CreateObjects, CreatedObjects, FindModelResult } from '../../common/types';
+import { CreateObjects, CreatedObjects, ModelResponse } from '../../common/types';
 import { WalletModel } from './models/wallet.model';
 import { TransactionModel } from './models/transaction.model';
-import { MetaDataDto } from '../web3/dto/metaData.dto';
-import { GetMetadataDto } from './dto/getMetadata.dto';
+import { MetaData } from '../web3/interfaces/metaData.interface';
+import { GetMetadataRequest } from './dto/requests/getMetadata.request';
+import { Metadata } from './interfaces/metadata.interface';
+import { Status } from './interfaces/status.interface';
 
 /**
  * A service for managing objects in a database.
@@ -77,7 +74,7 @@ export class DbService {
   /**
    * Searches for an object in the specified repository by id.
    */
-  async findOneById(id: string, objectType: ObjectTypes): Promise<FindModelResult> {
+  async findOneById(id: string, objectType: ObjectTypes): Promise<ModelResponse> {
     try {
       const repository = this.getRepository(objectType);
       return await repository.findOne({ where: { id } });
@@ -92,7 +89,7 @@ export class DbService {
   /**
    * Searches for an object in the specified repository by id.
    */
-  async findOneByAddress(address: string, objectType: ObjectTypes): Promise<FindModelResult> {
+  async findOneByAddress(address: string, objectType: ObjectTypes): Promise<ModelResponse> {
     try {
       const repository = this.getRepository(objectType);
       return await repository.findOne({ where: { address } });
@@ -107,12 +104,12 @@ export class DbService {
   /**
    * Gets all objects of the specified type.
    */
-  async getAllObjects(objectType: ObjectTypes, params?: GetAllDto): Promise<AllObjectsDto> {
+  async getAllObjects(objectType: ObjectTypes, params?: DbArgs): Promise<AllObjectsResponce> {
     try {
       const args: DbArgs = {
         offset: !params || !params?.limit || !params?.page ? null : 0 + (+params?.page - 1) * +params.limit,
         limit: !params || !params?.limit ? null : +params?.limit,
-        order: [[params?.order_by || 'createdAt', params?.order || 'DESC']] as Order,
+        order: [[params?.order_by || 'createdAt', params?.sort || 'DESC']] as Order,
         distinct: true,
       };
       if (params.where) {
@@ -134,7 +131,7 @@ export class DbService {
   /**
    * Gets a single object of the specified type.
    */
-  async getOneObject(objectType: ObjectTypes, params: GetOneDto): Promise<FindModelResult> {
+  async getOneObject(objectType: ObjectTypes, params: DbArgs): Promise<ModelResponse> {
     try {
       const args: DbArgs = {};
       if (!params) {
@@ -166,7 +163,7 @@ export class DbService {
   /**
    * Updates the status of an object.
    */
-  async updateStatus(data: UpdateStatusDto, objectType: ObjectTypes): Promise<any> {
+  async updateStatus(data: Status, objectType: ObjectTypes): Promise<any> {
     try {
       const repository = this.getRepository(objectType);
       return await repository.update(
@@ -198,9 +195,9 @@ export class DbService {
   /**
    * Associates metadata with an object.
    */
-  async setMetadata(params: SetMetadataDto, objectType: ObjectTypes): Promise<boolean> {
+  async setMetadata(params: Metadata, objectType: ObjectTypes): Promise<boolean> {
     try {
-      const metadata = (await this.findOneById(params.metadata_id, ObjectTypes.METADATA)) as MetadataModel;
+      const metadata = (await this.findOneById(params.id, ObjectTypes.METADATA)) as MetadataModel;
       switch (objectType) {
         case ObjectTypes.CONTRACT: {
           const contract = await this.findOneById(params.object_id, ObjectTypes.CONTRACT);
@@ -225,7 +222,7 @@ export class DbService {
   /**
    * Gets the metadata associated with a token.
    */
-  async getMetadata(params: GetMetadataDto): Promise<MetaDataDto> {
+  async getMetadata(params: GetMetadataRequest): Promise<MetaData> {
     try {
       const metadata = await this.getOneObject(ObjectTypes.METADATA, {
         where: { address: params.address, token_id: params.id },
@@ -248,12 +245,12 @@ export class DbService {
   /**
    * Updates the metadata associated with a token.
    */
-  async updateMetadata(data: UpdateMetadataDto): Promise<MetadataModel> {
+  async updateMetadata(data: UpdateMetadataRequest): Promise<MetadataModel> {
     try {
       const metadata = (await this.getOneObject(ObjectTypes.METADATA, {
         where: { address: data.address, token_id: data.token_id },
       })) as MetadataModel;
-      
+
       if (!metadata) {
         throw new RpcException({
           status: HttpStatus.NOT_FOUND,
@@ -278,7 +275,7 @@ export class DbService {
       };
       const new_metadata = (await this.create([new_data], ObjectTypes.METADATA)) as MetadataModel[];
       const token = (await this.getOneObject(ObjectTypes.TOKEN, { where: { token_id: data.token_id } })) as TokenModel;
-      await this.setMetadata({ object_id: token.id, metadata_id: new_metadata[0].id }, ObjectTypes.TOKEN);
+      await this.setMetadata({ id: new_metadata[0].id, object_id: token.id }, ObjectTypes.TOKEN);
       return new_metadata[0];
     } catch (error) {
       throw new RpcException({
