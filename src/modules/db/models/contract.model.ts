@@ -1,5 +1,5 @@
 import { Column, DataType, HasMany, HasOne, Model, Table, ForeignKey, BelongsTo } from 'sequelize-typescript';
-import { DeployDataDto } from '../../web3/dto/deployData.dto';
+import { DeployRequest } from '../../web3/dto/requests/deploy.request';
 import { MetadataModel } from './metadata.model';
 import { TokenModel } from './token.model';
 import { WhitelistModel } from './whitelist.model';
@@ -25,7 +25,7 @@ export class ContractModel extends Model {
   address: string;
 
   @Column({ type: DataType.JSON })
-  deploy_data: DeployDataDto;
+  deploy_data: DeployRequest;
 
   @HasOne(() => MetadataModel, { onDelete: 'CASCADE' })
   metadata: MetadataModel;
