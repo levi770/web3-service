@@ -1,7 +1,7 @@
 /**
  * A data transfer object for passing response data.
  */
-export class ResponseDto {
+export class Response {
   status: number;
   message: string | null;
   result: any;

@@ -3,7 +3,7 @@ import { Data } from '../types';
 /**
  * A data transfer object for passing job result data.
  */
-export class JobResultDto {
+export class JobResult {
   jobId: string | number;
   status: string;
   data: Data;

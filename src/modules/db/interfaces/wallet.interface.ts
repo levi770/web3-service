@@ -1,7 +1,7 @@
 /**
  * Represents a wallet from the database.
  */
-export class WalletDto {
+export interface Wallet {
   id?: string;
   team_id?: string;
   address: string;

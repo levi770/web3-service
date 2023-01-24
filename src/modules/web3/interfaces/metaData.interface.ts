@@ -2,15 +2,15 @@
  * Represents a trait or characteristic of something. It contains a trait_type property, which
  * describes the type of trait it is, and a value property, which holds the value of the trait.
  */
-class Attribute {
+interface Attribute {
   trait_type: string;
   value: string;
 }
 
 /**
- * A data transfer object for passing token metadata.
+ * An interface for passing token metadata.
  */
-export class MetaDataDto {
+export interface MetaData {
   name: string;
   description: string;
   image?: string;

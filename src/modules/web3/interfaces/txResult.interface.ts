@@ -1,12 +1,12 @@
 import { TransactionReceipt } from 'web3-core';
-import { TxPayload } from '../interfaces/tx.interface';
+import { TxOptions } from './txOptions.interface';
 import { TransactionModel } from '../../db/models/transaction.model';
 
 /**
- * A data transfer object for passing the result of a transaction.
+ * An interface for passing the result of a transaction.
  */
-export class TxResultDto {
-  tx?: TxPayload;
+export interface TxResult {
+  payload?: TxOptions;
   comission?: string;
   balance?: string;
   txReceipt?: TransactionReceipt;

@@ -1,13 +1,13 @@
+import { IsOptional, IsString } from 'class-validator';
 import { FileTypes } from '../../../common/constants';
-import { MetaDataDto } from './metaData.dto';
+import { MetaData } from './metaData.interface';
 
 /**
  * A data transfer object for passing mint data.
  */
-export class MintDataDto {
-  nft_number?: string;
+export interface MintData {
   mint_to?: string;
   asset_url?: string;
   asset_type?: FileTypes;
-  meta_data?: MetaDataDto;
+  meta_data?: MetaData;
 }

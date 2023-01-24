@@ -1,12 +1,12 @@
 import { Networks } from '../../../common/constants';
-import { TxPayload } from '../../web3/interfaces/tx.interface';
+import { TxOptions } from '../../web3/interfaces/txOptions.interface';
 
 /**
  * A data transfer object for passing the result of a transaction.
  */
-export class TransactionDto {
+export interface Transaction {
   network: Networks;
   status: string;
   address: string;
-  tx_payload: TxPayload;
+  tx_payload: TxOptions;
 }
