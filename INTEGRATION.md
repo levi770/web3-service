@@ -27,14 +27,38 @@ There are three types of job results from the web3 service:
 
 ## Create a new encrypted wallet keystore in DB
 
-| Message pattern             |
-| :-------------------------- |
-| `{ "cmd": "createwallet" }` |
+Message pattern:
 
-| Input data example:                       | Output data example:                                                                                                                                            |
-| :---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{ "team_id": "123456" }`                 | `{ "status": "200", "message": "success", "result": { "id": "49a63085-52c7...", "address": "0x4Fab8903..." }  `                                                 |
-| - `"team_id"` is a team ID from CRM side. | - `"status"` is a HTTP status code. <br>- `"message"` is a message for the user. <br>- `"result"` is an object with the wallet address and the wallet ID in DB. |
+```json
+{
+  "cmd": "createwallet"
+}
+```
+
+Input example:
+
+```json
+{
+  "team_id": "7a31a433-7fbe-4daf-b179-e1d19ba5988d" // team ID from CRM side
+}
+```
+
+Output example:
+
+```json
+{
+  "status": 201, // HTTP status code
+  "message": "success", // message for the user
+  "result": {
+    "id": "a9761962-e193-49fb-b197-bea802528adf", // wallet ID in DB
+    "address": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18" // wallet address
+  }
+}
+```
+
+Related DTOs:
+
+- [CreateWalletRequest](./src/modules/web3/dto/requests/createWallet.request.ts)
 
 [Go to top](#table-of-contents)
 
