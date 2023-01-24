@@ -1,10 +1,5 @@
 /**
- * @class ResponseDto - A data transfer object for passing response data.
- * @export
- *
- * @param {number} status - The status code for the response.
- * @param {string} [message] - A message for the response.
- * @param {any} result - The result data for the response.
+ * A data transfer object for passing response data.
  */
 export class ResponseDto {
   status: number;

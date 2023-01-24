@@ -1,22 +1,14 @@
 export const WEB3_QUEUE = 'web3';
 export const CRON_QUEUE = 'cron';
 export const TX_WORKER = 'tx';
+export const WEB3_CONTROLLER = 'Web3Controller';
+export const DB_CONTROLLER = 'DbController';
 
-/**
- * An enum representing the types of metadata.
- *
- * @enum {string}
- */
 export enum MetadataTypes {
   COMMON = 'common',
   SPECIFIED = 'specified',
 }
 
-/**
- * An enum representing the possible statuses for objects.
- *
- * @enum {string}
- */
 export enum Statuses {
   CREATED = 'created',
   PROCESSED = 'processed',
@@ -27,24 +19,34 @@ export enum Statuses {
   UPDATED = 'updated',
   DELETED = 'deleted',
   PENDING = 'pending',
+  SUCCESS = 'success',
 }
 
-/**
- * An enum representing the types of processes.
- *
- * @enum {string}
- */
+export enum CMD {
+  DEPLOY = 'deploycontract',
+  MINT = 'minttoken',
+  WHITELIST = 'whitelist',
+  COMMON = 'commoncall',
+  ALL_OBJECTS = 'getallobjects',
+  ONE_OBJECT = 'getoneobject',
+  JOB = 'getjobbyid',
+  UPDATE_METADATA = 'updatemetadata',
+  UPDATE_STATUS = 'updatestatus',
+  GET_MERKLE_PROOF = 'getmerkleproof',
+  CREATE_WALLET = 'createwallet',
+  GET_METADATA = 'getmetadata',
+  PREDICT_ADDRESS = 'predictaddress',
+}
+
 export enum ProcessTypes {
+  CREATE_WALLET = 'createwallet',
   DEPLOY = 'deploy',
+  MINT = 'mint',
   COMMON = 'common',
   WHITELIST = 'whitelist',
+  MERKLE_PROOF = 'merkleproof',
 }
 
-/**
- * An enum representing the types of operations.
- *
- * @enum {string}
- */
 export enum OperationTypes {
   MINT = 'mint',
   DEPLOY = 'deploy',
@@ -54,11 +56,6 @@ export enum OperationTypes {
   READ_CONTRACT = 'readcontract',
 }
 
-/**
- * An enum representing the types of objects.
- *
- * @enum {string}
- */
 export enum ObjectTypes {
   CONTRACT = 'contract',
   TOKEN = 'token',
@@ -68,39 +65,13 @@ export enum ObjectTypes {
   TRANSACTION = 'transaction',
 }
 
-/**
- * An enum representing the networks.
- *
- * @enum {number}
- */
 export enum Networks {
   ETHEREUM = 5,
   POLYGON = 80001,
+  LOCAL = 1337,
 }
 
-/**
- * An enum representing the types of files.
- *
- * @enum {string}
- */
 export enum FileTypes {
   IMAGE = 'image',
   OBJECT = 'object',
-}
-
-/**
- * An enum representing the commands.
- *
- * @enum {string}
- */
-export enum CMD {
-  DEPLOY = 'deploycontract',
-  CALL = 'processcall',
-  ALL_OBJECTS = 'getallobjects',
-  ONE_OBJECT = 'getoneobject',
-  JOB = 'getjobbyid',
-  UPDATE_METADATA = 'updatemetadata',
-  UPDATE_STATUS = 'updatestatus',
-  GET_MERKLE_PROOF = 'getmerkleproof',
-  CREATE_WALLET = 'createwallet',
 }

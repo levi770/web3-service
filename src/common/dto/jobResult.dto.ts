@@ -1,12 +1,7 @@
 import { Data } from '../types';
 
 /**
- * @class JobResultDto - A data transfer object for passing job result data.
- * @export
- *
- * @param {string | number} jobId - The ID of the job.
- * @param {string} status - The status of the job.
- * @param {Data} data - The data for the job result.
+ * A data transfer object for passing job result data.
  */
 export class JobResultDto {
   jobId: string | number;
