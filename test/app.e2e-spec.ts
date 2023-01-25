@@ -75,7 +75,7 @@ describe('AppController (e2e)', () => {
   it(`GET /health - Gets the health status`, async () => {
     const response = await request(server).get('/health').send();
     expect(response.status).toEqual(200);
-    expect(response.body).toMatchObject({ status: 200, message: 'active', result: null });
+    expect(response.body).toMatchObject({ status: 200, message: 'active', data: null });
   });
 });
 
@@ -164,8 +164,8 @@ describe('Web3Controller (e2e)', () => {
       const response: Response = await lastValueFrom(client.send({ cmd: CMD.JOB }, data));
       expect(response.status).toEqual(HttpStatus.OK);
       expect(response.message).toEqual(expect.any(String));
-      expect(response.result).toMatchObject(expect.any(Object));
-      const responceData = response.result as any;
+      expect(response.data).toMatchObject(expect.any(Object));
+      const responceData = response.data as any;
       expect(responceData.id).toEqual(jobId);
     },
     timeout,
@@ -565,9 +565,9 @@ describe('DbController (e2e)', () => {
 
   it(`{ cmd: CMD.ALL_OBJECTS } Get all contracts from DB whith pagination`, async () => {
     let data: GetAllRequest = { object_type: ObjectTypes.CONTRACT };
-    let response = await lastValueFrom(client.send({ cmd: CMD.ALL_OBJECTS }, data));
+    let response: Response = await lastValueFrom(client.send({ cmd: CMD.ALL_OBJECTS }, data));
     expect(response.status).toEqual(200);
-    let responceData = response.result as AllObjectsResponce;
+    let responceData = response.data as AllObjectsResponce;
     expect(responceData.count).toBeGreaterThan(0);
     expect(responceData.rows).toMatchObject(expect.any(Array));
     expect(responceData.rows).toHaveLength(responceData.count);
@@ -575,14 +575,14 @@ describe('DbController (e2e)', () => {
     data.page = 1;
     response = await lastValueFrom(client.send({ cmd: CMD.ALL_OBJECTS }, data));
     expect(response.status).toEqual(200);
-    responceData = response.result as AllObjectsResponce;
+    responceData = response.data as AllObjectsResponce;
     expect(responceData.rows).toMatchObject(expect.any(Array));
     expect(responceData.rows).toHaveLength(1);
     const row = responceData.rows[0];
     data.page = 2;
     response = await lastValueFrom(client.send({ cmd: CMD.ALL_OBJECTS }, data));
     expect(response.status).toEqual(200);
-    responceData = response.result as AllObjectsResponce;
+    responceData = response.data as AllObjectsResponce;
     expect(responceData.rows).toMatchObject(expect.any(Array));
     expect(responceData.rows).toHaveLength(1);
     expect(responceData.rows[0]).not.toEqual(row);
@@ -592,12 +592,12 @@ describe('DbController (e2e)', () => {
     const data: GetOneRequest = { object_type: ObjectTypes.CONTRACT, where: { id: contract_id } };
     let response: Response = await lastValueFrom(client.send({ cmd: CMD.ONE_OBJECT }, data));
     expect(response.status).toEqual(200);
-    expect(response.result).toMatchObject(expect.any(Object));
+    expect(response.data).toMatchObject(expect.any(Object));
     data.include_child = true;
     response = await lastValueFrom(client.send({ cmd: CMD.ONE_OBJECT }, data));
     expect(response.status).toEqual(200);
-    expect(response.result).toMatchObject(expect.any(Object));
-    const responceData = response.result as any;
+    expect(response.data).toMatchObject(expect.any(Object));
+    const responceData = response.data as any;
     expect(responceData.tokens).toMatchObject(expect.any(Array));
     expect(responceData.metadata).toMatchObject(expect.any(Object));
     expect(responceData.transactions).toMatchObject(expect.any(Array));
@@ -607,7 +607,7 @@ describe('DbController (e2e)', () => {
     let get_data: GetOneRequest = { object_type: ObjectTypes.TOKEN, where: { id: token_id } };
     let response: Response = await lastValueFrom(client.send({ cmd: CMD.ONE_OBJECT }, get_data));
     expect(response.status).toEqual(200);
-    expect(response.result).toMatchObject(expect.any(Object));
+    expect(response.data).toMatchObject(expect.any(Object));
     expect((tx_receipt as any).transactionHash).toBeTruthy();
     const hash = (tx_receipt as any).transactionHash;
     const update_data: UpdateStatusRequest = {
@@ -619,8 +619,8 @@ describe('DbController (e2e)', () => {
     };
     response = await lastValueFrom(client.send({ cmd: CMD.UPDATE_STATUS }, update_data));
     expect(response.status).toEqual(200);
-    expect(response.result).toMatchObject(expect.any(Array));
-    const responceData = response.result as any;
+    expect(response.data).toMatchObject(expect.any(Array));
+    const responceData = response.data as any;
   });
 
   it(`{ cmd: CMD.UPDATE_METADATA } Update token metadata`, async () => {
@@ -632,7 +632,7 @@ describe('DbController (e2e)', () => {
     };
     const response: Response = await lastValueFrom(client.send({ cmd: CMD.UPDATE_METADATA }, data));
     expect(response.status).toEqual(200);
-    expect(response.result).toMatchObject({
+    expect(response.data).toMatchObject({
       address: contract_address,
       contract_id: null,
       createdAt: expect.any(String),

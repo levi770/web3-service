@@ -20,8 +20,12 @@ The following applications will be available to manage the the project after lau
 
 ## Requirements
 
-- git,
-- docker-compose
+- redis server
+- postgres server
+- nodejs
+- aws s3 bucket
+- pinata ipfs node
+- web3 provider
 
 ## Installation
 
@@ -36,6 +40,14 @@ Fill the missed variables in .env file with actual values. All variables is requ
 ```bash
 $ docker-compose build
 $ docker-compose up
+```
+
+## e2e tests
+
+For testing you need to setup a privaate key from blockchain account with some testETH or testMATIC on it.
+
+```bash
+$ npm run test:e2e
 ```
 
 ### Microservice API methods description in [INTEGRATION.md](INTEGRATION.md)

@@ -4,11 +4,11 @@
 export class Response {
   status: number;
   message: string | null;
-  result: any;
+  data: any;
 
   constructor(status: number, message: string | null, result: any) {
     this.status = status;
     this.message = message;
-    this.result = result;
+    this.data = result;
   }
 }
