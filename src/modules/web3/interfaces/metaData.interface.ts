@@ -10,7 +10,7 @@ interface Attribute {
 /**
  * An interface for passing token metadata.
  */
-export interface MetaData {
+export interface IMetaData {
   name: string;
   description: string;
   image?: string;

@@ -2,7 +2,7 @@ import { Controller, Get, HttpStatus, Logger, Param, UsePipes } from '@nestjs/co
 import { Response } from './common/dto/response.dto';
 import { DbService } from './modules/db/db.service';
 import { GetMetadataRequest } from './modules/db/dto/requests/getMetadata.request';
-import { MetaData } from './modules/web3/interfaces/metaData.interface';
+import { IMetaData } from './modules/web3/interfaces/metaData.interface';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { ExceptionTypes } from './common/constants';
 
@@ -31,7 +31,7 @@ export class AppController {
    */
   @Get('metadata/:address/:id')
   @UsePipes(new ValidationPipe(ExceptionTypes.RPC))
-  async getMetaData(@Param() params: GetMetadataRequest): Promise<MetaData> {
+  async getMetaData(@Param() params: GetMetadataRequest): Promise<IMetaData> {
     this.logger.log(`Processing GET request 'metadata' with id: ${JSON.stringify(params)}`);
     return await this.dbManagerService.getMetadata(params);
   }

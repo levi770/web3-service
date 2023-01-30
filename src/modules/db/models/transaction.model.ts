@@ -1,6 +1,6 @@
 import { Column, DataType, Model, Table, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { TransactionReceipt } from 'web3-eth';
-import { TxOptions } from '../../web3/interfaces/txOptions.interface';
+import { ITxOptions } from '../../web3/interfaces/txOptions.interface';
 import { Networks } from '../../../common/constants';
 import { ContractModel } from './contract.model';
 import { WalletModel } from './wallet.model';
@@ -27,7 +27,7 @@ export class TransactionModel extends Model {
   address: string;
 
   @Column({ type: DataType.JSON })
-  tx_payload: TxOptions;
+  tx_payload: ITxOptions;
 
   @Column({ type: DataType.STRING })
   tx_hash: string;

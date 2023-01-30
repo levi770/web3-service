@@ -10,21 +10,21 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Job, Queue } from 'bull';
 import { JobResult } from '../../common/dto/jobResult.dto';
-import { MintData } from './interfaces/mintData.interface';
+import { IMintData } from './interfaces/mintData.interface';
 import { Networks, ObjectTypes, OperationTypes, ProcessTypes, Statuses, WEB3_QUEUE } from '../../common/constants';
 import { Observable } from 'rxjs';
 import { RpcException } from '@nestjs/microservices';
 import { TokenModel } from '../db/models/token.model';
-import { TxPayload } from './interfaces/txPayload.interface';
-import { TxOptions } from './interfaces/txOptions.interface';
-import { TxResult } from './interfaces/txResult.interface';
+import { ITxPayload } from './interfaces/txPayload.interface';
+import { ITxOptions } from './interfaces/txOptions.interface';
+import { ITxResult } from './interfaces/txResult.interface';
 import { v4 as uuidv4 } from 'uuid';
 import { WhitelistModel } from '../db/models/whitelist.model';
 import { ProcessData } from '../../common/types';
 import { DbService } from '../db/db.service';
 import { TransactionModel } from '../db/models/transaction.model';
 import * as ethUtils from 'ethereumjs-util';
-import { Wallet } from './interfaces/wallet.interface';
+import { IWallet } from './interfaces/wallet.interface';
 
 /**
  * A service class for interacting with Web3.
@@ -66,13 +66,13 @@ export class Web3Service {
     try {
       const jobId = uuidv4();
       const job$: Observable<JobResult> = new Observable((observer) => {
-        const active = (job: Job<MintData | DeployRequest>) => {
+        const active = (job: Job<IMintData | DeployRequest>) => {
           checkSubscriptions();
           if (job.id === jobId) {
             observer.next(new JobResult(job.id, 'active', job.data));
           }
         };
-        const completed = (job: Job<MintData | DeployRequest>, result: ContractModel | TokenModel) => {
+        const completed = (job: Job<IMintData | DeployRequest>, result: ContractModel | TokenModel) => {
           checkSubscriptions();
           if (job.id === jobId) {
             observer.next(new JobResult(job.id, 'completed', result));
@@ -80,7 +80,7 @@ export class Web3Service {
             removeAllListeners();
           }
         };
-        const failed = (job: Job<MintData | DeployRequest>, error: Error) => {
+        const failed = (job: Job<IMintData | DeployRequest>, error: Error) => {
           checkSubscriptions();
           if (job.id === jobId) {
             observer.next(new JobResult(job.id, 'failed', error.message));
@@ -117,12 +117,12 @@ export class Web3Service {
   /**
    * Sends a transaction to the Ethereum or Polygon network.
    */
-  async processTx(txPayload: TxPayload): Promise<TxResult> {
+  async processTx(txPayload: ITxPayload): Promise<ITxResult> {
     try {
       const w3: Web3 = this.getWeb3(txPayload.network);
       const contractObj = txPayload.contract_obj;
       const contract = txPayload.contract;
-      const tx: TxOptions = {
+      const tx: ITxOptions = {
         nonce: await w3.eth.getTransactionCount(txPayload.from_address),
         maxPriorityFeePerGas: await w3.eth.getGasPrice(),
         from: txPayload.from_address,
@@ -277,7 +277,7 @@ export class Web3Service {
   /**
    * Creates a new Ethereum account.
    */
-  async newWallet(): Promise<Wallet> {
+  async newWallet(): Promise<IWallet> {
     try {
       const password = await this.configService.get('DEFAULT_PASSWORD');
       const account = this.ethereum.eth.accounts.create();

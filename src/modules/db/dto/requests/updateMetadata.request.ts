@@ -1,5 +1,5 @@
 import { IsObject, IsString } from 'class-validator';
-import { MetaData } from '../../../web3/interfaces/metaData.interface';
+import { IMetaData } from '../../../web3/interfaces/metaData.interface';
 
 /**
  * A data transfer object for passing data to update metadata.
@@ -12,5 +12,5 @@ export class UpdateMetadataRequest {
   token_id: string;
 
   @IsObject()
-  meta_data: MetaData;
+  meta_data: IMetaData;
 }

@@ -1,6 +1,6 @@
 import { AbiItem } from 'web3-utils';
 import { FileTypes, Networks } from '../../../../common/constants';
-import { MetaData } from '../../interfaces/metaData.interface';
+import { IMetaData } from '../../interfaces/metaData.interface';
 import { IsArray, IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 
 /**
@@ -32,7 +32,7 @@ export class DeployRequest {
   asset_type?: FileTypes;
 
   @IsOptional()
-  meta_data?: MetaData;
+  meta_data?: IMetaData;
 
   @IsOptional()
   test: boolean;

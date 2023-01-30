@@ -1,6 +1,6 @@
 import { AllObjectsResponce } from './dto/responses/allObjects.response';
 import { ContractModel } from './models/contract.model';
-import { DbArgs } from './interfaces/dbArgs.interface';
+import { IDbArgs } from './interfaces/dbArgs.interface';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { MetadataModel } from './models/metadata.model';
@@ -13,10 +13,10 @@ import { WhitelistModel } from './models/whitelist.model';
 import { CreateObjects, CreatedObjects, ModelResponse } from '../../common/types';
 import { WalletModel } from './models/wallet.model';
 import { TransactionModel } from './models/transaction.model';
-import { MetaData } from '../web3/interfaces/metaData.interface';
+import { IMetaData } from '../web3/interfaces/metaData.interface';
 import { GetMetadataRequest } from './dto/requests/getMetadata.request';
-import { Metadata } from './interfaces/metadata.interface';
-import { Status } from './interfaces/status.interface';
+import { IMetadata } from './interfaces/metadata.interface';
+import { IStatus } from './interfaces/status.interface';
 
 /**
  * A service for managing objects in a database.
@@ -104,9 +104,9 @@ export class DbService {
   /**
    * Gets all objects of the specified type.
    */
-  async getAllObjects(objectType: ObjectTypes, params?: DbArgs): Promise<AllObjectsResponce> {
+  async getAllObjects(objectType: ObjectTypes, params?: IDbArgs): Promise<AllObjectsResponce> {
     try {
-      const args: DbArgs = {
+      const args: IDbArgs = {
         offset: !params || !params?.limit || !params?.page ? null : 0 + (+params?.page - 1) * +params.limit,
         limit: !params || !params?.limit ? null : +params?.limit,
         order: [[params?.order_by || 'createdAt', params?.sort || 'DESC']] as Order,
@@ -131,9 +131,9 @@ export class DbService {
   /**
    * Gets a single object of the specified type.
    */
-  async getOneObject(objectType: ObjectTypes, params: DbArgs): Promise<ModelResponse> {
+  async getOneObject(objectType: ObjectTypes, params: IDbArgs): Promise<ModelResponse> {
     try {
-      const args: DbArgs = {};
+      const args: IDbArgs = {};
       if (!params) {
         throw new RpcException('params can not be empty');
       }
@@ -163,7 +163,7 @@ export class DbService {
   /**
    * Updates the status of an object.
    */
-  async updateStatus(data: Status, objectType: ObjectTypes): Promise<any> {
+  async updateStatus(data: IStatus, objectType: ObjectTypes): Promise<any> {
     try {
       const repository = this.getRepository(objectType);
       return await repository.update(
@@ -195,7 +195,7 @@ export class DbService {
   /**
    * Associates metadata with an object.
    */
-  async setMetadata(params: Metadata, objectType: ObjectTypes): Promise<boolean> {
+  async setMetadata(params: IMetadata, objectType: ObjectTypes): Promise<boolean> {
     try {
       const metadata = (await this.findOneById(params.id, ObjectTypes.METADATA)) as MetadataModel;
       switch (objectType) {
@@ -222,7 +222,7 @@ export class DbService {
   /**
    * Gets the metadata associated with a token.
    */
-  async getMetadata(params: GetMetadataRequest): Promise<MetaData> {
+  async getMetadata(params: GetMetadataRequest): Promise<IMetaData> {
     try {
       const metadata = await this.getOneObject(ObjectTypes.METADATA, {
         where: { address: params.address, token_id: params.id },

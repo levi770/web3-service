@@ -7,14 +7,14 @@ import { ConfigService } from '@nestjs/config';
 import { ContractModel } from '../db/models/contract.model';
 import { DeployRequest } from './dto/requests/deploy.request';
 import { IpfsManagerService } from '../ipfs/ipfs.service';
-import { MetaData } from './interfaces/metaData.interface';
+import { IMetaData } from './interfaces/metaData.interface';
 import { MetadataModel } from '../db/models/metadata.model';
-import { MintData } from './interfaces/mintData.interface';
-import { Token } from '../db/interfaces/token.interface';
+import { IMintData } from './interfaces/mintData.interface';
+import { IToken } from '../db/interfaces/token.interface';
 import { Process, Processor } from '@nestjs/bull';
 import { RpcException } from '@nestjs/microservices';
 import { TokenModel } from '../db/models/token.model';
-import { TxPayload } from './interfaces/txPayload.interface';
+import { ITxPayload } from './interfaces/txPayload.interface';
 import { Web3Service } from './web3.service';
 import { WhitelistRequest } from './dto/requests/whitelist.request';
 import { WhitelistModel } from '../db/models/whitelist.model';
@@ -29,10 +29,10 @@ import {
 } from '../../common/constants';
 import { DbService } from '../db/db.service';
 import { WalletModel } from '../db/models/wallet.model';
-import { TxResult } from './interfaces/txResult.interface';
+import { ITxResult } from './interfaces/txResult.interface';
 import { CreateWalletRequest } from './dto/requests/createWallet.request';
-import { Wallet } from '../db/interfaces/wallet.interface';
-import { MerkleProof } from './interfaces/merkleProof.interface';
+import { IWallet } from '../db/interfaces/wallet.interface';
+import { IMerkleProof } from './interfaces/merkleProof.interface';
 import { HttpStatus } from '@nestjs/common';
 import { DeployResponse } from './dto/responses/deploy.response';
 import { MintResponse } from './dto/responses/mint.response';
@@ -55,7 +55,7 @@ export class Web3Processor {
    * Creates a new encrypted leystore in DB for team_id
    */
   @Process(ProcessTypes.CREATE_WALLET)
-  async createWallet(job: Job): Promise<Wallet> {
+  async createWallet(job: Job): Promise<IWallet> {
     try {
       const data: CreateWalletRequest = job.data;
       const wallet = await this.web3Service.newWallet();
@@ -86,7 +86,7 @@ export class Web3Processor {
         data: deployData.bytecode,
         arguments: deployData.arguments.split('::'),
       });
-      const txPayload: TxPayload = {
+      const txPayload: ITxPayload = {
         execute: deployData.execute,
         network: deployData.network,
         contract: contractInstance,
@@ -132,7 +132,7 @@ export class Web3Processor {
       const { w3, keystore } = await this.getAccount(callData);
       const { contractObj, contractInst, abiObj } = await this.getContract(callData, w3);
 
-      const mintOptions = callData?.operation_options as MintData;
+      const mintOptions = callData?.operation_options as IMintData;
       if (!mintOptions) {
         throw new RpcException({
           status: HttpStatus.BAD_REQUEST,
@@ -173,7 +173,7 @@ export class Web3Processor {
 
       const callArgs = this.getArgs(callData.arguments.toString(), abiObj.inputs);
       const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any[]);
-      const txPayload: TxPayload = {
+      const txPayload: ITxPayload = {
         execute: callData.execute,
         operation_type: OperationTypes.MINT,
         network: callData.network,
@@ -306,7 +306,7 @@ export class Web3Processor {
 
       const callArgs = [root];
       const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs);
-      const txPayload: TxPayload = {
+      const txPayload: ITxPayload = {
         execute: callData.execute,
         operation_type: operationType,
         network: callData.network,
@@ -333,7 +333,7 @@ export class Web3Processor {
    * Processes a common blockchain call.
    */
   @Process(ProcessTypes.COMMON)
-  async commonCall(job: Job): Promise<TxResult> {
+  async commonCall(job: Job): Promise<ITxResult> {
     try {
       const callData: CallRequest = job.data;
       const { w3, keystore } = await this.getAccount(callData);
@@ -345,7 +345,7 @@ export class Web3Processor {
         return { [callData.method_name]: callResult };
       }
       const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any[]);
-      const txPayload: TxPayload = {
+      const txPayload: ITxPayload = {
         execute: callData.execute,
         operation_type: OperationTypes.COMMON,
         network: callData.network,
@@ -368,7 +368,7 @@ export class Web3Processor {
    * Gets a merkle proof for provided address
    */
   @Process(ProcessTypes.MERKLE_PROOF)
-  async getMerkleProof(job: Job): Promise<MerkleProof> {
+  async getMerkleProof(job: Job): Promise<IMerkleProof> {
     try {
       const data: WhitelistRequest = job.data;
       const whitelist = await this.dbManager.getAllObjects(ObjectTypes.WHITELIST, {
@@ -467,7 +467,7 @@ export class Web3Processor {
   /**
    * Retrieves metadata for a given contract.
    */
-  async getMetadata(data: MintData | DeployRequest): Promise<MetaData> {
+  async getMetadata(data: IMintData | DeployRequest): Promise<IMetaData> {
     const fileId = await this.ipfsManger.upload(data.asset_url);
     const metadata = data.meta_data;
     switch (data.asset_type) {
