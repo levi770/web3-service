@@ -95,6 +95,7 @@ jobs:
           image: ${{ steps.build-image.outputs.image }}
           environment-variables: |
             NODE_ENV=production
+            PORT=${{secrets.PORT}}
             POSTGRES_URI=${{secrets.POSTGRES_URI}}
             REDIS_HOST=${{secrets.REDIS_HOST}}
             REDIS_PORT=${{secrets.REDIS_PORT}}
