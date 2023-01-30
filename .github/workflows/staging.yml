@@ -1,6 +1,8 @@
 name: staging-workflow
 
 on:
+  push:
+    branches: [development]
   pull_request:
     branches: [development]
 
@@ -55,8 +57,7 @@ jobs:
     environment: staging
 
     # Only deploys the code if the build was succesfull and if it's a merge
-    # UNCOMMENT THIS BEFORE MERGE TO MAIN AND DEV
-    # if: ${{ github.event_name == 'push' }}
+    if: ${{ github.event_name == 'push' }}
 
     steps:
       - name: Checkout
