@@ -20,7 +20,6 @@ const logger = new Logger('Sql');
 /**
  * The root module of the application.
  */
-console.log('----', process.env.POSTGRES_URI);
 @Module({
   imports: [
     ConfigModule.forRoot(),
