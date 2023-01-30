@@ -6,8 +6,8 @@ on:
 
 env:
   AWS_REGION: eu-west-1
-  ECR_REPOSITORY: crm-web3-svc-staging # set this to your Amazon ECR repository name
-  ECS_SERVICE: crm-web3-svc-development-container-service # set this to your Amazon ECS service name
+  ECR_REPOSITORY: crm-web3-service-staging # set this to your Amazon ECR repository name
+  ECS_SERVICE: crm-web3-service-staging-service # set this to your Amazon ECS service name
   ECS_CLUSTER: crm-backend-staging-cluster # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: .aws/staging-taskdef.json
   CONTAINER_NAME: crm-web3-svc-staging
@@ -48,3 +48,40 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+  deploy_staging:
+    name: Deploy Staging
+    runs-on: ubuntu-latest
+    environment: staging
+
+    # Only deploys the code if the build was succesfull and if it's a merge
+    # UNCOMMENT THIS BEFORE MERGE TO MAIN AND DEV
+    # if: ${{ github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@aaf69d68aa3fb14c1d5a6be9ac61fe15b48453a2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
