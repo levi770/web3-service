@@ -10,7 +10,7 @@ env:
   ECS_SERVICE: crm-web3-service-staging-service # set this to your Amazon ECS service name
   ECS_CLUSTER: crm-backend-staging-cluster # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: .aws/staging-taskdef.json
-  CONTAINER_NAME: crm-web3-svc-staging
+  CONTAINER_NAME: crm-web3-service
 
 jobs:
   run-tests:
@@ -85,3 +85,37 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+          environment-variables: |
+            NODE_ENV=production
+            POSTGRES_URI=${{secrets.POSTGRES_URI}}
+            REDIS_HOST=${{secrets.REDIS_HOST}}
+            REDIS_PORT=${{secrets.REDIS_PORT}}
+            REDIS_URI=${{secrets.REDIS_URI}}
+            AWS_REGION=${{secrets.AWS_REGION}}
+            AWS_ACCESS_KEY=${{secrets.AWS_ACCESS_KEY}}
+            AWS_SECRET_KEY=${{secrets.AWS_SECRET_KEY}}
+            AWS_S3_BUCKET_NAME=${{secrets.AWS_S3_BUCKET_NAME}}
+            ETHEREUM_HOST=${{secrets.ETHEREUM_HOST}}
+            POLYGON_HOST=${{secrets.POLYGON_HOST}}
+            LOCAL_HOST=${{secrets.LOCAL_HOST}}
+            PINATA_KEY=${{secrets.PINATA_KEY}}
+            PINATA_SECRET=${{secrets.PINATA_SECRET}}
+            PINATA_GATEWAY=${{secrets.PINATA_GATEWAY}}
+            PINATA_URL=${{secrets.PINATA_URL}}
+            DEFAULT_PASSWORD=${{secrets.DEFAULT_PASSWORD}}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
