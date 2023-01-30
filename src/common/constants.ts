@@ -3,6 +3,10 @@ export const CRON_QUEUE = 'cron';
 export const TX_WORKER = 'tx';
 export const WEB3_CONTROLLER = 'Web3Controller';
 export const DB_CONTROLLER = 'DbController';
+export const SQS_CONTROLLER = 'SqsController';
+export const WEB3_SERVICE = 'Web3Service';
+export const SQS_CONSUMER_NAME = 'Web3Service.fifo';
+export const SQS_PRODUCER_NAME = 'Web3Service2.fifo';
 
 export enum ExceptionTypes {
   RPC = 'rpc',

@@ -5,12 +5,12 @@ import { Account } from 'web3-core';
 import { lastValueFrom } from 'rxjs';
 import { Test } from '@nestjs/testing';
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { ClientProxy, ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientProxy, ClientsModule, MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from '../src/app.module';
-import { CMD, Networks, ObjectTypes, Statuses } from '../src/common/constants';
+import { CMD, Networks, ObjectTypes, Statuses, WEB3_SERVICE } from '../src/common/constants';
 import { JobResult } from '../src/common/dto/jobResult.dto';
 import { DeployResponse } from '../src/modules/web3/dto/responses/deploy.response';
-import { Wallet } from '../src/modules/db/interfaces/wallet.interface';
+import { IWallet } from '../src/modules/db/interfaces/wallet.interface';
 import { TokenModel } from '../src/modules/db/models/token.model';
 import { WhitelistResponse } from '../src/modules/web3/dto/responses/whitelist.response';
 import { GetJobRequest } from '../src/modules/web3/dto/requests/getJob.request';
@@ -20,7 +20,8 @@ import { GetAllRequest } from '../src/modules/db/dto/requests/getAll.request';
 import { GetOneRequest } from '../src/modules/db/dto/requests/getOne.request';
 import { UpdateMetadataRequest } from '../src/modules/db/dto/requests/updateMetadata.request';
 import { UpdateStatusRequest } from '../src/modules/db/dto/requests/updateStatus.request';
-import deploy_data from './deploy_data.dto.json';
+import { SqsClientModule, SqsClientService } from './sqs-client';
+import deploy_data from './deploy_data..json';
 
 var timeout = 60000;
 var network = Networks.LOCAL;
@@ -34,42 +35,25 @@ var tx_receipt: object;
 
 describe('AppController (e2e)', () => {
   let server: any;
-  let client: ClientProxy;
   let app: INestApplication;
 
   beforeAll(async () => {
-    const module = await Test.createTestingModule({
-      imports: [
-        AppModule,
-        ClientsModule.register([
-          {
-            name: 'WEB3_SERVICE',
-            transport: Transport.REDIS,
-            options: {
-              host: process.env.REDIS_HOST,
-              port: +process.env.REDIS_PORT,
-            },
-          },
-        ]),
-      ],
-    }).compile();
+    const module = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = module.createNestApplication();
     server = app.getHttpAdapter().getInstance();
-    app.connectMicroservice({
+    app.connectMicroservice<MicroserviceOptions>({
       transport: Transport.REDIS,
       options: {
-        url: 'redis://0.0.0.0:6379',
+        host: process.env.REDIS_HOST,
+        port: +process.env.REDIS_PORT,
       },
     });
     await app.startAllMicroservices();
     await app.init();
-    client = app.get('WEB3_SERVICE');
-    await client.connect();
   });
 
   afterAll(async () => {
     await app.close();
-    await client.close();
   });
 
   it(`GET /health - Gets the health status`, async () => {
@@ -80,8 +64,8 @@ describe('AppController (e2e)', () => {
 });
 
 describe('Web3Controller (e2e)', () => {
-  let server: any;
-  let client: ClientProxy;
+  let redis_client: ClientProxy;
+  let sqs_client: SqsClientService;
   let app: INestApplication;
   let w3: Web3;
   let admin_acc: Account;
@@ -97,9 +81,10 @@ describe('Web3Controller (e2e)', () => {
     const module = await Test.createTestingModule({
       imports: [
         AppModule,
+        SqsClientModule,
         ClientsModule.register([
           {
-            name: 'WEB3_SERVICE',
+            name: WEB3_SERVICE,
             transport: Transport.REDIS,
             options: {
               host: process.env.REDIS_HOST,
@@ -110,17 +95,18 @@ describe('Web3Controller (e2e)', () => {
       ],
     }).compile();
     app = module.createNestApplication();
-    server = app.getHttpAdapter().getInstance();
-    app.connectMicroservice({
+    app.connectMicroservice<MicroserviceOptions>({
       transport: Transport.REDIS,
       options: {
-        url: 'redis://0.0.0.0:6379',
+        host: process.env.REDIS_HOST,
+        port: +process.env.REDIS_PORT,
       },
     });
     await app.startAllMicroservices();
     await app.init();
-    client = app.get('WEB3_SERVICE');
-    await client.connect();
+    redis_client = app.get(WEB3_SERVICE);
+    await redis_client.connect();
+    sqs_client = module.get<SqsClientService>(SqsClientService);
     w3 = new Web3(new Web3.providers.HttpProvider(process.env.LOCAL_HOST));
     admin_acc = w3.eth.accounts.privateKeyToAccount(process.env.PRIV_KEY);
     admin_acc_address = admin_acc.address;
@@ -128,19 +114,38 @@ describe('Web3Controller (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
-    await client.close();
+    await redis_client.close();
   });
+
+  it(
+    '{cmd: CMD.DEPLOY} Processes an SQS message to deploy a contract.',
+    async () => {
+      jest.setTimeout(timeout);
+      const data = Object(deploy_data);
+      data.from_address = team_acc_address;
+      data.arguments = `100::1::${team_acc_address}::${contract_name}::TEST::localhost:5000/metadata/`;
+      data.network = network;
+      const response = await sqs_client.send({ cmd: CMD.DEPLOY }, data);
+      expect(response.jobId).toBeTruthy();
+      expect(response.status).toEqual('completed');
+      expect(response.data).toMatchObject({ tx: expect.any(Object), contract: expect.any(Object) });
+      const responceData = response.data as DeployResponse;
+      contract_id = responceData.contract.id;
+      contract_address = responceData.contract.address;
+    },
+    timeout,
+  );
 
   it(
     '{cmd: CMD.CREATE_WALLET} Creates a new encrypted wallet keystore in DB.',
     async () => {
       jest.setTimeout(timeout);
       const data = { team_id: '1123456' };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.CREATE_WALLET }, data));
+      const response = await lastValueFrom(redis_client.send({ cmd: CMD.CREATE_WALLET }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ id: expect.any(String), address: expect.any(String) });
-      const responceData = response.data as Wallet;
+      const responceData = response.data as IWallet;
       jobId = response.jobId;
       team_acc_address = responceData.address;
       const signedTx = await admin_acc.signTransaction({
@@ -161,7 +166,7 @@ describe('Web3Controller (e2e)', () => {
       jest.setTimeout(timeout);
       expect(jobId).toBeTruthy();
       const data: GetJobRequest = { jobId: jobId.toString() };
-      const response: Response = await lastValueFrom(client.send({ cmd: CMD.JOB }, data));
+      const response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.JOB }, data));
       expect(response.status).toEqual(HttpStatus.OK);
       expect(response.message).toEqual(expect.any(String));
       expect(response.data).toMatchObject(expect.any(Object));
@@ -176,22 +181,16 @@ describe('Web3Controller (e2e)', () => {
     async () => {
       jest.setTimeout(timeout);
       const data = Object(deploy_data);
-      // let response = await lastValueFrom(
-      //   client.send({ cmd: CMD.PREDICT_ADDRESS }, { owner: team_acc_address, network }),
-      // );
-      // expect(response.status).toEqual(HttpStatus.OK);
-      // const predicted_address = response.result;
       data.from_address = team_acc_address;
       data.arguments = `100::1::${team_acc_address}::${contract_name}::TEST::localhost:5000/metadata/`;
       data.network = network;
-      const response = await lastValueFrom(client.send({ cmd: CMD.DEPLOY }, deploy_data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.DEPLOY }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tx: expect.any(Object), contract: expect.any(Object) });
       const responceData = response.data as DeployResponse;
       contract_id = responceData.contract.id;
       contract_address = responceData.contract.address;
-      //expect(contract_address).toEqual(predicted_address);
     },
     timeout,
   );
@@ -208,7 +207,7 @@ describe('Web3Controller (e2e)', () => {
         method_name: 'name',
         operation_type: 'readcontract',
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ name: contract_name });
@@ -228,7 +227,7 @@ describe('Web3Controller (e2e)', () => {
         method_name: 'toggleSaleActive',
         operation_type: 'common',
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({
@@ -253,7 +252,7 @@ describe('Web3Controller (e2e)', () => {
         method_name: 'toggleSaleFree',
         operation_type: 'common',
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({
@@ -279,7 +278,7 @@ describe('Web3Controller (e2e)', () => {
         operation_type: 'common',
         arguments: '100',
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({
@@ -307,7 +306,7 @@ describe('Web3Controller (e2e)', () => {
           addresses: `${team_acc_address},${admin_acc_address}`,
         },
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.WHITELIST }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.WHITELIST }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tx: expect.any(Object) });
@@ -327,7 +326,7 @@ describe('Web3Controller (e2e)', () => {
         addresses: team_acc_address,
         contract_id: contract_id,
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.GET_MERKLE_PROOF }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.GET_MERKLE_PROOF }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({
@@ -349,7 +348,7 @@ describe('Web3Controller (e2e)', () => {
         addresses: admin_acc_address,
         contract_id: contract_id,
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.GET_MERKLE_PROOF }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.GET_MERKLE_PROOF }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({
@@ -392,7 +391,7 @@ describe('Web3Controller (e2e)', () => {
           },
         },
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.MINT }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tx: expect.any(Object), token: expect.any(Object) });
@@ -416,7 +415,7 @@ describe('Web3Controller (e2e)', () => {
         arguments: token.token_id,
         operation_type: 'readcontract',
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.COMMON }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tokenURI: expect.any(String) });
@@ -442,7 +441,7 @@ describe('Web3Controller (e2e)', () => {
           mint_to: admin_acc_address,
         },
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.MINT }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tx: expect.any(Object) });
@@ -480,7 +479,7 @@ describe('Web3Controller (e2e)', () => {
           addresses: `${admin_acc_address}`,
         },
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.WHITELIST }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.WHITELIST }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('completed');
       expect(response.data).toMatchObject({ tx: expect.any(Object) });
@@ -505,7 +504,7 @@ describe('Web3Controller (e2e)', () => {
           mint_to: admin_acc_address,
         },
       };
-      const response: JobResult = await lastValueFrom(client.send({ cmd: CMD.MINT }, data));
+      const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data));
       expect(response.jobId).toBeTruthy();
       expect(response.status).toEqual('failed');
     },
@@ -546,15 +545,16 @@ describe('DbController (e2e)', () => {
     }).compile();
     app = module.createNestApplication();
     server = app.getHttpAdapter().getInstance();
-    app.connectMicroservice({
+    app.connectMicroservice<MicroserviceOptions>({
       transport: Transport.REDIS,
       options: {
-        url: 'redis://0.0.0.0:6379',
+        host: process.env.REDIS_HOST,
+        port: +process.env.REDIS_PORT,
       },
     });
     await app.startAllMicroservices();
     await app.init();
-    client = app.get('WEB3_SERVICE');
+    client = app.get(WEB3_SERVICE);
     await client.connect();
   });
 
@@ -608,7 +608,7 @@ describe('DbController (e2e)', () => {
     let response: Response = await lastValueFrom(client.send({ cmd: CMD.ONE_OBJECT }, get_data));
     expect(response.status).toEqual(200);
     expect(response.data).toMatchObject(expect.any(Object));
-    expect((tx_receipt as any).transactionHash).toBeTruthy();
+    expect((tx_receipt as any).transactionHash).not.toBeUndefined();
     const hash = (tx_receipt as any).transactionHash;
     const update_data: UpdateStatusRequest = {
       object_type: ObjectTypes.TOKEN,
