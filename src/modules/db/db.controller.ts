@@ -2,7 +2,6 @@ import { Controller, Get, HttpStatus, Logger, Param } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CMD, DB_CONTROLLER, ExceptionTypes, Statuses } from '../../common/constants';
 import { Response } from '../../common/dto/response.dto';
-import { MetaData } from '../web3/interfaces/metaData.interface';
 import { DbService } from './db.service';
 import { GetAllRequest } from './dto/requests/getAll.request';
 import { GetOneRequest } from './dto/requests/getOne.request';

@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --detectOpenHandles"
   },
   "dependencies": {
+    "@nestjs-packages/sqs": "^1.0.2",
     "@nestjs/axios": "^1.0.0",
     "@nestjs/bull": "^0.6.1",
     "@nestjs/common": "^9.2.0",
@@ -38,7 +39,6 @@
     "cli-color": "^2.0.3",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
-    "eth-create2": "^1.0.1",
     "ethereumjs-util": "^7.1.5",
     "ioredis": "^5.2.4",
     "ipfs-http-client": "^50.0.0",
