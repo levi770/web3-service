@@ -1,5 +1,3 @@
-import { IMetaData } from '../../../web3/interfaces/metaData.interface';
-import { MetadataTypes, Statuses } from '../../../../common/constants';
 import { IsString } from 'class-validator';
 
 /**

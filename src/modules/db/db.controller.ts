@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus, Logger, Param } from '@nestjs/common';
+import { Controller, HttpStatus, Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CMD, DB_CONTROLLER, ExceptionTypes, Statuses } from '../../common/constants';
 import { Response } from '../../common/dto/response.dto';
@@ -7,7 +7,6 @@ import { GetAllRequest } from './dto/requests/getAll.request';
 import { GetOneRequest } from './dto/requests/getOne.request';
 import { UpdateMetadataRequest } from './dto/requests/updateMetadata.request';
 import { UpdateStatusRequest } from './dto/requests/updateStatus.request';
-import { GetMetadataRequest } from './dto/requests/getMetadata.request';
 import { ValidationPipe } from '../../common/pipes/validation.pipe';
 
 /**
