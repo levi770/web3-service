@@ -45,6 +45,8 @@ export enum CMD {
   CREATE_WALLET = 'createwallet',
   GET_METADATA = 'getmetadata',
   PREDICT_ADDRESS = 'predictaddress',
+  GET_ADMIN = 'getadmin',
+  SEND_ADMIN = 'sendadmin',
 }
 
 export enum ProcessTypes {

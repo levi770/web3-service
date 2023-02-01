@@ -23,8 +23,9 @@ import { WhitelistModel } from '../db/models/whitelist.model';
 import { ProcessData } from '../../common/types';
 import { DbService } from '../db/db.service';
 import { TransactionModel } from '../db/models/transaction.model';
-import * as ethUtils from 'ethereumjs-util';
 import { IWallet } from './interfaces/wallet.interface';
+import ganache from 'ganache';
+import { CreateWalletRequest } from './dto/requests/createWallet.request';
 
 /**
  * A service class for interacting with Web3.
@@ -42,7 +43,11 @@ export class Web3Service {
   ) {
     this.ethereum = new Web3(new Web3.providers.HttpProvider(configService.get('ETHEREUM_HOST')));
     this.polygon = new Web3(new Web3.providers.HttpProvider(configService.get('POLYGON_HOST')));
-    this.local = new Web3(new Web3.providers.HttpProvider(configService.get('LOCAL_HOST')));
+    this.local = new Web3(
+      ganache.provider({
+        wallet: { accounts: [{ secretKey: configService.get('PRIV_KEY'), balance: U.toHex(U.toWei('1000')) }] },
+      }),
+    );
   }
 
   /**
@@ -62,7 +67,7 @@ export class Web3Service {
   /**
    * Processes a job and returns an Observable that emits job results.
    */
-  async processJob(data: ProcessData, processType: ProcessTypes): Promise<Observable<JobResult>> {
+  async process(data: ProcessData, processType: ProcessTypes): Promise<Observable<JobResult>> {
     try {
       const jobId = uuidv4();
       const job$: Observable<JobResult> = new Observable((observer) => {
@@ -277,19 +282,42 @@ export class Web3Service {
   /**
    * Creates a new Ethereum account.
    */
-  async newWallet(): Promise<IWallet> {
+  async newWallet(data: CreateWalletRequest): Promise<IWallet> {
     try {
       const password = await this.configService.get('DEFAULT_PASSWORD');
+      if (data.test) {
+        const account = this.local.eth.accounts.wallet.create(1, password);
+        const accounts = await this.local.eth.getAccounts();
+        const tx_payload = {
+          from: accounts[0],
+          to: account[0].address,
+          value: U.toWei('1'),
+          gas: await this.local.eth.estimateGas({
+            from: accounts[0],
+            to: account[0].address,
+            value: U.toWei('1'),
+          }),
+        };
+        await this.local.eth.sendTransaction(tx_payload);
+        return { address: account[0].address, keystore: account[0].encrypt(password) };
+      }
       const account = this.ethereum.eth.accounts.create();
-      const address = account.address;
-      const keystore = account.encrypt(password);
-      return { address, keystore };
+      return { address: account.address, keystore: account.encrypt(password) };
     } catch (error) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         message: error.message,
       });
     }
+  }
+
+  async getAdmin() {
+    const accounts = await this.local.eth.getAccounts();
+    return accounts[0];
+  }
+
+  async sendAdmin(payload: ITxOptions) {
+    return await this.local.eth.sendTransaction(payload);
   }
 
   getWeb3(network: Networks): Web3 {
@@ -302,10 +330,4 @@ export class Web3Service {
         return this.local;
     }
   }
-
-  // async predictContractAddress(data: PredictDto) {
-  //   const w3 = this.getWeb3(data.network);
-  //   var nonce = await w3.eth.getTransactionCount(data.owner);
-  //   return ethUtils.bufferToHex(ethUtils.generateAddress(Buffer.from(data.owner), Buffer.from(nonce.toString())));
-  // }
 }

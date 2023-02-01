@@ -10,7 +10,6 @@ import { IpfsManagerService } from '../ipfs/ipfs.service';
 import { IMetaData } from './interfaces/metaData.interface';
 import { MetadataModel } from '../db/models/metadata.model';
 import { IMintData } from './interfaces/mintData.interface';
-import { IToken } from '../db/interfaces/token.interface';
 import { Process, Processor } from '@nestjs/bull';
 import { RpcException } from '@nestjs/microservices';
 import { TokenModel } from '../db/models/token.model';
@@ -18,15 +17,7 @@ import { ITxPayload } from './interfaces/txPayload.interface';
 import { Web3Service } from './web3.service';
 import { WhitelistRequest } from './dto/requests/whitelist.request';
 import { WhitelistModel } from '../db/models/whitelist.model';
-import {
-  FileTypes,
-  MetadataTypes,
-  Networks,
-  ObjectTypes,
-  OperationTypes,
-  ProcessTypes,
-  Statuses,
-} from '../../common/constants';
+import { FileTypes, MetadataTypes, ObjectTypes, OperationTypes, ProcessTypes, Statuses } from '../../common/constants';
 import { DbService } from '../db/db.service';
 import { WalletModel } from '../db/models/wallet.model';
 import { ITxResult } from './interfaces/txResult.interface';
@@ -58,7 +49,7 @@ export class Web3Processor {
   async createWallet(job: Job): Promise<IWallet> {
     try {
       const data: CreateWalletRequest = job.data;
-      const wallet = await this.web3Service.newWallet();
+      const wallet = await this.web3Service.newWallet(data);
       const walletPayload = { team_id: data.team_id, ...wallet };
       const walletObj = (await this.dbManager.create([walletPayload], ObjectTypes.WALLET)) as WalletModel[];
       return { id: walletObj[0].id, address: wallet.address };
