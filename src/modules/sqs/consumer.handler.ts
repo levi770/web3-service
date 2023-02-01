@@ -14,10 +14,10 @@ import { Web3Service } from '../web3/web3.service';
 import { SQS } from 'aws-sdk';
 
 @SqsProcess(SQS_CONSUMER_NAME)
-export class SqsHandler {
+export class SqsConsumerHandler {
   private logger: Logger;
 
-  constructor(private web3Service: Web3Service, private sqsService: SqsService) {
+  constructor(private w3s: Web3Service, private sqsService: SqsService) {
     this.logger = new Logger('SqsHandler');
   }
 
@@ -28,22 +28,22 @@ export class SqsHandler {
     const { pattern, data } = JSON.parse(message.Body);
     switch (pattern.cmd) {
       case CMD.DEPLOY:
-        result = await lastValueFrom(await this.web3Service.processJob(data, ProcessTypes.DEPLOY));
+        result = await lastValueFrom(await this.w3s.process(data, ProcessTypes.DEPLOY));
         break;
       case CMD.MINT:
-        result = await lastValueFrom(await this.web3Service.processJob(data, ProcessTypes.MINT));
+        result = await lastValueFrom(await this.w3s.process(data, ProcessTypes.MINT));
         break;
       case CMD.WHITELIST:
-        result = await lastValueFrom(await this.web3Service.processJob(data, ProcessTypes.WHITELIST));
+        result = await lastValueFrom(await this.w3s.process(data, ProcessTypes.WHITELIST));
         break;
       case CMD.COMMON:
-        result = await lastValueFrom(await this.web3Service.processJob(data, ProcessTypes.COMMON));
+        result = await lastValueFrom(await this.w3s.process(data, ProcessTypes.COMMON));
         break;
       default:
         result = new Response(HttpStatus.BAD_REQUEST, 'Invalid pattern', null);
         break;
     }
-    const r = await this.sqsService.send<JobResult | Response>(SQS_PRODUCER_NAME, {
+    await this.sqsService.send<JobResult | Response>(SQS_PRODUCER_NAME, {
       id: message.MessageId,
       body: result,
       groupId: 'groupId',
@@ -53,6 +53,6 @@ export class SqsHandler {
     return;
   }
 
-  @SqsConsumerEventHandler(SqsConsumerEvent.PROCESSING_ERROR)
-  public onProcessingError(error: Error, message: SQS.Message) {}
+  // @SqsConsumerEventHandler(SqsConsumerEvent.PROCESSING_ERROR)
+  // public onProcessingError(error: Error, message: SQS.Message) {}
 }
