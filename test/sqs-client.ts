@@ -9,20 +9,25 @@ import {
 } from '@nestjs-packages/sqs';
 import { Injectable, Module } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { SQS_CONSUMER_NAME, SQS_PRODUCER_NAME } from '../src/common/constants';
+
+const SQS_CONSUMER_NAME = process.env.SQS_CONSUMER_NAME;
+const SQS_PRODUCER_NAME = process.env.SQS_PRODUCER_NAME;
 
 @Injectable()
 export class SqsClientService {
   constructor(private sqsService: SqsService) {}
   async send(pattern: any, data: any): Promise<any> {
-    const body = JSON.stringify({ pattern, data });
-    const id = uuidv4();
+    const body = {
+      requestId: uuidv4(),
+      command: pattern.cmd,
+      operationName: 'deployContract',
+      walletAddress: data.from_address,
+      data,
+    };
     return await this.sqsService.send(SQS_CONSUMER_NAME, {
-      id,
+      id: uuidv4(),
+      groupId: uuidv4(),
       body: body,
-      groupId: 'groupId',
-      deduplicationId: id,
-      delaySeconds: 0,
     });
   }
   async receive<T = any>(data: T): Promise<T> {

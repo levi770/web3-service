@@ -1,6 +1,7 @@
 import * as U from 'web3-utils';
 import Web3 from 'web3';
 import MerkleTree from 'merkletreejs';
+import ganache from 'ganache';
 import { TransactionReceipt } from 'web3-core';
 import { ConfigService } from '@nestjs/config';
 import { ContractModel } from '../db/models/contract.model';
@@ -24,7 +25,6 @@ import { ProcessData } from '../../common/types';
 import { DbService } from '../db/db.service';
 import { TransactionModel } from '../db/models/transaction.model';
 import { IWallet } from './interfaces/wallet.interface';
-import ganache from 'ganache';
 import { CreateWalletRequest } from './dto/requests/createWallet.request';
 
 /**
@@ -46,6 +46,7 @@ export class Web3Service {
     this.local = new Web3(
       ganache.provider({
         wallet: { accounts: [{ secretKey: configService.get('PRIV_KEY'), balance: U.toHex(U.toWei('1000')) }] },
+        logging: { quiet: true },
       }),
     );
   }

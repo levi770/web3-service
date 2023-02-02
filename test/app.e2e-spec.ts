@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { v4 as uuidv4 } from 'uuid';
 import { lastValueFrom } from 'rxjs';
 import { Test } from '@nestjs/testing';
 import { HttpStatus, INestApplication } from '@nestjs/common';
@@ -24,9 +25,10 @@ const timeout = 60000;
 const network = Networks.LOCAL;
 let admin_acc_address: string;
 let team_acc_address: string;
-let contract_address: string;
+let contract_slug: string;
 let contract_id: string;
 let token_uri_id: number;
+let token_uri: string;
 let token_id: string;
 let tx_receipt: object;
 
@@ -108,6 +110,9 @@ describe('App (e2e)', () => {
         jest.setTimeout(timeout);
         const data = { team_id: '1123456', test: true };
         const response = await lastValueFrom(redis_client.send({ cmd: CMD.CREATE_WALLET }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ id: expect.any(String), address: expect.any(String) });
@@ -140,15 +145,19 @@ describe('App (e2e)', () => {
         jest.setTimeout(timeout);
         const data = Object(deploy_data);
         data.from_address = team_acc_address;
-        data.arguments = `100::1::${team_acc_address}::${contract_name}::TEST::localhost:5000/metadata/`;
+        data.slug = uuidv4();
+        data.arguments = `100::1::${team_acc_address}::${contract_name}::TEST::/metadata/${data.slug}/`;
         data.network = network;
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.DEPLOY }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object), contract: expect.any(Object) });
         const responceData = response.data as DeployResponse;
         contract_id = responceData.contract.id;
-        contract_address = responceData.contract.address;
+        contract_slug = responceData.contract.slug;
       },
       timeout,
     );
@@ -166,6 +175,9 @@ describe('App (e2e)', () => {
           operation_type: 'readcontract',
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ name: contract_name });
@@ -186,6 +198,9 @@ describe('App (e2e)', () => {
           operation_type: 'common',
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({
@@ -211,6 +226,9 @@ describe('App (e2e)', () => {
           operation_type: 'common',
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({
@@ -237,6 +255,9 @@ describe('App (e2e)', () => {
           arguments: '100',
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({
@@ -265,6 +286,9 @@ describe('App (e2e)', () => {
           },
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.WHITELIST }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object) });
@@ -285,6 +309,9 @@ describe('App (e2e)', () => {
           contract_id: contract_id,
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.GET_MERKLE_PROOF }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({
@@ -307,6 +334,9 @@ describe('App (e2e)', () => {
           contract_id: contract_id,
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.GET_MERKLE_PROOF }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({
@@ -350,6 +380,9 @@ describe('App (e2e)', () => {
           },
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object), token: expect.any(Object) });
@@ -374,10 +407,14 @@ describe('App (e2e)', () => {
           operation_type: 'readcontract',
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tokenURI: expect.any(String) });
         token_uri_id = token.token_id;
+        token_uri = (response.data as any).tokenURI;
       },
       timeout,
     );
@@ -400,6 +437,9 @@ describe('App (e2e)', () => {
           },
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object) });
@@ -437,6 +477,9 @@ describe('App (e2e)', () => {
           },
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.WHITELIST }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object) });
@@ -532,14 +575,14 @@ describe('App (e2e)', () => {
     it(`{ cmd: CMD.UPDATE_METADATA } Update token metadata`, async () => {
       expect(token_uri_id).not.toBeUndefined();
       const data: UpdateMetadataRequest = {
-        address: contract_address,
+        slug: contract_slug,
         token_id: token_uri_id.toString(),
         meta_data: metadata,
       };
       const response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
       expect(response.status).toEqual(200);
       expect(response.data).toMatchObject({
-        address: contract_address,
+        slug: contract_slug,
         contract_id: null,
         createdAt: expect.any(String),
         id: expect.any(String),
@@ -561,8 +604,8 @@ describe('App (e2e)', () => {
       });
     });
 
-    it(`GET /metadata/:address/:id - Gets metadata by address and token_id`, async () => {
-      const response = await request(server).get(`/metadata/${contract_address}/${token_uri_id}`).send();
+    it(`GET /metadata/:slug/:id - Gets metadata by slug and token_id`, async () => {
+      const response = await request(server).get(`${token_uri}`).send();
       expect(response.status).toEqual(200);
       expect(response.body.attributes).toEqual(metadata.attributes);
       expect(response.body.description).toEqual(metadata.description);
