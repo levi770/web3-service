@@ -26,6 +26,7 @@ There are three types of job results from the web3 service:
 11. [Update token metadata](#update-token-metadata)
 12. [REST API endpoint to get token metadata from DB](#rest-api-endpoint-to-get-token-metadata-from-db)
 13. [REST API endpoint to get server status](#rest-api-endpoint-to-get-server-status)
+14. [Process any blockchain call using AWS SQS queue](#process-any-blockchain-call-with-aws-sqs-queue)
 
 ## Create a new encrypted wallet keystore in DB
 
@@ -151,39 +152,40 @@ Related DTOs:
 
 Message pattern:
 
-````json
+```json
 {
   "cmd": "minttoken"
 }
+```
 
 Input example:
 
 ```json
 {
-		"execute": true,
-		"network": "80001",
-		"from_address": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18",
-		"contract_id": "8a10a295-c924-4689-9641-99084489b3f2",
-		"method_name": "buyFree",
-		"arguments": "1::[\"0x6d54fd1de301b631205ce974fcf...\"]",
-		"operation_type": "mint",
-		"operation_options": {
-			"mint_to": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18",
-			"asset_url": "a6b1354c26c6.original.Dubai.jpg",
-			"asset_type": "image",
-			"meta_data": {
-				"name": "meta_data_name",
-				"description": "meta_data_description",
-				"attributes": [
-					{
-						"trait_type": "attributes_trait_type",
-						"value": "attributes_trait_value"
-					}
-				]
-			}
-		}
-	}
-````
+  "execute": true,
+  "network": "80001",
+  "from_address": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18",
+  "contract_id": "8a10a295-c924-4689-9641-99084489b3f2",
+  "method_name": "buyFree",
+  "arguments": "1::[\"0x6d54fd1de301b631205ce974fcf...\"]",
+  "operation_type": "mint",
+  "operation_options": {
+    "mint_to": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18",
+    "asset_url": "a6b1354c26c6.original.Dubai.jpg",
+    "asset_type": "image",
+    "meta_data": {
+      "name": "meta_data_name",
+      "description": "meta_data_description",
+      "attributes": [
+        {
+          "trait_type": "attributes_trait_type",
+          "value": "attributes_trait_value"
+        }
+      ]
+    }
+  }
+}
+```
 
 - If `"execute:true"`, the transaction will be processed on the blockchain. If `"execute:false"`, the service will only generate transaction payload data for execution on the client side.
 - `"network"` specifies the Ethereum or Polygon chain ID.
@@ -786,8 +788,9 @@ Related DTOs:
 
 [Go to top](#table-of-contents)
 
-## Process any blockchain call with  AWS SQS queue
-For processing any blockchain call using SQS queue, you need to create two FIFO queues in AWS SQS and add the queue names to the `.env` file, one queue for consuming messages and second for returning response. 
+## Process any blockchain call with AWS SQS queue
+
+For processing any blockchain call using SQS queue, you need to create two FIFO queues in AWS SQS and add the queue names to the `.env` file, one queue for consuming messages and second for returning response.
 
 execute blockchain opertation using SQS queue
 
@@ -797,29 +800,26 @@ example message:
 
 ```json
 {
-    "requestId": "ace6ab2c-362e-4cc6-a4c1-b9169329edd7",
-    "command": "deploycontract",
-    "operationName": "deployContract",
-    "walletAddress": "0x9eecf7ce9f57107653bf42e3014b0a7d2b68fbba",
-    "data": {
-        "execute": true,
-        "network": 80001,
-        "abi": [],
-        "bytecode": "TEST",
-        "arguments": "1::2",
-        "from_address": "0x9eecf7ce9f57107653bf42e3014b0a7d2b68fbba",
-        "slug": "test",
-        "asset_type": "image",
-        "asset_url": "assets/image.png",
-        "meta_data": {
-            "name": "AwsomeCollection",
-            "description": "Awsome Collection Description"
-        }
+  "requestId": "ace6ab2c-362e-4cc6-a4c1-b9169329edd7",
+  "command": "deploycontract",
+  "operationName": "deployContract",
+  "walletAddress": "0x9eecf7ce9f57107653bf42e3014b0a7d2b68fbba",
+  "data": {
+    "execute": true,
+    "network": 80001,
+    "abi": [],
+    "bytecode": "TEST",
+    "arguments": "1::2",
+    "from_address": "0x9eecf7ce9f57107653bf42e3014b0a7d2b68fbba",
+    "slug": "test",
+    "asset_type": "image",
+    "asset_url": "assets/image.png",
+    "meta_data": {
+      "name": "AwsomeCollection",
+      "description": "Awsome Collection Description"
     }
+  }
 }
 ```
 
 the resposnce will be sent to SQS response queue.
-
-
-
