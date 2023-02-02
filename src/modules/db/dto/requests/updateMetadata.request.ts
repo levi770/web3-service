@@ -6,7 +6,7 @@ import { IMetaData } from '../../../web3/interfaces/metaData.interface';
  */
 export class UpdateMetadataRequest {
   @IsString()
-  address: string;
+  slug: string;
 
   @IsString()
   token_id: string;

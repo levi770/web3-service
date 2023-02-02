@@ -225,7 +225,7 @@ export class DbService {
   async getMetadata(params: GetMetadataRequest): Promise<IMetaData> {
     try {
       const metadata = await this.getOneObject(ObjectTypes.METADATA, {
-        where: { address: params.address, token_id: params.id },
+        where: { token_id: params.id, slug: params.slug },
       });
       if (!metadata) {
         throw new RpcException({
@@ -248,7 +248,7 @@ export class DbService {
   async updateMetadata(data: UpdateMetadataRequest): Promise<MetadataModel> {
     try {
       const metadata = (await this.getOneObject(ObjectTypes.METADATA, {
-        where: { address: data.address, token_id: data.token_id },
+        where: { token_id: data.token_id, slug: data.slug },
       })) as MetadataModel;
 
       if (!metadata) {
@@ -268,7 +268,7 @@ export class DbService {
 
       const new_data = {
         status: Statuses.CREATED,
-        address: metadata.address,
+        slug: metadata.slug,
         type: MetadataTypes.SPECIFIED,
         meta_data: metadata.meta_data,
         token_id: data.token_id,

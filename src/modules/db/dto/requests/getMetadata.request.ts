@@ -5,7 +5,7 @@ import { IsString } from 'class-validator';
  */
 export class GetMetadataRequest {
   @IsString()
-  address: string;
+  slug: string;
 
   @IsString()
   id: string;

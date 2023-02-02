@@ -25,6 +25,9 @@ export class DeployRequest {
   @IsString()
   from_address: string;
 
+  @IsString()
+  slug: string;
+
   @IsOptional()
   asset_url?: string;
 

@@ -22,7 +22,7 @@ export class MetadataModel extends Model {
   type: string;
 
   @Column({ type: DataType.STRING })
-  address: string;
+  slug: string;
 
   @Column({ type: DataType.INTEGER })
   token_id: number;

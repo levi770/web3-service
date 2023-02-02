@@ -24,6 +24,9 @@ export class ContractModel extends Model {
   @Column({ type: DataType.STRING })
   address: string;
 
+  @Column({ type: DataType.STRING })
+  slug: string;
+
   @Column({ type: DataType.JSON })
   deploy_data: DeployRequest;
 

@@ -29,7 +29,7 @@ export class AppController {
   /**
    * Gets the metadata of token.
    */
-  @Get('metadata/:address/:id')
+  @Get('metadata/:slug/:id')
   @UsePipes(new ValidationPipe(ExceptionTypes.RPC))
   async getMetaData(@Param() params: GetMetadataRequest): Promise<IMetaData> {
     this.logger.log(`Processing GET request 'metadata' with id: ${JSON.stringify(params)}`);

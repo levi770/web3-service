@@ -70,7 +70,7 @@ export class Web3Processor {
       const deployData: DeployRequest = job.data;
       const { w3, wallet, keystore } = await this.getAccount(deployData);
       const contractInstance = new w3.eth.Contract(deployData.abi as U.AbiItem[]);
-      const contractPayload = { status: Statuses.CREATED, deploy_data: deployData };
+      const contractPayload = { status: Statuses.CREATED, deploy_data: deployData, slug: deployData.slug };
       const contractObj = (await this.dbManager.create([contractPayload], ObjectTypes.CONTRACT)) as ContractModel[];
 
       const txData = contractInstance.deploy({
@@ -98,6 +98,7 @@ export class Web3Processor {
           status: Statuses.CREATED,
           type: MetadataTypes.COMMON,
           address: tx.txObj.tx_receipt.contractAddress,
+          slug: deployData.slug,
           meta_data,
         };
         const metadataObj = (await this.dbManager.create([metadataPayload], ObjectTypes.METADATA)) as MetadataModel[];
@@ -152,7 +153,7 @@ export class Web3Processor {
         const metadataPayload = {
           status: Statuses.CREATED,
           type: MetadataTypes.SPECIFIED,
-          address: contractObj.address,
+          slug: contractObj.slug,
           meta_data,
         };
         metadataObj = (await this.dbManager.create([metadataPayload], ObjectTypes.METADATA)) as MetadataModel[];
