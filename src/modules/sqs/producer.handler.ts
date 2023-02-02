@@ -1,5 +1,6 @@
 import { SqsProcess } from '@nestjs-packages/sqs';
-import { SQS_PRODUCER_NAME } from '../../common/constants';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
-@SqsProcess(SQS_PRODUCER_NAME)
+@SqsProcess(process.env.SQS_PRODUCER_NAME)
 export class SqsProducerHandler {}
