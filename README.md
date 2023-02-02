@@ -10,13 +10,9 @@ Supported blockchains:
 Supported operations:
 
 - Collection contract deploy
-- ABI-agnostic contract calls
+- Creating blockchain wallets
+- ABI-agnostic contract calls and transactions
 - Reading/updating NFT metadata
-
-The following applications will be available to manage the the project after launch:
-
-- PgAdmin [http://localhost:8080/](http://localhost:8080/)
-- Redis Commander [http://localhost:8081/](http://localhost:8081/)
 
 ## Requirements
 
@@ -24,8 +20,11 @@ The following applications will be available to manage the the project after lau
 - postgres server
 - nodejs
 - aws s3 bucket
+- aws sqs fifo queue for consumer
+- aws sqs fifo queue for producer
 - pinata ipfs node
-- web3 provider
+- web3 provider for ethereum
+- web3 provider for polygon
 
 ## Installation
 
@@ -42,9 +41,12 @@ $ docker-compose build
 $ docker-compose up
 ```
 
-## e2e tests
+The following applications will be available to manage the the project after launch with docker-compose:
 
-For testing you need to setup a privaate key from blockchain account with some testETH or testMATIC on it.
+- PgAdmin [http://localhost:8080/](http://localhost:8080/)
+- Redis Commander [http://localhost:8081/](http://localhost:8081/)
+
+## e2e tests
 
 ```bash
 $ npm run test:e2e

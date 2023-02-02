@@ -14,9 +14,9 @@ There are three types of job results from the web3 service:
 2. [Deploy any collection (contract)](#deploy-any-collection-contract)
 3. [Process mint token method](#process-mint-token-method)
 4. [Process whitelist operations](#process-whitelist-operations)
-  1. [Whitelist add operation](#whitelist-add-operation)
-  2. [Whitelist remove operation](#whitelist-remove-operation)
-  3. [Get merkle proof for address](#get-merkle-proof-for-address)
+   - [Whitelist add operation](#whitelist-add-operation)
+   - [Whitelist remove operation](#whitelist-remove-operation)
+   - [Get merkle proof for address](#get-merkle-proof-for-address)
 5. [Process any contract method call on the blockchain (common call)](#process-any-contract-method-call-on-the-blockchain-common-call)
 6. [Read any contract state data in the blockchain (common call)](#read-any-contract-state-data-in-the-blockchain-common-call)
 7. [Get specified job from queue](#get-specified-job-from-queue)
@@ -67,7 +67,7 @@ Output example:
 Related DTOs:
 
 - [CreateWalletRequest](./src/modules/web3/dto/requests/createWallet.request.ts)
-- [ResponseDto](./src/common/dto/response.dto.ts)
+- [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
 
@@ -91,7 +91,7 @@ Input example:
   "bytecode": "608060405260008055...",
   "arguments": "100::0x5de14842...::name::SYM::http://some.com/metadata/some_slug/",
   "from_address": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18",
-  "metadata_slug": "some_slug",
+  "slug": "some_slug",
   "asset_url": "a6b1354c26c6.original.Dubai.jpg",
   "asset_type": "image",
   "meta_data": {
@@ -115,7 +115,7 @@ Input example:
 - `"from_address"` is the wallet address from which the transaction will be sent.
 - `"asset_url"`, `"asset_type"`, and `"meta_data"` are optional fields. If set, the service will create a common metadata object for this collection.
 - `"asset_url"` is a file key in AWS S3. It will be downloaded from S3 and uploaded to the Pinata IPFS node, and the IPFS URL will be set in the metadata object.
-- `"metadata_slug"` is a unique slug for the metadata object. It will be used to generate the metadata URL.
+- `"slug"` is a unique slug for the metadata object. It will be used to generate the metadata URL.
 
 Output example:
 
@@ -284,7 +284,7 @@ Related DTOs:
 - [CallRequest](./src/modules/web3/dto/requests/call.request.ts)
 - [JobResult](./src/common/dto/jobResult.dto.ts)
 
-### Whitelist remove  operation
+### Whitelist remove operation
 
 Whitelist remove example input:
 
@@ -444,7 +444,6 @@ Related DTOs:
 - [JobResult](./src/common/dto/jobResult.dto.ts)
 
 [Go to top](#table-of-contents)
-
 
 ## Read any contract state data in the blockchain (common call)
 
@@ -694,7 +693,7 @@ Input example:
 
 ```json
 {
-  "address": "0x4Fab890371F44c5040bd454EFe009D40ce3FF523",
+  "slug": "test",
   "token_id": "1",
   "meta_data": {
     "name": "meta_data_name_updated",
@@ -709,7 +708,7 @@ Input example:
 }
 ```
 
-- `"address"` is the contract address.
+- `"slug"` is the slug of the contract.
 - `"token_id"` is the token ID in the contract state on the blockchain.
 - `"meta_data"` is the metadata payload.
 
@@ -736,9 +735,9 @@ Related DTOs:
 
 ## REST API endpoint to get token metadata from DB
 
-`GET /metadata/:address/:id`
+`GET /metadata/:slug/:id`
 
-This endpoint requires the `"address"` and `"id"` parameters, which are the contract address in blockchain and the token ID in the contract state on the blockchain (`"token_id"` in the database). The response will contain the metadata payload for the specified token.
+This endpoint requires the `"slug"` and `"id"` parameters, which are the contract slug in DB and the token ID in the contract state on the blockchain (`"token_id"` in the database). The response will contain the metadata payload for the specified token.
 
 Output example:
 
@@ -786,3 +785,41 @@ Related DTOs:
 - [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
+
+## Process any blockchain call with  AWS SQS queue
+For processing any blockchain call using SQS queue, you need to create two FIFO queues in AWS SQS and add the queue names to the `.env` file, one queue for consuming messages and second for returning response. 
+
+execute blockchain opertation using SQS queue
+
+send message to SQS consumer queue
+
+example message:
+
+```json
+{
+    "requestId": "ace6ab2c-362e-4cc6-a4c1-b9169329edd7",
+    "command": "deploycontract",
+    "operationName": "deployContract",
+    "walletAddress": "0x9eecf7ce9f57107653bf42e3014b0a7d2b68fbba",
+    "data": {
+        "execute": true,
+        "network": 80001,
+        "abi": [],
+        "bytecode": "TEST",
+        "arguments": "1::2",
+        "from_address": "0x9eecf7ce9f57107653bf42e3014b0a7d2b68fbba",
+        "slug": "test",
+        "asset_type": "image",
+        "asset_url": "assets/image.png",
+        "meta_data": {
+            "name": "AwsomeCollection",
+            "description": "Awsome Collection Description"
+        }
+    }
+}
+```
+
+the resposnce will be sent to SQS response queue.
+
+
+
