@@ -128,28 +128,43 @@ export class Web3Service {
       const w3: Web3 = this.getWeb3(txPayload.network);
       const contractObj = txPayload.contract_obj;
       const contract = txPayload.contract;
+
       const tx: ITxOptions = {
         nonce: await w3.eth.getTransactionCount(txPayload.from_address),
         maxPriorityFeePerGas: await w3.eth.getGasPrice(),
         from: txPayload.from_address,
         data: txPayload.data,
-        value: 0,
       };
 
-      if (txPayload.operation_type != OperationTypes.DEPLOY) {
-        tx.to = contract.options.address;
-        tx.gas = await w3.eth.estimateGas({
-          from: txPayload.from_address,
-          to: contract.options.address,
-          data: txPayload.data,
-          value: 0,
-        });
-      } else {
-        tx.gas = await w3.eth.estimateGas({
-          from: txPayload.from_address,
-          data: txPayload.data,
-          value: 0,
-        });
+      switch (txPayload.operation_type) {
+        case OperationTypes.DEPLOY:
+          tx.gas = await w3.eth.estimateGas({
+            from: txPayload.from_address,
+            data: txPayload.data,
+            value: 0,
+          });
+          break;
+        case OperationTypes.MINT:
+          tx.to = contract.options.address;
+          tx.value = +U.toWei(contractObj.price, 'ether');
+          tx.gas = await w3.eth.estimateGas({
+            from: txPayload.from_address,
+            to: contract.options.address,
+            data: txPayload.data,
+            value: tx.value,
+          });
+          break;
+        default:
+          const value = txPayload.value ? +U.toWei(txPayload.value, 'ether') : 0;
+          tx.to = contract.options.address;
+          tx.value = value;
+          tx.gas = await w3.eth.estimateGas({
+            from: txPayload.from_address,
+            to: contract.options.address,
+            data: txPayload.data,
+            value,
+          });
+          break;
       }
 
       const comission = (+tx.gas * +tx.maxPriorityFeePerGas).toString();
@@ -292,11 +307,11 @@ export class Web3Service {
         const tx_payload = {
           from: accounts[0],
           to: account[0].address,
-          value: U.toWei('1'),
+          value: U.toWei('10'),
           gas: await this.local.eth.estimateGas({
             from: accounts[0],
             to: account[0].address,
-            value: U.toWei('1'),
+            value: U.toWei('10'),
           }),
         };
         await this.local.eth.sendTransaction(tx_payload);

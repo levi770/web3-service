@@ -22,4 +22,5 @@ export interface ITxPayload {
   whitelist_obj?: WhitelistModel[];
   metadata_obj?: MetadataModel;
   is_test?: boolean;
+  value?: string;
 }

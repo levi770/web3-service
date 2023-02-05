@@ -25,6 +25,9 @@ export class CallRequest {
   @IsString()
   from_address: string;
 
+  @IsOptional()
+  value?: string;
+
   @IsEnum(OperationTypes)
   operation_type: OperationTypes;
 
@@ -32,5 +35,5 @@ export class CallRequest {
   operation_options?: IMintData | WhitelistRequest;
 
   @IsOptional()
-  test: boolean;
+  test?: boolean;
 }

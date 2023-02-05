@@ -70,7 +70,12 @@ export class Web3Processor {
       const deployData: DeployRequest = job.data;
       const { w3, wallet, keystore } = await this.getAccount(deployData);
       const contractInstance = new w3.eth.Contract(deployData.abi as U.AbiItem[]);
-      const contractPayload = { status: Statuses.CREATED, deploy_data: deployData, slug: deployData.slug };
+      const contractPayload = {
+        status: Statuses.CREATED,
+        deploy_data: deployData,
+        slug: deployData.slug,
+        price: deployData.price,
+      };
       const contractObj = (await this.dbManager.create([contractPayload], ObjectTypes.CONTRACT)) as ContractModel[];
 
       const txData = contractInstance.deploy({
@@ -346,6 +351,7 @@ export class Web3Processor {
         from_address: callData.from_address,
         data: txData,
         keystore: keystore,
+        value: callData?.value,
       };
       return await this.web3Service.processTx(txPayload);
     } catch (error) {

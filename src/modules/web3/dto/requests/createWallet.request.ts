@@ -8,5 +8,5 @@ export class CreateWalletRequest {
   team_id: string;
 
   @IsOptional()
-  test: boolean;
+  test?: boolean;
 }

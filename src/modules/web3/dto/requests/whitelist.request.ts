@@ -11,5 +11,5 @@ export class WhitelistRequest {
   addresses: string;
 
   @IsOptional()
-  test: boolean;
+  test?: boolean;
 }
