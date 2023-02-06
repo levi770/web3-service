@@ -6,6 +6,11 @@ export const DB_CONTROLLER = 'DbController';
 export const SQS_CONTROLLER = 'SqsController';
 export const WEB3_SERVICE = 'Web3Service';
 
+export enum Events {
+  JOB_CREATED = 'job.created',
+  PROCESSING_ERROR = 'processing.error',
+}
+
 export enum ExceptionTypes {
   RPC = 'rpc',
   HTTP = 'http',
@@ -27,6 +32,8 @@ export enum Statuses {
   DELETED = 'deleted',
   PENDING = 'pending',
   SUCCESS = 'success',
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
 }
 
 export enum CMD {

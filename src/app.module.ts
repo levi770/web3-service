@@ -16,6 +16,7 @@ import { TransactionModel } from './modules/db/models/transaction.model';
 import { Credentials } from 'aws-sdk';
 import { SqsConfig, SqsConfigOption, SqsModule } from '@nestjs-packages/sqs';
 import { SqsHandlerModule } from './modules/sqs/sqs.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 //const sql_logger = new Logger('Sql');
 
@@ -24,6 +25,7 @@ import { SqsHandlerModule } from './modules/sqs/sqs.module';
  */
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot(),
     SequelizeModule.forRoot({
       dialect: 'postgres',

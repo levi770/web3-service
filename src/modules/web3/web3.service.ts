@@ -75,13 +75,13 @@ export class Web3Service {
         const active = (job: Job<IMintData | DeployRequest>) => {
           checkSubscriptions();
           if (job.id === jobId) {
-            observer.next(new JobResult(job.id, 'active', job.data));
+            observer.next(new JobResult(job.id, Statuses.ACTIVE, job.data));
           }
         };
         const completed = (job: Job<IMintData | DeployRequest>, result: ContractModel | TokenModel) => {
           checkSubscriptions();
           if (job.id === jobId) {
-            observer.next(new JobResult(job.id, 'completed', result));
+            observer.next(new JobResult(job.id, Statuses.COMPLETED, result));
             observer.complete();
             removeAllListeners();
           }
@@ -89,7 +89,7 @@ export class Web3Service {
         const failed = (job: Job<IMintData | DeployRequest>, error: Error) => {
           checkSubscriptions();
           if (job.id === jobId) {
-            observer.next(new JobResult(job.id, 'failed', error.message));
+            observer.next(new JobResult(job.id, Statuses.FAILED, error.message));
             observer.complete();
             removeAllListeners();
           }
@@ -100,14 +100,14 @@ export class Web3Service {
           }
         };
         const removeAllListeners = () => {
-          this.web3Queue.removeListener('active', active);
-          this.web3Queue.removeListener('completed', completed);
-          this.web3Queue.removeListener('failed', failed);
+          this.web3Queue.removeListener(Statuses.ACTIVE, active);
+          this.web3Queue.removeListener(Statuses.COMPLETED, completed);
+          this.web3Queue.removeListener(Statuses.FAILED, failed);
         };
 
-        this.web3Queue.addListener('active', active);
-        this.web3Queue.addListener('completed', completed);
-        this.web3Queue.addListener('failed', failed);
+        this.web3Queue.addListener(Statuses.ACTIVE, active);
+        this.web3Queue.addListener(Statuses.COMPLETED, completed);
+        this.web3Queue.addListener(Statuses.FAILED, failed);
       });
 
       await this.web3Queue.add(processType, data, { jobId, delay: 1000 });

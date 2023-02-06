@@ -21,6 +21,8 @@ import { UpdateStatusRequest } from '../src/modules/db/dto/requests/updateStatus
 import { SqsClientModule, SqsClientService } from './sqs-client';
 import deploy_data from './data/deploy_data_new.json';
 
+jest.useRealTimers();
+
 const timeout = 60000;
 const network = Networks.LOCAL;
 let admin_acc_address: string;
@@ -96,11 +98,16 @@ describe('App (e2e) latest', () => {
   });
 
   describe('AppController', () => {
-    it(`GET /health - Gets the health status`, async () => {
-      const response = await request(server).get('/health').send();
-      expect(response.status).toEqual(200);
-      expect(response.body).toMatchObject({ status: 200, message: 'active', data: null });
-    });
+    it(
+      `GET /health - Gets the health status`,
+      async () => {
+        jest.setTimeout(timeout);
+        const response = await request(server).get('/health').send();
+        expect(response.status).toEqual(200);
+        expect(response.body).toMatchObject({ status: 200, message: 'active', data: null });
+      },
+      timeout,
+    );
   });
 
   describe('Web3Controller', () => {
@@ -213,34 +220,6 @@ describe('App (e2e) latest', () => {
       },
       timeout,
     );
-
-    // it(
-    //   '{cmd: CMD.COMMON} toggleWhitelistActive',
-    //   async () => {
-    //     jest.setTimeout(timeout);
-    //     const data = {
-    //       execute: true,
-    //       network: network,
-    //       from_address: team_acc_address,
-    //       contract_id: contract_id,
-    //       method_name: 'toggleWhitelistActive',
-    //       operation_type: 'common',
-    //     };
-    //     const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
-    //     if (response.status === 'failed') {
-    //       console.log(response);
-    //     }
-    //     expect(response.jobId).toBeTruthy();
-    //     expect(response.status).toEqual('completed');
-    //     expect(response.data).toMatchObject({
-    //       payload: expect.any(Object),
-    //       balance: expect.any(String),
-    //       comission: expect.any(String),
-    //       txObj: expect.any(Object),
-    //     });
-    //   },
-    //   timeout,
-    // );
 
     it(
       '{cmd: CMD.COMMON} toggleWhitelistSaleActive',
@@ -363,7 +342,6 @@ describe('App (e2e) latest', () => {
           arguments: `1::${JSON.stringify(team_acc_proof)}`,
           operation_type: 'mint',
           operation_options: {
-            nft_number: '1',
             mint_to: team_acc_address,
             asset_url: 'b8dfd07f-4572-472c-b11c-a6b1354c26c6.original.Dubai.jpg',
             asset_type: 'image',
@@ -432,7 +410,6 @@ describe('App (e2e) latest', () => {
           arguments: `1::${JSON.stringify(admin_acc_proof)}`,
           operation_type: 'mint',
           operation_options: {
-            nft_number: '1',
             mint_to: admin_acc_address,
           },
         };
