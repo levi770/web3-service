@@ -17,7 +17,7 @@ import { Credentials } from 'aws-sdk';
 import { SqsConfig, SqsConfigOption, SqsModule } from '@nestjs-packages/sqs';
 import { SqsHandlerModule } from './modules/sqs/sqs.module';
 
-const sql_logger = new Logger('Sql');
+//const sql_logger = new Logger('Sql');
 
 /**
  * The root module of the application.
@@ -31,7 +31,8 @@ const sql_logger = new Logger('Sql');
       models: [ContractModel, TokenModel, WhitelistModel, MetadataModel, WalletModel, TransactionModel],
       autoLoadModels: true,
       synchronize: true,
-      logging: (sql: string) => sql_logger.log(sql),
+      //logging: (sql: string) => sql_logger.log(sql),
+      logging: false,
     }),
     BullModule.forRoot({
       url: process.env.REDIS_URI,
