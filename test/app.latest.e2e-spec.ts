@@ -19,7 +19,9 @@ import { GetOneRequest } from '../src/modules/db/dto/requests/getOne.request';
 import { UpdateMetadataRequest } from '../src/modules/db/dto/requests/updateMetadata.request';
 import { UpdateStatusRequest } from '../src/modules/db/dto/requests/updateStatus.request';
 import { SqsClientModule, SqsClientService } from './sqs-client';
-import deploy_data from './data/deploy_data_old.json';
+import deploy_data from './data/deploy_data_new.json';
+
+jest.useRealTimers();
 
 const timeout = 60000;
 const network = Networks.LOCAL;
@@ -32,7 +34,7 @@ let token_uri: string;
 let token_id: string;
 let tx_receipt: object;
 
-describe('App (e2e) old', () => {
+describe('App (e2e) latest', () => {
   let redis_client: ClientProxy;
   let sqs_client: SqsClientService;
   let app: INestApplication;
@@ -96,11 +98,16 @@ describe('App (e2e) old', () => {
   });
 
   describe('AppController', () => {
-    it(`GET /health - Gets the health status`, async () => {
-      const response = await request(server).get('/health').send();
-      expect(response.status).toEqual(200);
-      expect(response.body).toMatchObject({ status: 200, message: 'active', data: null });
-    });
+    it(
+      `GET /health - Gets the health status`,
+      async () => {
+        jest.setTimeout(timeout);
+        const response = await request(server).get('/health').send();
+        expect(response.status).toEqual(200);
+        expect(response.body).toMatchObject({ status: 200, message: 'active', data: null });
+      },
+      timeout,
+    );
   });
 
   describe('Web3Controller', () => {
@@ -146,7 +153,8 @@ describe('App (e2e) old', () => {
         const data = Object(deploy_data);
         data.from_address = team_acc_address;
         data.slug = uuidv4();
-        data.arguments = `100::1::${team_acc_address}::${contract_name}::TEST::/metadata/${data.slug}/`;
+        data.price = '1';
+        data.arguments = `100::1::10::10::true::${team_acc_address}::${contract_name}::TEST::/metadata/${data.slug}/`;
         data.network = network;
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.DEPLOY }, data));
         if (response.status === 'failed') {
@@ -214,7 +222,7 @@ describe('App (e2e) old', () => {
     );
 
     it(
-      '{cmd: CMD.COMMON} toggleSaleFree',
+      '{cmd: CMD.COMMON} toggleWhitelistSaleActive',
       async () => {
         jest.setTimeout(timeout);
         const data = {
@@ -222,37 +230,8 @@ describe('App (e2e) old', () => {
           network: network,
           from_address: team_acc_address,
           contract_id: contract_id,
-          method_name: 'toggleSaleFree',
+          method_name: 'toggleWhitelistSaleActive',
           operation_type: 'common',
-        };
-        const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
-        if (response.status === 'failed') {
-          console.log(response);
-        }
-        expect(response.jobId).toBeTruthy();
-        expect(response.status).toEqual('completed');
-        expect(response.data).toMatchObject({
-          payload: expect.any(Object),
-          balance: expect.any(String),
-          comission: expect.any(String),
-          txObj: expect.any(Object),
-        });
-      },
-      timeout,
-    );
-
-    it(
-      '{cmd: CMD.COMMON} editSaleRestrictions',
-      async () => {
-        jest.setTimeout(timeout);
-        const data = {
-          execute: true,
-          network: network,
-          from_address: team_acc_address,
-          contract_id: contract_id,
-          method_name: 'editSaleRestrictions',
-          operation_type: 'common',
-          arguments: '100',
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
         if (response.status === 'failed') {
@@ -279,7 +258,7 @@ describe('App (e2e) old', () => {
           network: network,
           from_address: team_acc_address,
           contract_id: contract_id,
-          method_name: 'setWhitelistFree',
+          method_name: 'setMerkleRoot',
           operation_type: 'whitelistadd',
           operation_options: {
             addresses: `${team_acc_address},${admin_acc_address}`,
@@ -351,7 +330,7 @@ describe('App (e2e) old', () => {
     );
 
     it(
-      '{cmd: CMD.MINT} buyFree user1 whitelist',
+      '{cmd: CMD.MINT} buy user1 whitelist',
       async () => {
         jest.setTimeout(timeout);
         const data = {
@@ -359,11 +338,10 @@ describe('App (e2e) old', () => {
           network: network,
           from_address: team_acc_address,
           contract_id: contract_id,
-          method_name: 'buyFree',
+          method_name: 'buy',
           arguments: `1::${JSON.stringify(team_acc_proof)}`,
           operation_type: 'mint',
           operation_options: {
-            nft_number: '1',
             mint_to: team_acc_address,
             asset_url: 'b8dfd07f-4572-472c-b11c-a6b1354c26c6.original.Dubai.jpg',
             asset_type: 'image',
@@ -420,7 +398,7 @@ describe('App (e2e) old', () => {
     );
 
     it(
-      '{cmd: CMD.MINT} buyFree user2 whitelist nometadata',
+      '{cmd: CMD.MINT} buy user2 whitelist nometadata',
       async () => {
         jest.setTimeout(timeout);
         const data = {
@@ -428,11 +406,10 @@ describe('App (e2e) old', () => {
           network: network,
           from_address: admin_acc_address,
           contract_id: contract_id,
-          method_name: 'buyFree',
+          method_name: 'buy',
           arguments: `1::${JSON.stringify(admin_acc_proof)}`,
           operation_type: 'mint',
           operation_options: {
-            nft_number: '1',
             mint_to: admin_acc_address,
           },
         };
@@ -470,7 +447,7 @@ describe('App (e2e) old', () => {
           network: network,
           from_address: team_acc_address,
           contract_id: contract_id,
-          method_name: 'setWhitelistFree',
+          method_name: 'setMerkleRoot',
           operation_type: 'whitelistremove',
           operation_options: {
             addresses: `${admin_acc_address}`,
@@ -488,7 +465,7 @@ describe('App (e2e) old', () => {
     );
 
     it(
-      '{cmd: CMD.MINT} buyFree user2 nowhitelist',
+      '{cmd: CMD.MINT} buy user2 nowhitelist',
       async () => {
         jest.setTimeout(timeout);
         const data = {
@@ -496,7 +473,7 @@ describe('App (e2e) old', () => {
           network: network,
           from_address: admin_acc_address,
           contract_id: contract_id,
-          method_name: 'buyFree',
+          method_name: 'buy',
           arguments: `1::${JSON.stringify(admin_acc_proof)}`,
           operation_type: 'mint',
           operation_options: {

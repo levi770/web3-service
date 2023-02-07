@@ -1,38 +1,37 @@
-import { Controller, Get, HttpStatus, Logger, Param, UsePipes } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Logger, Param, UseInterceptors, UsePipes } from '@nestjs/common';
 import { Response } from './common/dto/response.dto';
 import { DbService } from './modules/db/db.service';
 import { GetMetadataRequest } from './modules/db/dto/requests/getMetadata.request';
-import { MetaData } from './modules/web3/interfaces/metaData.interface';
+import { IMetaData } from './modules/web3/interfaces/metaData.interface';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { ExceptionTypes } from './common/constants';
+import { HttpLogger } from './common/interceptors/http-loger.interceptor';
+
+const logger = new Logger('AppController');
 
 /**
  * A controller for handling web3 and database operations.
  */
 @Controller()
 export class AppController {
-  private logger: Logger;
-
-  constructor(private dbManagerService: DbService) {
-    this.logger = new Logger('AppController');
-  }
+  constructor(private dbManagerService: DbService) {}
 
   /**
    * Gets the health status of microservice.
    */
+  @UseInterceptors(new HttpLogger(logger))
   @Get('health')
   async getHealth(): Promise<Response> {
-    this.logger.log(`Processing GET request 'health'`);
     return new Response(HttpStatus.OK, 'active', null);
   }
 
   /**
    * Gets the metadata of token.
    */
-  @Get('metadata/:address/:id')
+  @UseInterceptors(new HttpLogger(logger))
+  @Get('metadata/:slug/:id')
   @UsePipes(new ValidationPipe(ExceptionTypes.RPC))
-  async getMetaData(@Param() params: GetMetadataRequest): Promise<MetaData> {
-    this.logger.log(`Processing GET request 'metadata' with id: ${JSON.stringify(params)}`);
+  async getMetaData(@Param() params: GetMetadataRequest): Promise<IMetaData> {
     return await this.dbManagerService.getMetadata(params);
   }
 }

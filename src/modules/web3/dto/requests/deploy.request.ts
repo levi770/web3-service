@@ -1,7 +1,7 @@
 import { AbiItem } from 'web3-utils';
 import { FileTypes, Networks } from '../../../../common/constants';
-import { MetaData } from '../../interfaces/metaData.interface';
-import { IsArray, IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IMetaData } from '../../interfaces/metaData.interface';
+import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 
 /**
  * A data transfer object for passing deploy data.
@@ -25,6 +25,12 @@ export class DeployRequest {
   @IsString()
   from_address: string;
 
+  @IsString()
+  slug: string;
+
+  @IsString()
+  price: string;
+
   @IsOptional()
   asset_url?: string;
 
@@ -32,8 +38,8 @@ export class DeployRequest {
   asset_type?: FileTypes;
 
   @IsOptional()
-  meta_data?: MetaData;
+  meta_data?: IMetaData;
 
   @IsOptional()
-  test: boolean;
+  test?: boolean;
 }

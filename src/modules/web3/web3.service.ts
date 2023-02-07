@@ -1,6 +1,7 @@
 import * as U from 'web3-utils';
 import Web3 from 'web3';
 import MerkleTree from 'merkletreejs';
+import ganache from 'ganache';
 import { TransactionReceipt } from 'web3-core';
 import { ConfigService } from '@nestjs/config';
 import { ContractModel } from '../db/models/contract.model';
@@ -10,21 +11,21 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Job, Queue } from 'bull';
 import { JobResult } from '../../common/dto/jobResult.dto';
-import { MintData } from './interfaces/mintData.interface';
+import { IMintData } from './interfaces/mintData.interface';
 import { Networks, ObjectTypes, OperationTypes, ProcessTypes, Statuses, WEB3_QUEUE } from '../../common/constants';
 import { Observable } from 'rxjs';
 import { RpcException } from '@nestjs/microservices';
 import { TokenModel } from '../db/models/token.model';
-import { TxPayload } from './interfaces/txPayload.interface';
-import { TxOptions } from './interfaces/txOptions.interface';
-import { TxResult } from './interfaces/txResult.interface';
+import { ITxPayload } from './interfaces/txPayload.interface';
+import { ITxOptions } from './interfaces/txOptions.interface';
+import { ITxResult } from './interfaces/txResult.interface';
 import { v4 as uuidv4 } from 'uuid';
 import { WhitelistModel } from '../db/models/whitelist.model';
 import { ProcessData } from '../../common/types';
 import { DbService } from '../db/db.service';
 import { TransactionModel } from '../db/models/transaction.model';
-import * as ethUtils from 'ethereumjs-util';
-import { Wallet } from './interfaces/wallet.interface';
+import { IWallet } from './interfaces/wallet.interface';
+import { CreateWalletRequest } from './dto/requests/createWallet.request';
 
 /**
  * A service class for interacting with Web3.
@@ -42,7 +43,12 @@ export class Web3Service {
   ) {
     this.ethereum = new Web3(new Web3.providers.HttpProvider(configService.get('ETHEREUM_HOST')));
     this.polygon = new Web3(new Web3.providers.HttpProvider(configService.get('POLYGON_HOST')));
-    this.local = new Web3(new Web3.providers.HttpProvider(configService.get('LOCAL_HOST')));
+    this.local = new Web3(
+      ganache.provider({
+        wallet: { accounts: [{ secretKey: configService.get('PRIV_KEY'), balance: U.toHex(U.toWei('1000')) }] },
+        logging: { quiet: true },
+      }),
+    );
   }
 
   /**
@@ -62,28 +68,28 @@ export class Web3Service {
   /**
    * Processes a job and returns an Observable that emits job results.
    */
-  async processJob(data: ProcessData, processType: ProcessTypes): Promise<Observable<JobResult>> {
+  async process(data: ProcessData, processType: ProcessTypes): Promise<Observable<JobResult>> {
     try {
       const jobId = uuidv4();
       const job$: Observable<JobResult> = new Observable((observer) => {
-        const active = (job: Job<MintData | DeployRequest>) => {
+        const active = (job: Job<IMintData | DeployRequest>) => {
           checkSubscriptions();
           if (job.id === jobId) {
-            observer.next(new JobResult(job.id, 'active', job.data));
+            observer.next(new JobResult(job.id, Statuses.ACTIVE, job.data));
           }
         };
-        const completed = (job: Job<MintData | DeployRequest>, result: ContractModel | TokenModel) => {
+        const completed = (job: Job<IMintData | DeployRequest>, result: ContractModel | TokenModel) => {
           checkSubscriptions();
           if (job.id === jobId) {
-            observer.next(new JobResult(job.id, 'completed', result));
+            observer.next(new JobResult(job.id, Statuses.COMPLETED, result));
             observer.complete();
             removeAllListeners();
           }
         };
-        const failed = (job: Job<MintData | DeployRequest>, error: Error) => {
+        const failed = (job: Job<IMintData | DeployRequest>, error: Error) => {
           checkSubscriptions();
           if (job.id === jobId) {
-            observer.next(new JobResult(job.id, 'failed', error.message));
+            observer.next(new JobResult(job.id, Statuses.FAILED, error.message));
             observer.complete();
             removeAllListeners();
           }
@@ -94,14 +100,14 @@ export class Web3Service {
           }
         };
         const removeAllListeners = () => {
-          this.web3Queue.removeListener('active', active);
-          this.web3Queue.removeListener('completed', completed);
-          this.web3Queue.removeListener('failed', failed);
+          this.web3Queue.removeListener(Statuses.ACTIVE, active);
+          this.web3Queue.removeListener(Statuses.COMPLETED, completed);
+          this.web3Queue.removeListener(Statuses.FAILED, failed);
         };
 
-        this.web3Queue.addListener('active', active);
-        this.web3Queue.addListener('completed', completed);
-        this.web3Queue.addListener('failed', failed);
+        this.web3Queue.addListener(Statuses.ACTIVE, active);
+        this.web3Queue.addListener(Statuses.COMPLETED, completed);
+        this.web3Queue.addListener(Statuses.FAILED, failed);
       });
 
       await this.web3Queue.add(processType, data, { jobId, delay: 1000 });
@@ -117,33 +123,48 @@ export class Web3Service {
   /**
    * Sends a transaction to the Ethereum or Polygon network.
    */
-  async processTx(txPayload: TxPayload): Promise<TxResult> {
+  async processTx(txPayload: ITxPayload): Promise<ITxResult> {
     try {
       const w3: Web3 = this.getWeb3(txPayload.network);
       const contractObj = txPayload.contract_obj;
       const contract = txPayload.contract;
-      const tx: TxOptions = {
+
+      const tx: ITxOptions = {
         nonce: await w3.eth.getTransactionCount(txPayload.from_address),
         maxPriorityFeePerGas: await w3.eth.getGasPrice(),
         from: txPayload.from_address,
         data: txPayload.data,
-        value: 0,
       };
 
-      if (txPayload.operation_type != OperationTypes.DEPLOY) {
-        tx.to = contract.options.address;
-        tx.gas = await w3.eth.estimateGas({
-          from: txPayload.from_address,
-          to: contract.options.address,
-          data: txPayload.data,
-          value: 0,
-        });
-      } else {
-        tx.gas = await w3.eth.estimateGas({
-          from: txPayload.from_address,
-          data: txPayload.data,
-          value: 0,
-        });
+      switch (txPayload.operation_type) {
+        case OperationTypes.DEPLOY:
+          tx.gas = await w3.eth.estimateGas({
+            from: txPayload.from_address,
+            data: txPayload.data,
+            value: 0,
+          });
+          break;
+        case OperationTypes.MINT:
+          tx.to = contract.options.address;
+          tx.value = +U.toWei(contractObj.price, 'ether');
+          tx.gas = await w3.eth.estimateGas({
+            from: txPayload.from_address,
+            to: contract.options.address,
+            data: txPayload.data,
+            value: tx.value,
+          });
+          break;
+        default:
+          const value = txPayload.value ? +U.toWei(txPayload.value, 'ether') : 0;
+          tx.to = contract.options.address;
+          tx.value = value;
+          tx.gas = await w3.eth.estimateGas({
+            from: txPayload.from_address,
+            to: contract.options.address,
+            data: txPayload.data,
+            value,
+          });
+          break;
       }
 
       const comission = (+tx.gas * +tx.maxPriorityFeePerGas).toString();
@@ -277,19 +298,42 @@ export class Web3Service {
   /**
    * Creates a new Ethereum account.
    */
-  async newWallet(): Promise<Wallet> {
+  async newWallet(data: CreateWalletRequest): Promise<IWallet> {
     try {
       const password = await this.configService.get('DEFAULT_PASSWORD');
+      if (data.test) {
+        const account = this.local.eth.accounts.wallet.create(1, password);
+        const accounts = await this.local.eth.getAccounts();
+        const tx_payload = {
+          from: accounts[0],
+          to: account[0].address,
+          value: U.toWei('10'),
+          gas: await this.local.eth.estimateGas({
+            from: accounts[0],
+            to: account[0].address,
+            value: U.toWei('10'),
+          }),
+        };
+        await this.local.eth.sendTransaction(tx_payload);
+        return { address: account[0].address, keystore: account[0].encrypt(password) };
+      }
       const account = this.ethereum.eth.accounts.create();
-      const address = account.address;
-      const keystore = account.encrypt(password);
-      return { address, keystore };
+      return { address: account.address, keystore: account.encrypt(password) };
     } catch (error) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         message: error.message,
       });
     }
+  }
+
+  async getAdmin() {
+    const accounts = await this.local.eth.getAccounts();
+    return accounts[0];
+  }
+
+  async sendAdmin(payload: ITxOptions) {
+    return await this.local.eth.sendTransaction(payload);
   }
 
   getWeb3(network: Networks): Web3 {
@@ -302,10 +346,4 @@ export class Web3Service {
         return this.local;
     }
   }
-
-  // async predictContractAddress(data: PredictDto) {
-  //   const w3 = this.getWeb3(data.network);
-  //   var nonce = await w3.eth.getTransactionCount(data.owner);
-  //   return ethUtils.bufferToHex(ethUtils.generateAddress(Buffer.from(data.owner), Buffer.from(nonce.toString())));
-  // }
 }

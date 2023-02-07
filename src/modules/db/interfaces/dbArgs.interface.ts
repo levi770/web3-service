@@ -3,7 +3,7 @@ import { Order } from 'sequelize';
 /**
  * An interface for passing database query arguments.
  */
-export interface DbArgs {
+export interface IDbArgs {
   attributes?: {
     exclude: string[];
   };

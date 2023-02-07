@@ -3,6 +3,7 @@
   "network": 80001,
   "arguments": "100::1::0xCa8d8B211a2E1591078A3b452C1Fc43F60Ac5AfA::test contract::TEST::localhost:5000/metadata/",
   "from_address": "",
+  "slug": "",
   "asset_url": "b8dfd07f-4572-472c-b11c-a6b1354c26c6.original.Dubai.jpg",
   "asset_type": "image",
   "meta_data": {

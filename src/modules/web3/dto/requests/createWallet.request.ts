@@ -6,4 +6,7 @@ import { IsOptional, IsString } from 'class-validator';
 export class CreateWalletRequest {
   @IsString()
   team_id: string;
+
+  @IsOptional()
+  test?: boolean;
 }
