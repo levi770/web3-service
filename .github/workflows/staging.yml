@@ -105,6 +105,7 @@ jobs:
             AWS_ACCESS_KEY=${{secrets.AWS_ACCESS_KEY}}
             AWS_SECRET_KEY=${{secrets.AWS_SECRET_KEY}}
             AWS_S3_BUCKET_NAME=${{secrets.AWS_S3_BUCKET_NAME}}
+            AWS_ACCOUNT=${{secrets.AWS_ACCOUNT}}
             ETHEREUM_HOST=${{secrets.ETHEREUM_HOST}}
             POLYGON_HOST=${{secrets.POLYGON_HOST}}
             LOCAL_HOST=${{secrets.LOCAL_HOST}}
@@ -113,6 +114,9 @@ jobs:
             PINATA_GATEWAY=${{secrets.PINATA_GATEWAY}}
             PINATA_URL=${{secrets.PINATA_URL}}
             DEFAULT_PASSWORD=${{secrets.DEFAULT_PASSWORD}}
+            SQS_ENDPOINT=${{secrets.SQS_ENDPOINT}}
+            SQS_CONSUMER_NAME=${{secrets.SQS_CONSUMER_NAME}}
+            SQS_PRODUCER_NAME=${{secrets.SQS_PRODUCER_NAME}}
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
