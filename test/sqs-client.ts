@@ -17,17 +17,16 @@ const SQS_PRODUCER_NAME = process.env.SQS_PRODUCER_NAME;
 export class SqsClientService {
   constructor(private sqsService: SqsService) {}
   async send(pattern: any, data: any): Promise<any> {
-    const body = {
-      requestId: uuidv4(),
-      command: pattern.cmd,
-      operationName: 'deployContract',
-      walletAddress: data.from_address,
-      data,
-    };
     return await this.sqsService.send(SQS_CONSUMER_NAME, {
       id: uuidv4(),
       groupId: uuidv4(),
-      body: body,
+      body: {
+        requestId: uuidv4(),
+        command: pattern.cmd,
+        operationName: 'deployContract',
+        walletAddress: data.from_address,
+        data,
+      },
     });
   }
   async receive<T = any>(data: T): Promise<T> {
@@ -64,7 +63,7 @@ export class SqsHandler {
       {
         name: process.env.SQS_CONSUMER_NAME,
         type: SqsQueueType.Producer, // 'ALL'|'CONSUMER'|'PRODUCER'
-        consumerOptions: {},
+        consumerOptions: { shouldDeleteMessages: true, messageAttributeNames: ['All'] },
         producerOptions: {},
       },
       {

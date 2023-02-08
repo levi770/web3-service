@@ -607,7 +607,9 @@ describe('App (e2e) latest', () => {
         jest.setTimeout(timeout);
         const data = Object(deploy_data);
         data.from_address = team_acc_address;
-        data.arguments = `100::1::${team_acc_address}::${contract_name}::TEST::localhost:5000/metadata/`;
+        data.slug = uuidv4();
+        data.price = '1';
+        data.arguments = `100::1::10::10::true::${team_acc_address}::${contract_name}::TEST::/metadata/${data.slug}/`;
         data.network = network;
         const response = await sqs_client.send({ cmd: CMD.DEPLOY }, data);
         expect(response[0]).toMatchObject({
