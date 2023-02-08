@@ -25,7 +25,6 @@ export class SqsProducerHandler {
       if (result.status === Statuses.COMPLETED || result.status === Statuses.FAILED) {
         await this.sqsService.send(process.env.SQS_PRODUCER_NAME, {
           id: uuidv4(),
-          groupId: uuidv4(),
           body: JSON.stringify({
             requestId: event.msg?.requestId,
             command: event.msg?.command,
@@ -42,7 +41,6 @@ export class SqsProducerHandler {
   handleProcessingErrorEvent(event: ProcessingErrorEvent) {
     this.sqsService.send(process.env.SQS_PRODUCER_NAME, {
       id: uuidv4(),
-      groupId: uuidv4(),
       body: JSON.stringify({
         error: event.err,
         message: event.msg,

@@ -16,7 +16,7 @@ import { SqsProducerHandler } from './producer.handler';
       {
         name: process.env.SQS_PRODUCER_NAME,
         type: SqsQueueType.Producer,
-        consumerOptions: {},
+        consumerOptions: { shouldDeleteMessages: false, messageAttributeNames: ['All'] },
         producerOptions: {},
       },
     ),
