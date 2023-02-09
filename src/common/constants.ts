@@ -82,8 +82,10 @@ export enum ObjectTypes {
 }
 
 export enum Networks {
-  ETHEREUM = 5,
-  POLYGON = 80001,
+  ETHEREUM = 1,
+  ETHEREUM_TEST = 5,
+  POLYGON = 137,
+  POLYGON_TEST = 80001,
   LOCAL = 1337,
 }
 

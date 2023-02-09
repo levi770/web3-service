@@ -225,7 +225,8 @@ export class DbService {
   async getMetadata(params: GetMetadataRequest): Promise<IMetaData> {
     try {
       const metadata = await this.getOneObject(ObjectTypes.METADATA, {
-        where: { token_id: params.id, slug: params.slug },
+        //where: { token_id: params.id, slug: params.slug },
+        where: { slug: params.slug },
       });
       if (!metadata) {
         throw new RpcException({

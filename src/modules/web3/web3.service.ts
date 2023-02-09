@@ -338,9 +338,9 @@ export class Web3Service {
 
   getWeb3(network: Networks): Web3 {
     switch (network) {
-      case Networks.ETHEREUM:
+      case Networks.ETHEREUM || Networks.ETHEREUM_TEST:
         return this.ethereum;
-      case Networks.POLYGON:
+      case Networks.POLYGON || Networks.POLYGON_TEST:
         return this.polygon;
       default:
         return this.local;
