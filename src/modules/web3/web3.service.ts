@@ -26,6 +26,8 @@ import { DbService } from '../db/db.service';
 import { TransactionModel } from '../db/models/transaction.model';
 import { IWallet } from './interfaces/wallet.interface';
 import { CreateWalletRequest } from './dto/requests/createWallet.request';
+import { SendAdminDto } from './dto/requests/send-admin.dto';
+import { GetAdminDto } from './dto/requests/get-admin.dto';
 
 /**
  * A service class for interacting with Web3.
@@ -43,12 +45,14 @@ export class Web3Service {
   ) {
     this.ethereum = new Web3(new Web3.providers.HttpProvider(configService.get('ETHEREUM_HOST')));
     this.polygon = new Web3(new Web3.providers.HttpProvider(configService.get('POLYGON_HOST')));
-    this.local = new Web3(
-      ganache.provider({
-        wallet: { accounts: [{ secretKey: configService.get('PRIV_KEY'), balance: U.toHex(U.toWei('1000')) }] },
-        logging: { quiet: true },
-      }),
-    );
+    if (configService.get('USE_GANACHE') === 'true') {
+      this.local = new Web3(
+        ganache.provider({
+          wallet: { accounts: [{ secretKey: configService.get('PRIV_KEY'), balance: U.toHex(U.toWei('1000')) }] },
+          logging: { quiet: true },
+        }),
+      );
+    }
   }
 
   /**
@@ -302,21 +306,42 @@ export class Web3Service {
     try {
       const password = await this.configService.get('DEFAULT_PASSWORD');
       if (data.test) {
-        const account = this.local.eth.accounts.wallet.create(1, password);
-        const accounts = await this.local.eth.getAccounts();
-        const tx_payload = {
-          from: accounts[0],
-          to: account[0].address,
-          value: U.toWei('10'),
-          gas: await this.local.eth.estimateGas({
+        const w3 = this.getWeb3(data.network);
+        const account = w3.eth.accounts.wallet.create(1, password);
+
+        if (data.network === Networks.LOCAL) {
+          const accounts = await this.local.eth.getAccounts();
+          const tx_payload = {
             from: accounts[0],
             to: account[0].address,
-            value: U.toWei('10'),
-          }),
-        };
-        await this.local.eth.sendTransaction(tx_payload);
-        return { address: account[0].address, keystore: account[0].encrypt(password) };
+            value: U.toWei('0.1'),
+            gas: await w3.eth.estimateGas({
+              from: accounts[0],
+              to: account[0].address,
+              value: U.toWei('0.1'),
+            }),
+          };
+          await w3.eth.sendTransaction(tx_payload);
+          return { address: account[0].address, keystore: account[0].encrypt(password) };
+        } else {
+          const pk = await this.configService.get('PRIV_KEY');
+          const adminAcc = w3.eth.accounts.privateKeyToAccount(pk);
+          const tx_payload = {
+            from: adminAcc.address,
+            to: account[0].address,
+            value: U.toWei('0.1'),
+            gas: await w3.eth.estimateGas({
+              from: adminAcc.address,
+              to: account[0].address,
+              value: U.toWei('0.1'),
+            }),
+          };
+          const signed = await adminAcc.signTransaction(tx_payload);
+          await w3.eth.sendSignedTransaction(signed.rawTransaction);
+          return { address: account[0].address, keystore: account[0].encrypt(password) };
+        }
       }
+
       const account = this.ethereum.eth.accounts.create();
       return { address: account.address, keystore: account.encrypt(password) };
     } catch (error) {
@@ -327,20 +352,37 @@ export class Web3Service {
     }
   }
 
-  async getAdmin() {
-    const accounts = await this.local.eth.getAccounts();
-    return accounts[0];
+  async getAdmin(data: GetAdminDto) {
+    const w3 = this.getWeb3(data.network);
+    if (data.network === Networks.LOCAL) {
+      const accounts = await w3.eth.getAccounts();
+      return accounts[0];
+    }
+    const pk = await this.configService.get('PRIV_KEY');
+    const adminAcc = w3.eth.accounts.privateKeyToAccount(pk);
+    return adminAcc.address;
   }
 
-  async sendAdmin(payload: ITxOptions) {
-    return await this.local.eth.sendTransaction(payload);
+  async sendAdmin(data: SendAdminDto) {
+    const w3 = this.getWeb3(data.network);
+    if (data.network === Networks.LOCAL) {
+      return await w3.eth.sendTransaction(data.payload);
+    }
+    const pk = await this.configService.get('PRIV_KEY');
+    const adminAcc = w3.eth.accounts.privateKeyToAccount(pk);
+    const signed = await adminAcc.signTransaction(data.payload);
+    return await w3.eth.sendSignedTransaction(signed.rawTransaction);
   }
 
   getWeb3(network: Networks): Web3 {
     switch (network) {
-      case Networks.ETHEREUM || Networks.ETHEREUM_TEST:
+      case Networks.ETHEREUM:
         return this.ethereum;
-      case Networks.POLYGON || Networks.POLYGON_TEST:
+      case Networks.ETHEREUM_TEST:
+        return this.ethereum;
+      case Networks.POLYGON:
+        return this.polygon;
+      case Networks.POLYGON_TEST:
         return this.polygon;
       default:
         return this.local;
