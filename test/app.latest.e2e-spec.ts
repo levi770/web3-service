@@ -88,7 +88,7 @@ describe('App (e2e) latest', () => {
     redis_client = app.get(WEB3_SERVICE);
     await redis_client.connect();
     sqs_client = app.get(SqsClientService);
-    admin_acc_address = await lastValueFrom(redis_client.send({ cmd: CMD.GET_ADMIN }, {}));
+    admin_acc_address = await lastValueFrom(redis_client.send({ cmd: CMD.GET_ADMIN }, { network }));
     expect(admin_acc_address).not.toBeUndefined();
   });
 
@@ -115,7 +115,7 @@ describe('App (e2e) latest', () => {
       '{cmd: CMD.CREATE_WALLET} Creates a new encrypted wallet keystore in DB.',
       async () => {
         jest.setTimeout(timeout);
-        const data = { team_id: '1123456', test: true, network};
+        const data = { team_id: '1123456', test: true, network };
         const response = await lastValueFrom(redis_client.send({ cmd: CMD.CREATE_WALLET }, data));
         if (response.status === 'failed') {
           console.log(response);
@@ -431,7 +431,9 @@ describe('App (e2e) latest', () => {
       'Execute mint transaction on client side',
       async () => {
         jest.setTimeout(timeout);
-        const tx = await lastValueFrom(redis_client.send({ cmd: CMD.SEND_ADMIN }, user2_mint_tx_payload));
+        const tx = await lastValueFrom(
+          redis_client.send({ cmd: CMD.SEND_ADMIN }, { network, payload: user2_mint_tx_payload }),
+        );
         expect(tx.status).toBeTruthy();
         tx_receipt = tx;
       },

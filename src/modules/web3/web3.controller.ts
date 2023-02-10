@@ -14,6 +14,8 @@ import { ValidationPipe } from '../../common/pipes/validation.pipe';
 import { TransactionReceipt } from 'web3-core';
 import { ITxOptions } from './interfaces/txOptions.interface';
 import { RpcLogger } from '../../common/interceptors/rpc-loger.interceptor';
+import { SendAdminDto } from './dto/requests/send-admin.dto';
+import { GetAdminDto } from './dto/requests/get-admin.dto';
 
 const logger = new Logger('Web3Controller');
 
@@ -40,8 +42,8 @@ export class Web3Controller {
    */
   @UseInterceptors(new RpcLogger(logger))
   @MessagePattern({ cmd: CMD.GET_ADMIN })
-  async getAdmin(): Promise<string> {
-    return await this.web3Service.getAdmin();
+  async getAdmin(@Payload() data: GetAdminDto): Promise<string> {
+    return await this.web3Service.getAdmin(data);
   }
 
   /**
@@ -49,7 +51,7 @@ export class Web3Controller {
    */
   @UseInterceptors(new RpcLogger(logger))
   @MessagePattern({ cmd: CMD.SEND_ADMIN })
-  async sendAdmin(@Payload() data: ITxOptions): Promise<TransactionReceipt> {
+  async sendAdmin(@Payload() data: SendAdminDto): Promise<TransactionReceipt> {
     return await this.web3Service.sendAdmin(data);
   }
 
