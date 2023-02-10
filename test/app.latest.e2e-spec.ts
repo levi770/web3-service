@@ -24,7 +24,7 @@ import deploy_data from './data/deploy_data_new.json';
 jest.useRealTimers();
 
 const timeout = 60000;
-const network = Networks.LOCAL;
+const network = Networks.POLYGON_TEST;
 let admin_acc_address: string;
 let team_acc_address: string;
 let contract_slug: string;
@@ -115,7 +115,7 @@ describe('App (e2e) latest', () => {
       '{cmd: CMD.CREATE_WALLET} Creates a new encrypted wallet keystore in DB.',
       async () => {
         jest.setTimeout(timeout);
-        const data = { team_id: '1123456', test: true };
+        const data = { team_id: '1123456', test: true, network};
         const response = await lastValueFrom(redis_client.send({ cmd: CMD.CREATE_WALLET }, data));
         if (response.status === 'failed') {
           console.log(response);
@@ -153,8 +153,8 @@ describe('App (e2e) latest', () => {
         const data = Object(deploy_data);
         data.from_address = team_acc_address;
         data.slug = uuidv4();
-        data.price = '1';
-        data.arguments = `100::1::10::10::true::${team_acc_address}::${contract_name}::TEST::/metadata/${data.slug}/`;
+        data.price = '0';
+        data.arguments = `100::0::10::10::true::${team_acc_address}::${contract_name}::TEST::/metadata/${data.slug}/`;
         data.network = network;
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.DEPLOY }, data));
         if (response.status === 'failed') {
@@ -553,7 +553,7 @@ describe('App (e2e) latest', () => {
       expect(token_uri_id).not.toBeUndefined();
       const data: UpdateMetadataRequest = {
         slug: contract_slug,
-        token_id: token_uri_id.toString(),
+        //token_id: token_uri_id.toString(),
         meta_data: metadata,
       };
       const response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));

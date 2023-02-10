@@ -249,7 +249,8 @@ export class DbService {
   async updateMetadata(data: UpdateMetadataRequest): Promise<MetadataModel> {
     try {
       const metadata = (await this.getOneObject(ObjectTypes.METADATA, {
-        where: { token_id: data.token_id, slug: data.slug },
+        //where: { token_id: data.token_id, slug: data.slug },
+        where: { slug: data.slug },
       })) as MetadataModel;
 
       if (!metadata) {

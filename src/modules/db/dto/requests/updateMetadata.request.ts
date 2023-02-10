@@ -1,4 +1,4 @@
-import { IsObject, IsString } from 'class-validator';
+import { IsObject, IsOptional, IsString } from 'class-validator';
 import { IMetaData } from '../../../web3/interfaces/metaData.interface';
 
 /**
@@ -8,8 +8,8 @@ export class UpdateMetadataRequest {
   @IsString()
   slug: string;
 
-  @IsString()
-  token_id: string;
+  @IsOptional()
+  token_id?: string;
 
   @IsObject()
   meta_data: IMetaData;
