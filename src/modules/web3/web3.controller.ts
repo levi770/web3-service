@@ -12,10 +12,9 @@ import { WhitelistRequest } from './dto/requests/whitelist.request';
 import { Web3Service } from './web3.service';
 import { ValidationPipe } from '../../common/pipes/validation.pipe';
 import { TransactionReceipt } from 'web3-core';
-import { ITxOptions } from './interfaces/txOptions.interface';
 import { RpcLogger } from '../../common/interceptors/rpc-loger.interceptor';
-import { SendAdminDto } from './dto/requests/send-admin.dto';
-import { GetAdminDto } from './dto/requests/get-admin.dto';
+import { SendAdminDto } from './dto/requests/sendAdmin.dto';
+import { GetAdminDto } from './dto/requests/getAdmin.dto';
 
 const logger = new Logger('Web3Controller');
 

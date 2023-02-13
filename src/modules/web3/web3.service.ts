@@ -11,7 +11,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Job, Queue } from 'bull';
 import { JobResult } from '../../common/dto/jobResult.dto';
-import { IMintData } from './interfaces/mintData.interface';
+import { IMintOptions } from './interfaces/mintOptions.interface';
 import { Networks, ObjectTypes, OperationTypes, ProcessTypes, Statuses, WEB3_QUEUE } from '../../common/constants';
 import { Observable } from 'rxjs';
 import { RpcException } from '@nestjs/microservices';
@@ -26,8 +26,8 @@ import { DbService } from '../db/db.service';
 import { TransactionModel } from '../db/models/transaction.model';
 import { IWallet } from './interfaces/wallet.interface';
 import { CreateWalletRequest } from './dto/requests/createWallet.request';
-import { SendAdminDto } from './dto/requests/send-admin.dto';
-import { GetAdminDto } from './dto/requests/get-admin.dto';
+import { SendAdminDto } from './dto/requests/sendAdmin.dto';
+import { GetAdminDto } from './dto/requests/getAdmin.dto';
 
 /**
  * A service class for interacting with Web3.
@@ -76,13 +76,13 @@ export class Web3Service {
     try {
       const jobId = uuidv4();
       const job$: Observable<JobResult> = new Observable((observer) => {
-        const active = (job: Job<IMintData | DeployRequest>) => {
+        const active = (job: Job<IMintOptions | DeployRequest>) => {
           checkSubscriptions();
           if (job.id === jobId) {
             observer.next(new JobResult(job.id, Statuses.ACTIVE, job.data));
           }
         };
-        const completed = (job: Job<IMintData | DeployRequest>, result: ContractModel | TokenModel) => {
+        const completed = (job: Job<IMintOptions | DeployRequest>, result: ContractModel | TokenModel) => {
           checkSubscriptions();
           if (job.id === jobId) {
             observer.next(new JobResult(job.id, Statuses.COMPLETED, result));
@@ -90,7 +90,7 @@ export class Web3Service {
             removeAllListeners();
           }
         };
-        const failed = (job: Job<IMintData | DeployRequest>, error: Error) => {
+        const failed = (job: Job<IMintOptions | DeployRequest>, error: Error) => {
           checkSubscriptions();
           if (job.id === jobId) {
             observer.next(new JobResult(job.id, Statuses.FAILED, error.message));
@@ -128,98 +128,89 @@ export class Web3Service {
    * Sends a transaction to the Ethereum or Polygon network.
    */
   async processTx(txPayload: ITxPayload): Promise<ITxResult> {
-    try {
-      const w3: Web3 = this.getWeb3(txPayload.network);
-      const contractObj = txPayload.contract_obj;
-      const contract = txPayload.contract;
+    const w3 = this.getWeb3(txPayload.network);
+    const contractObj = txPayload.contract_obj;
+    const contract = txPayload.contract;
+    const tx: ITxOptions = {
+      nonce: await w3.eth.getTransactionCount(txPayload.from_address),
+      maxPriorityFeePerGas: await w3.eth.getGasPrice(),
+      from: txPayload.from_address,
+      data: txPayload.data,
+    };
 
-      const tx: ITxOptions = {
-        nonce: await w3.eth.getTransactionCount(txPayload.from_address),
-        maxPriorityFeePerGas: await w3.eth.getGasPrice(),
-        from: txPayload.from_address,
-        data: txPayload.data,
-      };
+    switch (txPayload.operation_type) {
+      case OperationTypes.DEPLOY:
+        tx.gas = await w3.eth.estimateGas({
+          from: txPayload.from_address,
+          data: txPayload.data,
+          value: 0,
+        });
+        break;
+      case OperationTypes.MINT:
+        tx.to = contract.options.address;
+        tx.value = +U.toWei(contractObj.price, 'ether');
+        break;
+      default:
+        const value = txPayload.value ? +U.toWei(txPayload.value, 'ether') : 0;
+        tx.to = contract.options.address;
+        tx.value = value;
+        break;
+    }
 
+    tx.gas = await w3.eth.estimateGas({
+      from: txPayload.from_address,
+      to: tx.to,
+      data: txPayload.data,
+      value: tx.value || 0,
+    });
+
+    const commission = (+tx.gas * +tx.maxPriorityFeePerGas).toString();
+    const balance = await w3.eth.getBalance(txPayload.from_address);
+
+    if (+balance < +commission) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Not enough balance',
+      });
+    }
+
+    if (!txPayload.execute) {
+      return { payload: tx, commission, balance };
+    }
+
+    const txObjPayload = {
+      network: txPayload.network,
+      status: Statuses.CREATED,
+      address: txPayload.from_address,
+      tx_payload: tx,
+    };
+    const [txObj] = (await this.dbService.create([txObjPayload], ObjectTypes.TRANSACTION)) as TransactionModel[];
+    await contractObj.$add('transaction', txObj);
+    const account = w3.eth.accounts.decrypt(txPayload.keystore, this.configService.get('DEFAULT_PASSWORD'));
+    const signed = await account.signTransaction(tx);
+    const receipt = await w3.eth.sendSignedTransaction(signed.rawTransaction);
+
+    if (receipt.status) {
+      txObj.status = Statuses.PROCESSED;
+      txObj.tx_receipt = receipt;
+      await txObj.save();
       switch (txPayload.operation_type) {
         case OperationTypes.DEPLOY:
-          tx.gas = await w3.eth.estimateGas({
-            from: txPayload.from_address,
-            data: txPayload.data,
-            value: 0,
-          });
-          break;
-        case OperationTypes.MINT:
-          tx.to = contract.options.address;
-          tx.value = +U.toWei(contractObj.price, 'ether');
-          tx.gas = await w3.eth.estimateGas({
-            from: txPayload.from_address,
-            to: contract.options.address,
-            data: txPayload.data,
-            value: tx.value,
-          });
-          break;
-        default:
-          const value = txPayload.value ? +U.toWei(txPayload.value, 'ether') : 0;
-          tx.to = contract.options.address;
-          tx.value = value;
-          tx.gas = await w3.eth.estimateGas({
-            from: txPayload.from_address,
-            to: contract.options.address,
-            data: txPayload.data,
-            value,
-          });
-          break;
-      }
-
-      const comission = (+tx.gas * +tx.maxPriorityFeePerGas).toString();
-      const balance = await w3.eth.getBalance(txPayload.from_address);
-
-      if (+balance < +comission) {
-        throw new RpcException({
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Not enough balance',
-        });
-      }
-
-      if (!txPayload.execute) {
-        return { payload: tx, comission, balance };
-      }
-
-      const txObjPayload = {
-        network: txPayload.network,
-        status: Statuses.CREATED,
-        address: txPayload.from_address,
-        tx_payload: tx,
-      };
-      const txObj = (await this.dbService.create([txObjPayload], ObjectTypes.TRANSACTION)) as TransactionModel[];
-      await contractObj.$add('transaction', txObj[0]);
-
-      const account = w3.eth.accounts.decrypt(txPayload.keystore, this.configService.get('DEFAULT_PASSWORD'));
-      const signed = await account.signTransaction(tx);
-      const receipt = await w3.eth.sendSignedTransaction(signed.rawTransaction);
-
-      if (receipt.status) {
-        txObj[0].status = Statuses.PROCESSED;
-        txObj[0].tx_receipt = receipt;
-        await txObj[0].save();
-        if (txPayload.operation_type === OperationTypes.DEPLOY) {
           contractObj.status = Statuses.PROCESSED;
           contractObj.address = receipt.contractAddress;
           await contractObj.save();
-        }
-        if (txPayload.operation_type === OperationTypes.MINT) {
+          break;
+        case OperationTypes.MINT:
           const tokenObj = txPayload.token_obj;
           const metadataObj = txPayload.metadata_obj;
           tokenObj.status = Statuses.PROCESSED;
-          tokenObj.token_id = await this.dbService.getTokenId(contractObj.id);
           tokenObj.address = receipt.contractAddress;
-          tokenObj.tx_hash = receipt.transactionHash;
           tokenObj.tx_receipt = receipt;
           await tokenObj.save();
-          metadataObj.token_id = tokenObj.token_id;
+          metadataObj.token_id = await this.dbService.getTokenId(contractObj.id, tokenObj.qty);
           await metadataObj.save();
-        }
-        if (txPayload.operation_type === OperationTypes.WHITELIST_ADD) {
+          break;
+        case OperationTypes.WHITELIST_ADD:
           const ids = txPayload.whitelist_obj.map((obj) => obj.id);
           await this.dbService.updateStatus(
             {
@@ -230,19 +221,14 @@ export class Web3Service {
             },
             ObjectTypes.WHITELIST,
           );
-        }
-      } else {
-        txObj[0].status = Statuses.FAILED;
-        await txObj[0].save();
+          break;
       }
-
-      return { payload: tx, comission, balance, txObj: txObj[0] };
-    } catch (error) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message,
-      });
+    } else {
+      txObj[0].status = Statuses.FAILED;
+      await txObj[0].save();
     }
+
+    return { payload: tx, commission, balance, txObj };
   }
 
   /**
@@ -314,11 +300,11 @@ export class Web3Service {
           const tx_payload = {
             from: accounts[0],
             to: account[0].address,
-            value: U.toWei('0.1'),
+            value: U.toWei('10'),
             gas: await w3.eth.estimateGas({
               from: accounts[0],
               to: account[0].address,
-              value: U.toWei('0.1'),
+              value: U.toWei('10'),
             }),
           };
           await w3.eth.sendTransaction(tx_payload);
