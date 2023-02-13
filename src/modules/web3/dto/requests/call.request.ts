@@ -1,4 +1,4 @@
-import { IMintData } from '../../interfaces/mintData.interface';
+import { IMintOptions } from '../../interfaces/mintOptions.interface';
 import { Networks, OperationTypes } from '../../../../common/constants';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 import { WhitelistRequest } from './whitelist.request';
@@ -32,7 +32,7 @@ export class CallRequest {
   operation_type: OperationTypes;
 
   @IsOptional()
-  operation_options?: IMintData | WhitelistRequest;
+  operation_options?: IMintOptions | WhitelistRequest;
 
   @IsOptional()
   test?: boolean;

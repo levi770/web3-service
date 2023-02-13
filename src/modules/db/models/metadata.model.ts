@@ -24,8 +24,8 @@ export class MetadataModel extends Model {
   @Column({ type: DataType.STRING })
   slug: string;
 
-  @Column({ type: DataType.INTEGER })
-  token_id: number;
+  @Column({ type: DataType.RANGE(DataType.INTEGER) })
+  token_id: number[];
 
   @Column({ type: DataType.JSON })
   meta_data: IMetaData;

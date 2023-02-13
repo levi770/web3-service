@@ -17,9 +17,6 @@ export class WhitelistModel extends Model {
   @Column({ type: DataType.STRING })
   status: string;
 
-  @Column({ type: DataType.STRING })
-  tx_hash: string;
-
   @Column({ type: DataType.JSON })
   tx_receipt: TransactionReceipt;
 
