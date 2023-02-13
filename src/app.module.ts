@@ -6,7 +6,7 @@ import { ContractModel } from './modules/db/models/contract.model';
 import { DbModule } from './modules/db/db.module';
 import { IpfsModule } from './modules/ipfs/ipfs.module';
 import { MetadataModel } from './modules/db/models/metadata.model';
-import { Logger, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { TokenModel } from './modules/db/models/token.model';
 import { Web3Module } from './modules/web3/web3.module';

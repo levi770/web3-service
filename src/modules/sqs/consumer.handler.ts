@@ -1,8 +1,8 @@
 import { SqsConsumerEvent, SqsConsumerEventHandler, SqsMessageHandler, SqsProcess } from '@nestjs-packages/sqs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CMD, Events, ProcessTypes as pt } from '../../common/constants';
-import { Logger, HttpStatus } from '@nestjs/common';
-import { Observable, lastValueFrom } from 'rxjs';
+import { Logger } from '@nestjs/common';
+import { Observable } from 'rxjs';
 import { JobResult } from '../../common/dto/jobResult.dto';
 import { Web3Service } from '../web3/web3.service';
 import { SQS } from 'aws-sdk';

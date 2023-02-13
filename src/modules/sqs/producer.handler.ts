@@ -6,7 +6,6 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { Events, Statuses } from '../../common/constants';
 import { JobCreatedEvent } from './events/job-created.event';
 import { ProcessingErrorEvent } from './events/processing-error.event';
-import { SQS } from 'aws-sdk';
 dotenv.config();
 
 @SqsProcess(process.env.SQS_PRODUCER_NAME)
@@ -17,7 +16,9 @@ export class SqsProducerHandler {
   }
 
   @SqsMessageHandler(false)
-  async handleMessage(_: SQS.Message) {}
+  async handleMessage() {
+    return;
+  }
 
   @OnEvent(Events.JOB_CREATED)
   handleJobCreatedEvent(event: JobCreatedEvent) {

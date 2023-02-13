@@ -1,4 +1,3 @@
-import { Response } from '../../../common/dto/response.dto';
 import { SQS } from 'aws-sdk';
 
 export class ProcessingErrorEvent {
