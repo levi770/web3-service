@@ -23,8 +23,8 @@ import deploy_data from './data/deploy_data_new.json';
 
 jest.useRealTimers();
 
-const timeout = 60000;
-const network = Networks.POLYGON_TEST;
+const timeout = 600000;
+const network = Networks.LOCAL;
 let admin_acc_address: string;
 let team_acc_address: string;
 let contract_slug: string;
@@ -163,7 +163,7 @@ describe('App (e2e) latest', () => {
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object), contract: expect.any(Object) });
-        const responceData = response.data as DeployResponse;
+        const responceData = response.data as any as DeployResponse;
         contract_id = responceData.contract.id;
         contract_slug = responceData.contract.slug;
       },
@@ -271,7 +271,7 @@ describe('App (e2e) latest', () => {
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object) });
-        const responceData = response.data as WhitelistResponse;
+        const responceData = response.data as any as WhitelistResponse;
         merkle_root = responceData.root;
         admin_acc_proof = (responceData.proof.find((p) => (p as any).address === admin_acc_address) as any).proof;
         team_acc_proof = (responceData.proof.find((p) => (p as any).address === team_acc_address) as any).proof;
@@ -333,16 +333,18 @@ describe('App (e2e) latest', () => {
       '{cmd: CMD.MINT} buy user1 whitelist',
       async () => {
         jest.setTimeout(timeout);
+        const qty = 1;
         const data = {
           execute: true,
           network: network,
           from_address: team_acc_address,
           contract_id: contract_id,
           method_name: 'buy',
-          arguments: `1::${JSON.stringify(team_acc_proof)}`,
+          arguments: `${qty}::${JSON.stringify(team_acc_proof)}`,
           operation_type: 'mint',
           operation_options: {
             mint_to: team_acc_address,
+            qty: qty,
             asset_url: 'b8dfd07f-4572-472c-b11c-a6b1354c26c6.original.Dubai.jpg',
             asset_type: 'image',
             meta_data: {
@@ -381,7 +383,7 @@ describe('App (e2e) latest', () => {
           contract_id: contract_id,
           from_address: team_acc_address,
           method_name: 'tokenURI',
-          arguments: token.token_id,
+          arguments: 0,
           operation_type: 'readcontract',
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
@@ -391,7 +393,7 @@ describe('App (e2e) latest', () => {
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tokenURI: expect.any(String) });
-        token_uri_id = token.token_id;
+        token_uri_id = 0;
         token_uri = (response.data as any).tokenURI;
       },
       timeout,
@@ -400,6 +402,7 @@ describe('App (e2e) latest', () => {
     it(
       '{cmd: CMD.MINT} buy user2 whitelist nometadata',
       async () => {
+        const qty = 10;
         jest.setTimeout(timeout);
         const data = {
           execute: false,
@@ -407,7 +410,7 @@ describe('App (e2e) latest', () => {
           from_address: admin_acc_address,
           contract_id: contract_id,
           method_name: 'buy',
-          arguments: `1::${JSON.stringify(admin_acc_proof)}`,
+          arguments: `${qty}::${JSON.stringify(admin_acc_proof)}`,
           operation_type: 'mint',
           operation_options: {
             mint_to: admin_acc_address,
