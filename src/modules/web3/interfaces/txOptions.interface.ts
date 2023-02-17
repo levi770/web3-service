@@ -10,4 +10,5 @@ export interface ITxOptions {
   nonce?: number;
   chainId?: number;
   maxPriorityFeePerGas?: string;
+  maxFeePerGas?: string;
 }

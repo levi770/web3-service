@@ -129,13 +129,14 @@ export class Web3Service {
    */
   async processTx(txPayload: ITxPayload): Promise<ITxResult> {
     const w3 = this.getWeb3(txPayload.network);
+    const { maxFeePerGas, maxPriorityFeePerGas } = await this.calculateGas(w3, txPayload.network);
     const contractObj = txPayload.contract_obj;
     const contract = txPayload.contract;
     const tx: ITxOptions = {
       nonce: await w3.eth.getTransactionCount(txPayload.from_address),
-      maxPriorityFeePerGas: await w3.eth.getGasPrice(),
       from: txPayload.from_address,
       data: txPayload.data,
+      maxPriorityFeePerGas,
     };
 
     switch (txPayload.operation_type) {
@@ -164,7 +165,7 @@ export class Web3Service {
       value: tx.value || 0,
     });
 
-    const commission = (+tx.gas * +tx.maxPriorityFeePerGas).toString();
+    const commission = (+tx.gas * +maxFeePerGas).toString();
     const balance = await w3.eth.getBalance(txPayload.from_address);
 
     if (+balance < +commission) {
@@ -194,6 +195,7 @@ export class Web3Service {
       txObj.status = Statuses.PROCESSED;
       txObj.tx_receipt = receipt;
       await txObj.save();
+      
       switch (txPayload.operation_type) {
         case OperationTypes.DEPLOY:
           contractObj.status = Statuses.PROCESSED;
@@ -202,13 +204,9 @@ export class Web3Service {
           break;
         case OperationTypes.MINT:
           const tokenObj = txPayload.token_obj;
-          const metadataObj = txPayload.metadata_obj;
           tokenObj.status = Statuses.PROCESSED;
-          tokenObj.address = receipt.contractAddress;
           tokenObj.tx_receipt = receipt;
           await tokenObj.save();
-          metadataObj.token_id = await this.dbService.getTokenId(contractObj.id, tokenObj.qty);
-          await metadataObj.save();
           break;
         case OperationTypes.WHITELIST_ADD:
           const ids = txPayload.whitelist_obj.map((obj) => obj.id);
@@ -229,6 +227,24 @@ export class Web3Service {
     }
 
     return { payload: tx, commission, balance, txObj };
+  }
+
+  async calculateGas(w3: Web3, network: Networks): Promise<{ maxFeePerGas: number; maxPriorityFeePerGas: string }> {
+    if (network === Networks.LOCAL) {
+      const gasPrice = await w3.eth.getGasPrice();
+      return { maxFeePerGas: +gasPrice, maxPriorityFeePerGas: gasPrice };
+    }
+    
+    const block = await w3.eth.getBlock('latest');
+    const fetch_opts = {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      body: JSON.stringify({ id: 1, jsonrpc: '2.0', method: 'eth_maxPriorityFeePerGas' }),
+    };
+    let maxPriorityFeePerGas = (await (await fetch((w3.currentProvider as any).host, fetch_opts)).json()).result;
+    let max_priority_fee = U.hexToNumber(maxPriorityFeePerGas);
+    let maxFeePerGas = block.baseFeePerGas + +max_priority_fee;
+    return { maxFeePerGas, maxPriorityFeePerGas };
   }
 
   /**
@@ -315,11 +331,11 @@ export class Web3Service {
           const tx_payload = {
             from: adminAcc.address,
             to: account[0].address,
-            value: U.toWei('0.1'),
+            value: U.toWei('2'),
             gas: await w3.eth.estimateGas({
               from: adminAcc.address,
               to: account[0].address,
-              value: U.toWei('0.1'),
+              value: U.toWei('2'),
             }),
           };
           const signed = await adminAcc.signTransaction(tx_payload);
