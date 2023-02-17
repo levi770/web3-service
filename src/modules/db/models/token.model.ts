@@ -19,9 +19,6 @@ export class TokenModel extends Model {
   @Column({ type: DataType.STRING })
   status: string;
 
-  @Column({ type: DataType.STRING })
-  address: string;
-
   @Column({ type: DataType.INTEGER })
   qty: number;
 

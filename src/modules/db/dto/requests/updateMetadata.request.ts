@@ -9,7 +9,7 @@ export class UpdateMetadataRequest {
   slug: string;
 
   @IsOptional()
-  token_id?: string;
+  token_id?: number;
 
   @IsObject()
   meta_data: IMetaData;

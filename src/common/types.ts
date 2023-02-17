@@ -35,3 +35,8 @@ export type ModelResponse =
   | MetadataModel
   | WalletModel
   | TransactionModel;
+
+export type Range = {
+  value: number;
+  inclusive: boolean;
+}[];

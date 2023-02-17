@@ -197,11 +197,13 @@ export class Web3Processor {
       const isMetadataExist = mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type ? true : false;
       if (isMetadataExist) {
         const meta_data = await this.getMetadata(mintOptions);
+        const token_id = await this.dbManager.getTokenId(contractObj.id, tokenObj.qty);
         const metadataPayload = {
           status: Statuses.CREATED,
           type: MetadataTypes.SPECIFIED,
           slug: contractObj.slug,
           meta_data,
+          token_id,
         };
 
         metadata = (await this.dbManager.create([metadataPayload], ObjectTypes.METADATA)) as MetadataModel[];
