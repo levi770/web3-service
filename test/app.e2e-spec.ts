@@ -155,7 +155,7 @@ describe('App (e2e) old', () => {
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object), contract: expect.any(Object) });
-        const responceData = response.data as DeployResponse;
+        const responceData = response.data as any as DeployResponse;
         contract_id = responceData.contract.id;
         contract_slug = responceData.contract.slug;
       },
@@ -292,7 +292,7 @@ describe('App (e2e) old', () => {
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object) });
-        const responceData = response.data as WhitelistResponse;
+        const responceData = response.data as any as WhitelistResponse;
         merkle_root = responceData.root;
         admin_acc_proof = (responceData.proof.find((p) => (p as any).address === admin_acc_address) as any).proof;
         team_acc_proof = (responceData.proof.find((p) => (p as any).address === team_acc_address) as any).proof;
@@ -403,7 +403,7 @@ describe('App (e2e) old', () => {
           contract_id: contract_id,
           from_address: team_acc_address,
           method_name: 'tokenURI',
-          arguments: token.token_id,
+          //arguments: token.token_id,
           operation_type: 'readcontract',
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
@@ -413,7 +413,7 @@ describe('App (e2e) old', () => {
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tokenURI: expect.any(String) });
-        token_uri_id = token.token_id;
+        //token_uri_id = token.token_id;
         token_uri = (response.data as any).tokenURI;
       },
       timeout,
@@ -576,7 +576,7 @@ describe('App (e2e) old', () => {
       expect(token_uri_id).not.toBeUndefined();
       const data: UpdateMetadataRequest = {
         slug: contract_slug,
-        token_id: token_uri_id.toString(),
+        //token_id: token_uri_id.toString(),
         meta_data: metadata,
       };
       const response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
