@@ -1,5 +1,6 @@
 import { IMetaData } from '../../web3/interfaces/metaData.interface';
 import { MetadataTypes, Statuses } from '../../../common/constants';
+import { Range } from '../../../common/types';
 
 /**
  * A data transfer object for passing data for new metadata.
@@ -10,6 +11,6 @@ export interface IMetadata {
   type?: MetadataTypes;
   status?: Statuses;
   address?: string;
-  token_id?: string;
+  token_id?: Range;
   meta_data?: IMetaData;
 }

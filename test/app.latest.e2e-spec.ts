@@ -23,16 +23,60 @@ import deploy_data from './data/deploy_data_new.json';
 
 jest.useRealTimers();
 
-const timeout = 60000;
-const network = Networks.POLYGON_TEST;
+const timeout = 600000;
+const network = Networks.LOCAL;
 let admin_acc_address: string;
 let team_acc_address: string;
 let contract_slug: string;
 let contract_id: string;
-let token_uri_id: number;
-let token_uri: string;
+let token1_uri_id: string;
+let token10_uri_id: string;
+let token1_uri: string;
+let token10_uri: string;
 let token_id: string;
 let tx_receipt: object;
+
+const contract_name = 'TestToken';
+const metadata1 = {
+  name: 'meta_data_1_name',
+  description: 'meta_data_1_description',
+  attributes: [
+    {
+      trait_type: 'attributes_trait_type',
+      value: 'attributes_trait_value',
+    },
+  ],
+};
+const metadata1_updated = {
+  name: 'meta_data_1_name_updated',
+  description: 'meta_data_1_description_updated',
+  attributes: [
+    {
+      trait_type: 'attributes_trait_type_updated',
+      value: 'attributes_trait_value_updated',
+    },
+  ],
+};
+const metadata10 = {
+  name: 'meta_data_10_name',
+  description: 'meta_data_10_description',
+  attributes: [
+    {
+      trait_type: 'attributes_trait_type',
+      value: 'attributes_trait_value',
+    },
+  ],
+};
+const metadata10_updated = {
+  name: 'meta_data_10_name_updated',
+  description: 'meta_data_10_description_updated',
+  attributes: [
+    {
+      trait_type: 'attributes_trait_type_updated',
+      value: 'attributes_trait_value_updated',
+    },
+  ],
+};
 
 describe('App (e2e) latest', () => {
   let redis_client: ClientProxy;
@@ -44,18 +88,8 @@ describe('App (e2e) latest', () => {
   let team_acc_proof: string[];
   let token: TokenModel;
   let user2_mint_tx_payload: object;
-  const contract_name = 'TestToken';
+
   let jobId: string | number;
-  const metadata = {
-    name: 'meta_data_name_updated',
-    description: 'meta_data_description_updated',
-    attributes: [
-      {
-        trait_type: 'attributes_trait_type_updated',
-        value: 'attributes_trait_value_updated',
-      },
-    ],
-  };
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -147,7 +181,7 @@ describe('App (e2e) latest', () => {
     );
 
     it(
-      '{cmd: CMD.DEPLOY} Processes a deployment',
+      '{cmd: CMD.DEPLOY} Processes a deployment free collection',
       async () => {
         jest.setTimeout(timeout);
         const data = Object(deploy_data);
@@ -163,7 +197,7 @@ describe('App (e2e) latest', () => {
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object), contract: expect.any(Object) });
-        const responceData = response.data as DeployResponse;
+        const responceData = response.data as any as DeployResponse;
         contract_id = responceData.contract.id;
         contract_slug = responceData.contract.slug;
       },
@@ -214,7 +248,7 @@ describe('App (e2e) latest', () => {
         expect(response.data).toMatchObject({
           payload: expect.any(Object),
           balance: expect.any(String),
-          comission: expect.any(String),
+          commission: expect.any(String),
           txObj: expect.any(Object),
         });
       },
@@ -242,7 +276,7 @@ describe('App (e2e) latest', () => {
         expect(response.data).toMatchObject({
           payload: expect.any(Object),
           balance: expect.any(String),
-          comission: expect.any(String),
+          commission: expect.any(String),
           txObj: expect.any(Object),
         });
       },
@@ -271,7 +305,7 @@ describe('App (e2e) latest', () => {
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tx: expect.any(Object) });
-        const responceData = response.data as WhitelistResponse;
+        const responceData = response.data as any as WhitelistResponse;
         merkle_root = responceData.root;
         admin_acc_proof = (responceData.proof.find((p) => (p as any).address === admin_acc_address) as any).proof;
         team_acc_proof = (responceData.proof.find((p) => (p as any).address === team_acc_address) as any).proof;
@@ -330,31 +364,24 @@ describe('App (e2e) latest', () => {
     );
 
     it(
-      '{cmd: CMD.MINT} buy user1 whitelist',
+      '{cmd: CMD.MINT} buy user1 whitelist free collection',
       async () => {
         jest.setTimeout(timeout);
+        const qty = 1;
         const data = {
           execute: true,
           network: network,
           from_address: team_acc_address,
           contract_id: contract_id,
           method_name: 'buy',
-          arguments: `1::${JSON.stringify(team_acc_proof)}`,
+          arguments: `${qty}::${JSON.stringify(team_acc_proof)}`,
           operation_type: 'mint',
           operation_options: {
             mint_to: team_acc_address,
+            qty: qty,
             asset_url: 'b8dfd07f-4572-472c-b11c-a6b1354c26c6.original.Dubai.jpg',
             asset_type: 'image',
-            meta_data: {
-              name: 'meta_data_name',
-              description: 'meta_data_description',
-              attributes: [
-                {
-                  trait_type: 'attributes_trait_type',
-                  value: 'attributes_trait_value',
-                },
-              ],
-            },
+            meta_data: metadata1,
           },
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data));
@@ -373,6 +400,7 @@ describe('App (e2e) latest', () => {
     it(
       '{cmd: CMD.COMMON} get tokenURI by tokenId in blockchain',
       async () => {
+        token1_uri_id = '0';
         jest.setTimeout(timeout);
         expect(token).toBeTruthy();
         const data = {
@@ -381,7 +409,7 @@ describe('App (e2e) latest', () => {
           contract_id: contract_id,
           from_address: team_acc_address,
           method_name: 'tokenURI',
-          arguments: token.token_id,
+          arguments: token1_uri_id,
           operation_type: 'readcontract',
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
@@ -391,15 +419,15 @@ describe('App (e2e) latest', () => {
         expect(response.jobId).toBeTruthy();
         expect(response.status).toEqual('completed');
         expect(response.data).toMatchObject({ tokenURI: expect.any(String) });
-        token_uri_id = token.token_id;
-        token_uri = (response.data as any).tokenURI;
+        token1_uri = (response.data as any).tokenURI;
       },
       timeout,
     );
 
     it(
-      '{cmd: CMD.MINT} buy user2 whitelist nometadata',
+      '{cmd: CMD.MINT} buy user2 whitelist nometadata free collection',
       async () => {
+        const qty = 1;
         jest.setTimeout(timeout);
         const data = {
           execute: false,
@@ -407,7 +435,7 @@ describe('App (e2e) latest', () => {
           from_address: admin_acc_address,
           contract_id: contract_id,
           method_name: 'buy',
-          arguments: `1::${JSON.stringify(admin_acc_proof)}`,
+          arguments: `${qty}::${JSON.stringify(admin_acc_proof)}`,
           operation_type: 'mint',
           operation_options: {
             mint_to: admin_acc_address,
@@ -436,6 +464,80 @@ describe('App (e2e) latest', () => {
         );
         expect(tx.status).toBeTruthy();
         tx_receipt = tx;
+      },
+      timeout,
+    );
+
+    it(
+      '{cmd: CMD.MINT} buy user2 whitelist metadata10 free collection',
+      async () => {
+        const qty = 10;
+        jest.setTimeout(timeout);
+        const data = {
+          execute: false,
+          network: network,
+          from_address: admin_acc_address,
+          contract_id: contract_id,
+          method_name: 'buy',
+          arguments: `${qty}::${JSON.stringify(admin_acc_proof)}`,
+          operation_type: 'mint',
+          operation_options: {
+            mint_to: admin_acc_address,
+            qty: qty,
+            asset_url: 'b8dfd07f-4572-472c-b11c-a6b1354c26c6.original.Dubai.jpg',
+            asset_type: 'image',
+            meta_data: metadata10,
+          },
+        };
+        const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
+        expect(response.jobId).toBeTruthy();
+        expect(response.status).toEqual('completed');
+        expect(response.data).toMatchObject({ tx: expect.any(Object) });
+        const responceData = response.data as any;
+        user2_mint_tx_payload = responceData.tx.payload;
+      },
+      timeout,
+    );
+
+    it(
+      'Execute mint transaction on client side',
+      async () => {
+        jest.setTimeout(timeout);
+        const tx = await lastValueFrom(
+          redis_client.send({ cmd: CMD.SEND_ADMIN }, { network, payload: user2_mint_tx_payload }),
+        );
+        expect(tx.status).toBeTruthy();
+        tx_receipt = tx;
+      },
+      timeout,
+    );
+
+    it(
+      '{cmd: CMD.COMMON} get tokenURI by tokenId in blockchain',
+      async () => {
+        token10_uri_id = '7';
+        jest.setTimeout(timeout);
+        expect(token).toBeTruthy();
+        const data = {
+          execute: true,
+          network: network,
+          contract_id: contract_id,
+          from_address: team_acc_address,
+          method_name: 'tokenURI',
+          arguments: token10_uri_id,
+          operation_type: 'readcontract',
+        };
+        const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.COMMON }, data));
+        if (response.status === 'failed') {
+          console.log(response);
+        }
+        expect(response.jobId).toBeTruthy();
+        expect(response.status).toEqual('completed');
+        expect(response.data).toMatchObject({ tokenURI: expect.any(String) });
+        token10_uri = (response.data as any).tokenURI;
       },
       timeout,
     );
@@ -551,12 +653,12 @@ describe('App (e2e) latest', () => {
       expect(response.data).toMatchObject(expect.any(Array));
     });
 
-    it(`{ cmd: CMD.UPDATE_METADATA } Update token metadata`, async () => {
-      expect(token_uri_id).not.toBeUndefined();
+    it(`{ cmd: CMD.UPDATE_METADATA } Update token metadata1`, async () => {
+      expect(token1_uri_id).not.toBeUndefined();
       const data: UpdateMetadataRequest = {
         slug: contract_slug,
-        //token_id: token_uri_id.toString(),
-        meta_data: metadata,
+        token_id: +token1_uri_id,
+        meta_data: metadata1_updated,
       };
       const response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
       expect(response.status).toEqual(200);
@@ -565,30 +667,49 @@ describe('App (e2e) latest', () => {
         contract_id: null,
         createdAt: expect.any(String),
         id: expect.any(String),
-        meta_data: {
-          attributes: [
-            {
-              trait_type: 'attributes_trait_type_updated',
-              value: 'attributes_trait_value_updated',
-            },
-          ],
-          description: 'meta_data_description_updated',
-          image: expect.any(String),
-          name: 'meta_data_name_updated',
-        },
+        meta_data: metadata1_updated,
         status: 'created',
-        token_id: token_uri_id,
+        token_id: expect.any(Array),
         type: 'specified',
         updatedAt: expect.any(String),
       });
     });
 
-    it(`GET /metadata/:slug/:id - Gets metadata by slug and token_id`, async () => {
-      const response = await request(server).get(`${token_uri}`).send();
+    it(`GET /metadata/:slug/:id - Gets metadata1 by slug and token1_id`, async () => {
+      const response = await request(server).get(`${token1_uri}`).send();
       expect(response.status).toEqual(200);
-      expect(response.body.attributes).toEqual(metadata.attributes);
-      expect(response.body.description).toEqual(metadata.description);
-      expect(response.body.name).toEqual(metadata.name);
+      expect(response.body.attributes).toEqual(metadata1_updated.attributes);
+      expect(response.body.description).toEqual(metadata1_updated.description);
+      expect(response.body.name).toEqual(metadata1_updated.name);
+    });
+
+    it(`{ cmd: CMD.UPDATE_METADATA } Update token metadata10`, async () => {
+      expect(token10_uri_id).not.toBeUndefined();
+      const data: UpdateMetadataRequest = {
+        slug: contract_slug,
+        token_id: +token10_uri_id,
+        meta_data: metadata10_updated,
+      };
+      const response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
+      expect(response.status).toEqual(200);
+      expect(response.data).toMatchObject({
+        slug: contract_slug,
+        contract_id: null,
+        createdAt: expect.any(String),
+        id: expect.any(String),
+        meta_data: metadata10_updated,
+        status: 'created',
+        token_id: expect.any(Array),
+        type: 'specified',
+        updatedAt: expect.any(String),
+      });
+    });
+
+    it(`GET /metadata/:slug/:id - Gets metadata10 by slug and token1_id`, async () => {
+      const response = await request(server).get(`${token10_uri}`).send();
+      expect(response.status).toEqual(200);
+      expect(response.body.description).toEqual(metadata10_updated.description);
+      expect(response.body.name).toEqual(metadata10_updated.name);
     });
   });
 

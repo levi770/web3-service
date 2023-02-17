@@ -1,7 +1,7 @@
 import { AbiItem } from 'web3-utils';
 import { FileTypes, Networks } from '../../../../common/constants';
 import { IMetaData } from '../../interfaces/metaData.interface';
-import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 
 /**
  * A data transfer object for passing deploy data.

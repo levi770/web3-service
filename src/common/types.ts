@@ -12,10 +12,10 @@ import { WhitelistModel } from '../modules/db/models/whitelist.model';
 import { CallRequest } from '../modules/web3/dto/requests/call.request';
 import { CreateWalletRequest } from '../modules/web3/dto/requests/createWallet.request';
 import { DeployRequest } from '../modules/web3/dto/requests/deploy.request';
-import { IMintData } from '../modules/web3/interfaces/mintData.interface';
+import { IMintOptions } from '../modules/web3/interfaces/mintOptions.interface';
 import { WhitelistRequest } from '../modules/web3/dto/requests/whitelist.request';
 
-export type Data = DeployRequest | IMintData | ContractModel | TokenModel | IWallet | string | null;
+export type Data = DeployRequest | IMintOptions | ContractModel | TokenModel | IWallet | string | null;
 export type ProcessData = CreateWalletRequest | CallRequest | DeployRequest | WhitelistRequest;
 
 export type CreateObjects = IContract[] | IToken[] | WhitelistRequest[] | IMetadata[] | IWallet[] | ITransaction[];
@@ -35,3 +35,8 @@ export type ModelResponse =
   | MetadataModel
   | WalletModel
   | TransactionModel;
+
+export type Range = {
+  value: number;
+  inclusive: boolean;
+}[];

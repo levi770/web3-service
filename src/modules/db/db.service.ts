@@ -5,7 +5,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { MetadataModel } from './models/metadata.model';
 import { MetadataTypes, ObjectTypes, Statuses } from '../../common/constants';
-import { Order } from 'sequelize';
+import { Order, Op } from 'sequelize';
 import { RpcException } from '@nestjs/microservices';
 import { TokenModel } from './models/token.model';
 import { UpdateMetadataRequest } from './dto/requests/updateMetadata.request';
@@ -119,7 +119,8 @@ export class DbService {
         args.include = this.getIncludeModels(objectType);
       }
       const repository = this.getRepository(objectType);
-      return await repository.findAndCountAll(args);
+      const data = await repository.findAndCountAll(args);
+      return data;
     } catch (error) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -181,9 +182,24 @@ export class DbService {
   /**
    * Gets the number of processed tokens associated with a contract.
    */
-  async getTokenId(contract_id: string): Promise<number> {
+  async getTokenId(
+    contract_id: string,
+    qty = 1,
+  ): Promise<
+    {
+      value: number;
+      inclusive: boolean;
+    }[]
+  > {
     try {
-      return await this.tokenRepository.count({ where: { contract_id, status: Statuses.PROCESSED } });
+      const count = await this.tokenRepository.sum('qty', {
+        where: { contract_id, status: Statuses.PROCESSED },
+      });
+      const range = [
+        { value: count ?? 0, inclusive: true },
+        { value: count + qty, inclusive: false },
+      ];
+      return range;
     } catch (error) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -225,8 +241,8 @@ export class DbService {
   async getMetadata(params: GetMetadataRequest): Promise<IMetaData> {
     try {
       const metadata = await this.getOneObject(ObjectTypes.METADATA, {
-        //where: { token_id: params.id, slug: params.slug },
-        where: { slug: params.slug },
+        where: { token_id: { [Op.contains]: params.id }, slug: params.slug },
+        //where: { slug: params.slug },
       });
       if (!metadata) {
         throw new RpcException({
@@ -249,8 +265,8 @@ export class DbService {
   async updateMetadata(data: UpdateMetadataRequest): Promise<MetadataModel> {
     try {
       const metadata = (await this.getOneObject(ObjectTypes.METADATA, {
-        //where: { token_id: data.token_id, slug: data.slug },
-        where: { slug: data.slug },
+        where: { token_id: { [Op.contains]: data.token_id }, slug: data.slug },
+        //where: { slug: data.slug },
       })) as MetadataModel;
 
       if (!metadata) {
@@ -273,7 +289,10 @@ export class DbService {
         slug: metadata.slug,
         type: MetadataTypes.SPECIFIED,
         meta_data: metadata.meta_data,
-        token_id: data.token_id,
+        token_id: [
+          { value: data.token_id, inclusive: true },
+          { value: data.token_id + 1, inclusive: false },
+        ],
       };
       const new_metadata = (await this.create([new_data], ObjectTypes.METADATA)) as MetadataModel[];
       const token = (await this.getOneObject(ObjectTypes.TOKEN, { where: { token_id: data.token_id } })) as TokenModel;

@@ -7,7 +7,7 @@ import { TransactionModel } from '../../db/models/transaction.model';
  */
 export interface ITxResult {
   payload?: ITxOptions;
-  comission?: string;
+  commission?: string;
   balance?: string;
   txReceipt?: TransactionReceipt;
   txObj?: TransactionModel;
