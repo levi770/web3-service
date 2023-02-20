@@ -196,22 +196,26 @@ export class Web3Processor {
     try {
       const isMetadataExist = mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type ? true : false;
       if (isMetadataExist) {
-        const meta_data = await this.getMetadata(mintOptions);
-        const token_id = await this.dbManager.getTokenId(contractObj.id, tokenObj.qty);
         const metadataPayload = {
           status: Statuses.CREATED,
           type: MetadataTypes.SPECIFIED,
           slug: contractObj.slug,
-          meta_data,
-          token_id,
+          meta_data: await this.getMetadata(mintOptions),
+          token_id: await this.dbManager.getTokenId(contractObj.id, tokenObj.qty),
         };
-
         metadata = (await this.dbManager.create([metadataPayload], ObjectTypes.METADATA)) as MetadataModel[];
         await this.dbManager.setMetadata({ object_id: tokenObj.id, id: metadata[0].id }, ObjectTypes.TOKEN);
-      } else {
-        metadata = [contractObj.metadata];
-        await this.dbManager.setMetadata({ object_id: tokenObj.id, id: metadata[0].id }, ObjectTypes.TOKEN);
       }
+      
+      const metadataPayload = {
+        status: Statuses.CREATED,
+        type: MetadataTypes.SPECIFIED,
+        slug: contractObj.slug,
+        meta_data: contractObj.metadata.meta_data,
+        token_id: await this.dbManager.getTokenId(contractObj.id, tokenObj.qty),
+      };
+      metadata = (await this.dbManager.create([metadataPayload], ObjectTypes.METADATA)) as MetadataModel[];
+      await this.dbManager.setMetadata({ object_id: tokenObj.id, id: metadata[0].id }, ObjectTypes.TOKEN);
       return metadata[0];
     } catch (err) {
       throw new RpcException({

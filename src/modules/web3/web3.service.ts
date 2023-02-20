@@ -195,7 +195,7 @@ export class Web3Service {
       txObj.status = Statuses.PROCESSED;
       txObj.tx_receipt = receipt;
       await txObj.save();
-      
+
       switch (txPayload.operation_type) {
         case OperationTypes.DEPLOY:
           contractObj.status = Statuses.PROCESSED;
@@ -234,7 +234,7 @@ export class Web3Service {
       const gasPrice = await w3.eth.getGasPrice();
       return { maxFeePerGas: +gasPrice, maxPriorityFeePerGas: gasPrice };
     }
-    
+
     const block = await w3.eth.getBlock('latest');
     const fetch_opts = {
       method: 'POST',
@@ -331,11 +331,11 @@ export class Web3Service {
           const tx_payload = {
             from: adminAcc.address,
             to: account[0].address,
-            value: U.toWei('2'),
+            value: U.toWei('0.8'),
             gas: await w3.eth.estimateGas({
               from: adminAcc.address,
               to: account[0].address,
-              value: U.toWei('2'),
+              value: U.toWei('0.8'),
             }),
           };
           const signed = await adminAcc.signTransaction(tx_payload);

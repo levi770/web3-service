@@ -10,7 +10,7 @@ import { RpcException } from '@nestjs/microservices';
 import { TokenModel } from './models/token.model';
 import { UpdateMetadataRequest } from './dto/requests/updateMetadata.request';
 import { WhitelistModel } from './models/whitelist.model';
-import { CreateObjects, CreatedObjects, ModelResponse } from '../../common/types';
+import { CreateObjects, CreatedObjects, ModelResponse, Range } from '../../common/types';
 import { WalletModel } from './models/wallet.model';
 import { TransactionModel } from './models/transaction.model';
 import { IMetaData } from '../web3/interfaces/metaData.interface';
@@ -182,15 +182,7 @@ export class DbService {
   /**
    * Gets the number of processed tokens associated with a contract.
    */
-  async getTokenId(
-    contract_id: string,
-    qty = 1,
-  ): Promise<
-    {
-      value: number;
-      inclusive: boolean;
-    }[]
-  > {
+  async getTokenId(contract_id: string, qty = 1): Promise<Range> {
     try {
       const count = await this.tokenRepository.sum('qty', {
         where: { contract_id, status: Statuses.PROCESSED },
