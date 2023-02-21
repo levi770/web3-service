@@ -1,7 +1,7 @@
 /**
  * Merkle proof interface.
  */
-export interface MerkleProof {
+export interface IMerkleProof {
   root: string;
   proof: string[];
 }

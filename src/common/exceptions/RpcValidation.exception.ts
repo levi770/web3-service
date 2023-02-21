@@ -1,4 +1,3 @@
-import { HttpStatus } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 
 export class RpcValidationException extends RpcException {

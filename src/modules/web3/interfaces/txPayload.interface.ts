@@ -9,7 +9,7 @@ import { MetadataModel } from '../../db/models/metadata.model';
 /**
  * An interface representing an object containing transaction data.
  */
-export interface TxPayload {
+export interface ITxPayload {
   execute: boolean;
   network: Networks;
   contract: Contract;
@@ -22,4 +22,5 @@ export interface TxPayload {
   whitelist_obj?: WhitelistModel[];
   metadata_obj?: MetadataModel;
   is_test?: boolean;
+  value?: string;
 }

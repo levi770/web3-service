@@ -30,8 +30,6 @@ async function bootstrap() {
     },
   });
   await app.startAllMicroservices();
-  await app.listen(process.env.PORT || 5000, '127.0.0.1', async () =>
-    logger.log(`Server started on port ${await app.getUrl()}`),
-  );
+  await app.listen(process.env.PORT || 5000, async () => logger.log(`Server started on port ${await app.getUrl()}`));
 }
 bootstrap();

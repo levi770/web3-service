@@ -24,6 +24,12 @@ export class ContractModel extends Model {
   @Column({ type: DataType.STRING })
   address: string;
 
+  @Column({ type: DataType.STRING })
+  slug: string;
+
+  @Column({ type: DataType.STRING, defaultValue: '0' })
+  price: string;
+
   @Column({ type: DataType.JSON })
   deploy_data: DeployRequest;
 

@@ -1,6 +1,6 @@
 import { Statuses } from '../../../common/constants';
 
-export interface Status {
+export interface IStatus {
   object_id: string | string[];
   status: Statuses;
   tx_hash?: string;

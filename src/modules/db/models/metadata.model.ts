@@ -1,6 +1,6 @@
 import { BelongsTo, Column, DataType, ForeignKey, HasMany, Model, Table } from 'sequelize-typescript';
 import { ContractModel } from './contract.model';
-import { MetaData } from '../../web3/interfaces/metaData.interface';
+import { IMetaData } from '../../web3/interfaces/metaData.interface';
 import { TokenModel } from './token.model';
 
 /**
@@ -22,13 +22,13 @@ export class MetadataModel extends Model {
   type: string;
 
   @Column({ type: DataType.STRING })
-  address: string;
+  slug: string;
 
-  @Column({ type: DataType.INTEGER })
-  token_id: number;
+  @Column({ type: DataType.RANGE(DataType.INTEGER) })
+  token_id: number[];
 
   @Column({ type: DataType.JSON })
-  meta_data: MetaData;
+  meta_data: IMetaData;
 
   @ForeignKey(() => ContractModel)
   contract_id: string;

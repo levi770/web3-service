@@ -1,7 +1,6 @@
 import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
 import { ContractModel } from './contract.model';
 import { MetadataModel } from './metadata.model';
-import { MintData } from '../../web3/interfaces/mintData.interface';
 import { TransactionReceipt } from 'web3-eth';
 import { WalletModel } from './wallet.model';
 
@@ -21,19 +20,7 @@ export class TokenModel extends Model {
   status: string;
 
   @Column({ type: DataType.INTEGER })
-  token_id: number;
-
-  @Column({ type: DataType.STRING })
-  address: string;
-
-  @Column({ type: DataType.STRING })
-  nft_number: string;
-
-  @Column({ type: DataType.JSON })
-  mint_data: MintData;
-
-  @Column({ type: DataType.STRING })
-  tx_hash: string;
+  qty: number;
 
   @Column({ type: DataType.JSON })
   tx_receipt: TransactionReceipt;

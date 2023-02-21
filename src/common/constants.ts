@@ -3,6 +3,13 @@ export const CRON_QUEUE = 'cron';
 export const TX_WORKER = 'tx';
 export const WEB3_CONTROLLER = 'Web3Controller';
 export const DB_CONTROLLER = 'DbController';
+export const SQS_CONTROLLER = 'SqsController';
+export const WEB3_SERVICE = 'Web3Service';
+
+export enum Events {
+  JOB_CREATED = 'job.created',
+  PROCESSING_ERROR = 'processing.error',
+}
 
 export enum ExceptionTypes {
   RPC = 'rpc',
@@ -25,6 +32,8 @@ export enum Statuses {
   DELETED = 'deleted',
   PENDING = 'pending',
   SUCCESS = 'success',
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
 }
 
 export enum CMD {
@@ -41,6 +50,8 @@ export enum CMD {
   CREATE_WALLET = 'createwallet',
   GET_METADATA = 'getmetadata',
   PREDICT_ADDRESS = 'predictaddress',
+  GET_ADMIN = 'getadmin',
+  SEND_ADMIN = 'sendadmin',
 }
 
 export enum ProcessTypes {
@@ -71,8 +82,10 @@ export enum ObjectTypes {
 }
 
 export enum Networks {
-  ETHEREUM = 5,
-  POLYGON = 80001,
+  ETHEREUM = 1,
+  ETHEREUM_TEST = 5,
+  POLYGON = 137,
+  POLYGON_TEST = 80001,
   LOCAL = 1337,
 }
 

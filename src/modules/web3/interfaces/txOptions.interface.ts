@@ -1,7 +1,7 @@
 /**
  * An interface representing the payload of a transaction.
  */
-export interface TxOptions {
+export interface ITxOptions {
   to?: string;
   from?: string;
   data?: string;
@@ -10,4 +10,5 @@ export interface TxOptions {
   nonce?: number;
   chainId?: number;
   maxPriorityFeePerGas?: string;
+  maxFeePerGas?: string;
 }

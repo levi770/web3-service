@@ -3,7 +3,7 @@ import { TransactionReceipt } from 'web3-core';
 /**
  * A data transfer object for passing data for a new token.
  */
-export interface Token {
+export interface IToken {
   status: string;
   token_id: number;
   contract_id?: string;

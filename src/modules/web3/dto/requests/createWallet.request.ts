@@ -1,4 +1,5 @@
 import { IsOptional, IsString } from 'class-validator';
+import { Networks } from '../../../../common/constants';
 
 /**
  * A data transfer object for creating a wallet
@@ -6,4 +7,10 @@ import { IsOptional, IsString } from 'class-validator';
 export class CreateWalletRequest {
   @IsString()
   team_id: string;
+
+  @IsOptional()
+  test?: boolean;
+
+  @IsOptional()
+  network?: Networks;
 }
