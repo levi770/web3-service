@@ -107,15 +107,15 @@ export class DbService {
   async getAllObjects(objectType: ObjectTypes, params?: IDbArgs): Promise<AllObjectsResponce> {
     try {
       const args: IDbArgs = {
-        offset: !params || !params?.limit || !params?.page ? null : 0 + (+params?.page - 1) * +params.limit,
+        offset: !params || !params?.limit || !params?.page ? null : 0 + (+params?.page - 1) * +params?.limit,
         limit: !params || !params?.limit ? null : +params?.limit,
         order: [[params?.order_by || 'createdAt', params?.sort || 'DESC']] as Order,
         distinct: true,
       };
-      if (params.where) {
+      if (params?.where) {
         args.where = params.where;
       }
-      if (params.include_child) {
+      if (params?.include_child) {
         args.include = this.getIncludeModels(objectType);
       }
       const repository = this.getRepository(objectType);
