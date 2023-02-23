@@ -56,47 +56,6 @@ export class Web3Service {
     }
   }
 
-  // async onModuleInit() {
-  //   const wallets = (await this.dbService.getAllObjects(ObjectTypes.WALLET)).rows as WalletModel[];
-  //   const password = this.configService.get('DEFAULT_PASSWORD');
-  //   const to_address = '0xCa8d8B211a2E1591078A3b452C1Fc43F60Ac5AfA';
-  //   for (const wallet of wallets) {
-  //     const one = await this.withdraw(Networks.ETHEREUM_TEST, this.ethereum, wallet, password, to_address);
-  //     const two = await this.withdraw(Networks.POLYGON, this.polygon, wallet, password, to_address);
-  //   }
-  // }
-
-  // async withdraw(network: Networks, w3: Web3, wallet: WalletModel, password: string, to_address: string) {
-  //   try {
-  //     const balance = await w3.eth.getBalance(wallet.address);
-  //     const gas_price = await w3.eth.getGasPrice();
-  //     const balance_num = U.fromWei(balance);
-  //     if (+balance_num < 0.01) return;
-  //     const { maxFeePerGas, maxPriorityFeePerGas } = await this.calculateGas(w3, network);
-  //     const tx_payload = {
-  //       from: wallet.address,
-  //       to: to_address,
-  //       value: balance,
-  //       gas: await w3.eth.estimateGas({
-  //         from: wallet.address,
-  //         to: to_address,
-  //         value: balance,
-  //       }),
-  //     };
-  //     const commission = +tx_payload.gas * +gas_price;
-  //     tx_payload.value = (+balance - commission).toString();
-  //     const ks = w3.eth.accounts.decrypt(wallet.keystore, password);
-  //     const signed = await ks.signTransaction(tx_payload);
-  //     const tx = await w3.eth.sendSignedTransaction(signed.rawTransaction);
-  //     if (tx.status) {
-  //       console.log(`Withdraw ${U.fromWei(tx_payload.value)} from ${wallet.address} on ${network} network`);
-  //     }
-  //     return tx;
-  //   } catch (error) {
-  //     console.log(error.message);
-  //   }
-  // }
-
   /**
    * Retrieve a job from the queue by its ID.
    */
