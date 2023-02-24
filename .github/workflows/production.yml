@@ -57,7 +57,7 @@ jobs:
     environment: production
 
     # Only deploys the code if the build was succesfull and if it's a merge
-    # if: ${{ github.event_name == 'push' }}
+    if: ${{ github.event_name == 'push' }}
 
     steps:
       - name: Checkout
