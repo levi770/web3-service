@@ -9,8 +9,8 @@ on:
 env:
   AWS_REGION: eu-west-1
   ECR_REPOSITORY: crm-web3-service-production # set this to your Amazon ECR repository name
-  ECS_SERVICE: crm-web3-service-production-service # set this to your Amazon ECS service name
-  ECS_CLUSTER: crm-backend-production-cluster # set this to your Amazon ECS cluster name
+  ECS_SERVICE: crm-web3-service-production # set this to your Amazon ECS service name
+  ECS_CLUSTER: crm-production # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: .aws/production-taskdef.json
   CONTAINER_NAME: crm-web3-service
 
@@ -57,7 +57,7 @@ jobs:
     environment: production
 
     # Only deploys the code if the build was succesfull and if it's a merge
-    # if: ${{ github.event_name == 'push' }}
+    if: ${{ github.event_name == 'push' }}
 
     steps:
       - name: Checkout
@@ -86,3 +86,42 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+          environment-variables: |
+            NODE_ENV=production
+            PORT=${{secrets.PORT}}
+            POSTGRES_URI=${{secrets.POSTGRES_URI}}
+            REDIS_HOST=${{secrets.REDIS_HOST}}
+            REDIS_PORT=${{secrets.REDIS_PORT}}
+            REDIS_URI=${{secrets.REDIS_URI}}
+            AWS_REGION=${{secrets.AWS_REGION}}
+            AWS_ACCESS_KEY=${{secrets.AWS_ACCESS_KEY}}
+            AWS_SECRET_KEY=${{secrets.AWS_SECRET_KEY}}
+            AWS_S3_BUCKET_NAME=${{secrets.AWS_S3_BUCKET_NAME}}
+            AWS_ACCOUNT=${{secrets.AWS_ACCOUNT}}
+            ETHEREUM_HOST=${{secrets.ETHEREUM_HOST}}
+            POLYGON_HOST=${{secrets.POLYGON_HOST}}
+            LOCAL_HOST=${{secrets.LOCAL_HOST}}
+            PINATA_KEY=${{secrets.PINATA_KEY}}
+            PINATA_SECRET=${{secrets.PINATA_SECRET}}
+            PINATA_GATEWAY=${{secrets.PINATA_GATEWAY}}
+            PINATA_URL=${{secrets.PINATA_URL}}
+            DEFAULT_PASSWORD=${{secrets.DEFAULT_PASSWORD}}
+            SQS_ENDPOINT=${{secrets.SQS_ENDPOINT}}
+            SQS_CONSUMER_NAME=${{secrets.SQS_CONSUMER_NAME}}
+            SQS_PRODUCER_NAME=${{secrets.SQS_PRODUCER_NAME}}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
