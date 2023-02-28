@@ -1,17 +1,17 @@
-name: staging-workflow
+name: production-workflow
 
 on:
   push:
-    branches: [development]
+    branches: [main]
   pull_request:
-    branches: [development]
+    branches: [main]
 
 env:
   AWS_REGION: eu-west-1
-  ECR_REPOSITORY: crm-web3-service-staging # set this to your Amazon ECR repository name
-  ECS_SERVICE: crm-web3-service-staging-service # set this to your Amazon ECS service name
-  ECS_CLUSTER: crm-backend-staging-cluster # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION: .aws/staging-taskdef.json
+  ECR_REPOSITORY: crm-web3-service-production # set this to your Amazon ECR repository name
+  ECS_SERVICE: crm-web3-service-production # set this to your Amazon ECS service name
+  ECS_CLUSTER: crm-production # set this to your Amazon ECS cluster name
+  ECS_TASK_DEFINITION: .aws/production-taskdef.json
   CONTAINER_NAME: crm-web3-service
 
 jobs:
@@ -51,10 +51,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-  deploy_staging:
-    name: Deploy Staging
+  deploy_production:
+    name: Deploy Production
     runs-on: ubuntu-latest
-    environment: staging
+    environment: production
 
     # Only deploys the code if the build was succesfull and if it's a merge
     if: ${{ github.event_name == 'push' }}
