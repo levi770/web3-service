@@ -1,15 +1,8 @@
-import {
-  SqsConsumerEvent,
-  SqsConsumerEventHandler,
-  SqsMessageHandler,
-  SqsProcess,
-  SqsService,
-} from '@nestjs-packages/sqs';
+import { SqsConsumerEvent, SqsConsumerEventHandler, SqsMessageHandler, SqsProcess } from '@nestjs-packages/sqs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { v4 as uuidv4 } from 'uuid';
 import { CMD, Events, ProcessTypes as pt } from '../../common/constants';
 import { Logger } from '@nestjs/common';
-import { lastValueFrom, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { JobResult } from '../../common/dto/jobResult.dto';
 import { Web3Service } from '../web3/web3.service';
 import { SQS } from 'aws-sdk';
@@ -22,7 +15,7 @@ dotenv.config();
 @SqsProcess(process.env.SQS_CONSUMER_NAME)
 export class SqsConsumerHandler {
   private logger: Logger;
-  constructor(private w3s: Web3Service, private eventEmitter: EventEmitter2, private sqsService: SqsService) {
+  constructor(private w3s: Web3Service, private eventEmitter: EventEmitter2) {
     this.logger = new Logger('SqsConsumer');
   }
 
@@ -49,29 +42,7 @@ export class SqsConsumerHandler {
       default:
         throw new Error(`Command ${msg?.command} not supported`);
     }
-
-    // This is temporary code that assures that we can only
-    // Process one message at the same time
-    // The problem is that as soon as this method ends the message
-    // is deleted from SQS and it allows multiple processes to happen
-    // A lot of transactions fail because of it.
-    // lastValueFrom waits for the job to finish to actually return the SQS message
-    // with the response.
-
-    const result = await lastValueFrom(job);
-
-    await this.sqsService.send(process.env.SQS_PRODUCER_NAME, {
-      id: uuidv4(),
-      body: JSON.stringify({
-        requestId: msg?.requestId,
-        command: msg?.command,
-        operationName: msg?.operationName,
-        walletAddress: msg?.walletAddress,
-        data: result,
-      }),
-    });
-
-    // this.eventEmitter.emit(Events.JOB_CREATED, new JobCreatedEvent(job, msg));
+    this.eventEmitter.emit(Events.JOB_CREATED, new JobCreatedEvent(job, msg));
     return;
   }
 
