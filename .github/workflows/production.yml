@@ -1,60 +1,60 @@
-name: staging-workflow
+name: production-workflow
 
 on:
   push:
-    branches: [development]
+    branches: [main]
   pull_request:
-    branches: [development]
+    branches: [main]
 
 env:
   AWS_REGION: eu-west-1
-  ECR_REPOSITORY: crm-web3-service-staging # set this to your Amazon ECR repository name
-  ECS_SERVICE: crm-web3-service-staging-service # set this to your Amazon ECS service name
-  ECS_CLUSTER: crm-backend-staging-cluster # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION: .aws/staging-taskdef.json
+  ECR_REPOSITORY: crm-web3-service-production # set this to your Amazon ECR repository name
+  ECS_SERVICE: crm-web3-service-production # set this to your Amazon ECS service name
+  ECS_CLUSTER: crm-production # set this to your Amazon ECS cluster name
+  ECS_TASK_DEFINITION: .aws/production-taskdef.json
   CONTAINER_NAME: crm-web3-service
 
 jobs:
-  # run-tests:
-  #   runs-on: ubuntu-latest
-
-  #   # Docker Hub image that  executes in
-  #   container: node:16-alpine
-
-  #   # This starts a container with postgres so we can do e2e tests
-  #   # In our CI Pipeline
-  #   services:
-  #     postgres:
-  #       image: postgres
-  #       env:
-  #         POSTGRES_PASSWORD: postgres
-  #         POSTGRES_DB: crm-web3-svc-test
-  #       # Set health checks to wait until postgres has started
-  #       options: >-
-  #         --health-cmd pg_isready
-  #         --health-interval 10s
-  #         --health-timeout 5s
-  #         --health-retries 5
-
-  #   env:
-  #     DATABASE_URL: postgres://postgres:postgres@postgres:5432/crm-web3-svc-test
-
-  #   steps:
-  #     - uses: actions/checkout@v3
-
-  #     - name: Install Node.js version
-  #       uses: actions/setup-node@v2
-  #       with:
-  #         node-version: 16.x
-  #         cache: 'npm'
-
-  #     - name: Install dependencies
-  #       run: npm ci
-
-  deploy_staging:
-    name: Deploy Staging
+  run-tests:
     runs-on: ubuntu-latest
-    environment: staging
+
+    # Docker Hub image that  executes in
+    container: node:16-alpine
+
+    # This starts a container with postgres so we can do e2e tests
+    # In our CI Pipeline
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: crm-web3-svc-test
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/crm-web3-svc-test
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Node.js version
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+  deploy_production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    environment: production
 
     # Only deploys the code if the build was succesfull and if it's a merge
     if: ${{ github.event_name == 'push' }}
