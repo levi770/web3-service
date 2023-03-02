@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { ContractModel } from '../db/models/contract.model';
 import { DeployRequest } from './dto/requests/deploy.request';
 import { GetJobRequest } from './dto/requests/getJob.request';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Job, Queue } from 'bull';
 import { JobResult } from '../../common/dto/jobResult.dto';
@@ -28,6 +28,7 @@ import { IWallet } from './interfaces/wallet.interface';
 import { CreateWalletRequest } from './dto/requests/createWallet.request';
 import { SendAdminDto } from './dto/requests/sendAdmin.dto';
 import { GetAdminDto } from './dto/requests/getAdmin.dto';
+import { WalletModel } from '../db/models/wallet.model';
 
 /**
  * A service class for interacting with Web3.
@@ -130,6 +131,7 @@ export class Web3Service {
   async processTx(txPayload: ITxPayload): Promise<ITxResult> {
     const w3 = this.getWeb3(txPayload.network);
     const { maxFeePerGas, maxPriorityFeePerGas } = await this.calculateGas(w3, txPayload.network);
+    const gasPrice = await w3.eth.getGasPrice();
     const contractObj = txPayload.contract_obj;
     const contract = txPayload.contract;
     const tx: ITxOptions = {
@@ -150,22 +152,27 @@ export class Web3Service {
       case OperationTypes.MINT:
         tx.to = contract.options.address;
         tx.value = +U.toWei(contractObj.price, 'ether');
+        tx.gas = await w3.eth.estimateGas({
+          from: txPayload.from_address,
+          to: tx.to,
+          data: txPayload.data,
+          value: tx.value || 0,
+        });
         break;
       default:
         const value = txPayload.value ? +U.toWei(txPayload.value, 'ether') : 0;
         tx.to = contract.options.address;
         tx.value = value;
+        tx.gas = await w3.eth.estimateGas({
+          from: txPayload.from_address,
+          to: tx.to,
+          data: txPayload.data,
+          value: value || 0,
+        });
         break;
     }
 
-    tx.gas = await w3.eth.estimateGas({
-      from: txPayload.from_address,
-      to: tx.to,
-      data: txPayload.data,
-      value: tx.value || 0,
-    });
-
-    const commission = (+tx.gas * +maxFeePerGas).toString();
+    const commission = (+tx.gas * +gasPrice).toString();
     const balance = await w3.eth.getBalance(txPayload.from_address);
 
     if (+balance < +commission) {
@@ -236,12 +243,15 @@ export class Web3Service {
     }
 
     const block = await w3.eth.getBlock('latest');
-    const fetch_opts = {
-      method: 'POST',
-      headers: { accept: 'application/json', 'content-type': 'application/json' },
-      body: JSON.stringify({ id: 1, jsonrpc: '2.0', method: 'eth_maxPriorityFeePerGas' }),
-    };
-    let maxPriorityFeePerGas = (await (await fetch((w3.currentProvider as any).host, fetch_opts)).json()).result;
+    let maxPriorityFeePerGas = (
+      await (
+        await fetch((w3.currentProvider as any).host, {
+          method: 'POST',
+          headers: { accept: 'application/json', 'content-type': 'application/json' },
+          body: JSON.stringify({ id: 1, jsonrpc: '2.0', method: 'eth_maxPriorityFeePerGas' }),
+        })
+      ).json()
+    ).result;
     let max_priority_fee = U.hexToNumber(maxPriorityFeePerGas);
     let maxFeePerGas = block.baseFeePerGas + +max_priority_fee;
     return { maxFeePerGas, maxPriorityFeePerGas };

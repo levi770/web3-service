@@ -60,6 +60,10 @@ export class SqsConsumerHandler {
 
     const result = await lastValueFrom(job);
 
+    const logMessage = result.status === 'failed' ? JSON.stringify(result.data) : '';
+
+    this.logger.log(`finished: ${result.status}, ${logMessage}`);
+
     await this.sqsService.send(process.env.SQS_PRODUCER_NAME, {
       id: uuidv4(),
       body: JSON.stringify({
