@@ -205,6 +205,7 @@ export class Web3Processor {
         };
         metadata = (await this.dbManager.create([metadataPayload], ObjectTypes.METADATA)) as MetadataModel[];
         await this.dbManager.setMetadata({ object_id: tokenObj.id, id: metadata[0].id }, ObjectTypes.TOKEN);
+        return metadata[0];
       }
       
       const metadataPayload = {
