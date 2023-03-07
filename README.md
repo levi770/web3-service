@@ -52,4 +52,11 @@ The following applications will be available to manage the the project after lau
 $ npm run test:e2e
 ```
 
+## Database migrations
+
+```bash
+$ npm run migration:up
+$ npm run migration:down
+```
+
 ### Microservice API methods description in [INTEGRATION.md](INTEGRATION.md)
