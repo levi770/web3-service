@@ -1,7 +1,7 @@
 import FormData from 'form-data';
 import { S3 } from 'aws-sdk';
 import { InjectAwsService } from 'nest-aws-sdk';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, UseFilters } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RpcException } from '@nestjs/microservices';
 import { HttpService } from '@nestjs/axios';
@@ -10,6 +10,7 @@ import { lastValueFrom, map } from 'rxjs';
 /**
  * A service for managing files on IPFS.
  */
+
 @Injectable()
 export class IpfsManagerService {
   constructor(
@@ -22,16 +23,22 @@ export class IpfsManagerService {
    * Uploads a file to IPFS.
    */
   async upload(asset_key: string): Promise<string> {
-    //asset_key = this.getFileKey(asset_key);
-    const file = await this.getObjectFromS3(asset_key);
+    const file = await this.getObjectFromS3(this.getFileKey(asset_key));
     return await this.uploadToPinata({ name: asset_key, data: file });
   }
 
-  // getFileKey(url: string): string {
-  //   const parsed = new URL(url);
-  //   const path = parsed.pathname.slice(1);
-  //   return decodeURI(path);
-  // }
+  getFileKey(url: string): string {
+    try {
+      const parsed = new URL(url);
+      const path = parsed.pathname.slice(1);
+      return decodeURI(path);
+    } catch (_) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Invalid asset URL',
+      });
+    }
+  }
 
   /**
    * Gets a file from S3.
