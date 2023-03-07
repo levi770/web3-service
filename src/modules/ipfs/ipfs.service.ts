@@ -21,10 +21,10 @@ export class IpfsManagerService {
   /**
    * Uploads a file to IPFS.
    */
-  async upload(asset_url: string): Promise<string> {
-    const asset_key = asset_url.split('/').pop();
+  async upload(asset_key: string): Promise<string> {
+    //const asset_key = asset_url.split('/').pop();
     const file = await this.getObjectFromS3(decodeURI(asset_key));
-    return await this.uploadToPinata({ name: asset_url, data: file });
+    return await this.uploadToPinata({ name: asset_key.split('/').pop(), data: file });
   }
 
   /**
