@@ -22,10 +22,16 @@ export class IpfsManagerService {
    * Uploads a file to IPFS.
    */
   async upload(asset_key: string): Promise<string> {
-    //const asset_key = asset_url.split('/').pop();
-    const file = await this.getObjectFromS3(decodeURI(asset_key));
-    return await this.uploadToPinata({ name: asset_key.split('/').pop(), data: file });
+    //asset_key = this.getFileKey(asset_key);
+    const file = await this.getObjectFromS3(asset_key);
+    return await this.uploadToPinata({ name: asset_key, data: file });
   }
+
+  // getFileKey(url: string): string {
+  //   const parsed = new URL(url);
+  //   const path = parsed.pathname.slice(1);
+  //   return decodeURI(path);
+  // }
 
   /**
    * Gets a file from S3.
