@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { ContractModel } from '../db/models/contract.model';
 import { DeployRequest } from './dto/requests/deploy.request';
 import { GetJobRequest } from './dto/requests/getJob.request';
-import { HttpStatus, Injectable, OnModuleInit } from '@nestjs/common';
+import { HttpStatus, Injectable, OnModuleInit, UseFilters } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Job, Queue } from 'bull';
 import { JobResult } from '../../common/dto/jobResult.dto';
@@ -29,6 +29,7 @@ import { CreateWalletRequest } from './dto/requests/createWallet.request';
 import { SendAdminDto } from './dto/requests/sendAdmin.dto';
 import { GetAdminDto } from './dto/requests/getAdmin.dto';
 import { WalletModel } from '../db/models/wallet.model';
+import { ExceptionFilter } from '../../common/filters/exception.filter';
 
 /**
  * A service class for interacting with Web3.

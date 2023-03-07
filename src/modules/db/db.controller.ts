@@ -16,6 +16,8 @@ const logger = new Logger('DbController');
 /**
  * A controller for handling database operations.
  */
+@UseInterceptors(new RpcLogger(logger))
+@UseFilters(new ExceptionFilter())
 @Controller(DB_CONTROLLER)
 export class DbController {
   constructor(private dbManagerService: DbService) {}
@@ -23,8 +25,6 @@ export class DbController {
   /**
    * Gets all objects of a specified type.
    */
-  @UseInterceptors(new RpcLogger(logger))
-  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.ALL_OBJECTS })
   async getAllObjects(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetAllRequest): Promise<Response> {
     const result = await this.dbManagerService.getAllObjects(data.object_type, data);
@@ -34,8 +34,6 @@ export class DbController {
   /**
    * Gets a single object of a specified type.
    */
-  @UseInterceptors(new RpcLogger(logger))
-  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.ONE_OBJECT })
   async getOneObject(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetOneRequest): Promise<Response> {
     const result = await this.dbManagerService.getOneObject(data.object_type, data);
@@ -45,8 +43,6 @@ export class DbController {
   /**
    * Updates the status of a job.
    */
-  @UseInterceptors(new RpcLogger(logger))
-  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.UPDATE_STATUS })
   async updateStatus(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: UpdateStatusRequest): Promise<Response> {
     const result = await this.dbManagerService.updateStatus(data, data.object_type);
@@ -56,8 +52,6 @@ export class DbController {
   /**
    * Updates the metadata of token.
    */
-  @UseInterceptors(new RpcLogger(logger))
-  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.UPDATE_METADATA })
   async updateMetadata(
     @Payload(new ValidationPipe(ExceptionTypes.RPC)) data: UpdateMetadataRequest,
