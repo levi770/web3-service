@@ -93,6 +93,7 @@ Input example:
   "arguments": "100::0x5de14842...::name::SYM::http://some.com/metadata/some_slug/",
   "from_address": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18",
   "slug": "some_slug",
+  "price": "1000000000000000000",
   "asset_url": "a6b1354c26c6.original.Dubai.jpg",
   "asset_type": "image",
   "meta_data": {
@@ -117,6 +118,7 @@ Input example:
 - `"asset_url"`, `"asset_type"`, and `"meta_data"` are optional fields. If set, the service will create a common metadata object for this collection.
 - `"asset_url"` is a file key in AWS S3. It will be downloaded from S3 and uploaded to the Pinata IPFS node, and the IPFS URL will be set in the metadata object.
 - `"slug"` is a unique slug for the metadata object. It will be used to generate the metadata URL.
+- `"price"` is a price for mint token in the collection in wei.
 
 Output example:
 
@@ -171,6 +173,7 @@ Input example:
   "operation_type": "mint",
   "operation_options": {
     "mint_to": "0x5de14842C66B97eb465F166d4f9fca5C6A724E18",
+    "qty": 1,
     "asset_url": "a6b1354c26c6.original.Dubai.jpg",
     "asset_type": "image",
     "meta_data": {
