@@ -1,4 +1,4 @@
-import { Controller, Logger, HttpStatus, UseInterceptors } from '@nestjs/common';
+import { Controller, Logger, HttpStatus, UseInterceptors, UseFilters } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
 import { CMD, ExceptionTypes, ProcessTypes, Statuses, WEB3_CONTROLLER } from '../../common/constants';
@@ -15,6 +15,7 @@ import { TransactionReceipt } from 'web3-core';
 import { RpcLogger } from '../../common/interceptors/rpc-loger.interceptor';
 import { SendAdminDto } from './dto/requests/sendAdmin.dto';
 import { GetAdminDto } from './dto/requests/getAdmin.dto';
+import { ExceptionFilter } from '../../common/filters/exception.filter';
 
 const logger = new Logger('Web3Controller');
 
@@ -29,6 +30,7 @@ export class Web3Controller {
    * Creates a new encrypted wallet keystore in DB.
    */
   @UseInterceptors(new RpcLogger(logger))
+  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.CREATE_WALLET })
   async createWallet(
     @Payload(new ValidationPipe(ExceptionTypes.RPC)) data: CreateWalletRequest,
@@ -40,6 +42,7 @@ export class Web3Controller {
    * Returns admin wallet address.
    */
   @UseInterceptors(new RpcLogger(logger))
+  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.GET_ADMIN })
   async getAdmin(@Payload() data: GetAdminDto): Promise<string> {
     return await this.web3Service.getAdmin(data);
@@ -49,6 +52,7 @@ export class Web3Controller {
    * Sends transaction from admin wallet address.
    */
   @UseInterceptors(new RpcLogger(logger))
+  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.SEND_ADMIN })
   async sendAdmin(@Payload() data: SendAdminDto): Promise<TransactionReceipt> {
     return await this.web3Service.sendAdmin(data);
@@ -58,6 +62,7 @@ export class Web3Controller {
    * Processes a deployment.
    */
   @UseInterceptors(new RpcLogger(logger))
+  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.DEPLOY })
   async processDeploy(
     @Payload(new ValidationPipe(ExceptionTypes.RPC)) data: DeployRequest,
@@ -69,6 +74,7 @@ export class Web3Controller {
    * Processes a mint.
    */
   @UseInterceptors(new RpcLogger(logger))
+  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.MINT })
   async processMint(
     @Payload(new ValidationPipe(ExceptionTypes.RPC)) data: CallRequest,
@@ -80,6 +86,7 @@ export class Web3Controller {
    * Processes a whitelist.
    */
   @UseInterceptors(new RpcLogger(logger))
+  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.WHITELIST })
   async processWhitelist(
     @Payload(new ValidationPipe(ExceptionTypes.RPC)) data: CallRequest,
@@ -91,6 +98,7 @@ export class Web3Controller {
    * Processes a common call.
    */
   @UseInterceptors(new RpcLogger(logger))
+  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.COMMON })
   async processCommon(
     @Payload(new ValidationPipe(ExceptionTypes.RPC)) data: CallRequest,
@@ -102,6 +110,7 @@ export class Web3Controller {
    * Gets a Merkle proof for a given address.
    */
   @UseInterceptors(new RpcLogger(logger))
+  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.GET_MERKLE_PROOF })
   async getMerkleProof(
     @Payload(new ValidationPipe(ExceptionTypes.RPC)) data: WhitelistRequest,
@@ -113,6 +122,7 @@ export class Web3Controller {
    * Gets the result of a job.
    */
   @UseInterceptors(new RpcLogger(logger))
+  @UseFilters(new ExceptionFilter())
   @MessagePattern({ cmd: CMD.JOB })
   async getJob(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetJobRequest): Promise<Response> {
     const result = await this.web3Service.getJob(data);
