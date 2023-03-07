@@ -379,9 +379,9 @@ describe('App (e2e) latest', () => {
           operation_options: {
             mint_to: team_acc_address,
             qty: qty,
-            // asset_url:
-            //   'https://levi770devbucket.s3.eu-west-3.amazonaws.com/assets/1ab94f9c-b510-478d-99e3-35474853b253.jpeg',
-            asset_url: 'assets/1ab94f9c-b510-478d-99e3-35474853b253.jpeg',
+            asset_url:
+              'https://levi770devbucket.s3.eu-west-3.amazonaws.com/assets/1ab94f9c-b510-478d-99e3-35474853b253.jpeg',
+            //asset_url: 'assets/1ab94f9c-b510-478d-99e3-35474853b253.jpeg',
             asset_type: 'image',
             meta_data: metadata1,
           },
