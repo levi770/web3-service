@@ -23,21 +23,8 @@ export class IpfsManagerService {
    * Uploads a file to IPFS.
    */
   async upload(asset_key: string): Promise<string> {
-    const file = await this.getObjectFromS3(this.getFileKey(asset_key));
+    const file = await this.getObjectFromS3(decodeURI(asset_key));
     return await this.uploadToPinata({ name: asset_key, data: file });
-  }
-
-  getFileKey(url: string): string {
-    try {
-      const parsed = new URL(url);
-      const path = parsed.pathname.slice(1);
-      return decodeURI(path);
-    } catch (_) {
-      throw new RpcException({
-        status: HttpStatus.BAD_REQUEST,
-        message: 'Invalid asset URL',
-      });
-    }
   }
 
   /**
