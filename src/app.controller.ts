@@ -12,6 +12,7 @@ const logger = new Logger('AppController');
 /**
  * A controller for handling web3 and database operations.
  */
+@UseInterceptors(new HttpLogger(logger))
 @Controller()
 export class AppController {
   constructor(private dbManagerService: DbService) {}
@@ -19,7 +20,6 @@ export class AppController {
   /**
    * Gets the health status of microservice.
    */
-  @UseInterceptors(new HttpLogger(logger))
   @Get('health')
   async getHealth(): Promise<Response> {
     return new Response(HttpStatus.OK, 'active', null);
@@ -28,7 +28,6 @@ export class AppController {
   /**
    * Gets the metadata of token.
    */
-  @UseInterceptors(new HttpLogger(logger))
   @Get('metadata/:slug/:id')
   @UsePipes(new ValidationPipe(ExceptionTypes.RPC))
   async getMetaData(@Param() params: GetMetadataRequest): Promise<IMetaData> {

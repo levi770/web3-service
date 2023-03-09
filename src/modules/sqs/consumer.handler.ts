@@ -8,7 +8,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuidv4 } from 'uuid';
 import { CMD, Events, ProcessTypes as pt } from '../../common/constants';
-import { Logger } from '@nestjs/common';
+import { Logger, UseFilters } from '@nestjs/common';
 import { lastValueFrom, Observable } from 'rxjs';
 import { JobResult } from '../../common/dto/jobResult.dto';
 import { Web3Service } from '../web3/web3.service';
@@ -16,9 +16,11 @@ import { SQS } from 'aws-sdk';
 import * as dotenv from 'dotenv';
 import { JobCreatedEvent } from './events/job-created.event';
 import { ProcessingErrorEvent } from './events/processing-error.event';
+import { ExceptionFilter } from '../../common/filters/exception.filter';
 
 dotenv.config();
 
+@UseFilters(new ExceptionFilter())
 @SqsProcess(process.env.SQS_CONSUMER_NAME)
 export class SqsConsumerHandler {
   private logger: Logger;
@@ -57,6 +59,8 @@ export class SqsConsumerHandler {
     // A lot of transactions fail because of it.
     // lastValueFrom waits for the job to finish to actually return the SQS message
     // with the response.
+
+    // it was like this before. https://github.com/Exclusible/crm-web3-svc/commit/82c6e342eb8bb360110bc998727083e14c0d1f85
 
     const result = await lastValueFrom(job);
 
