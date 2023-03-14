@@ -15,6 +15,7 @@ const SQS_PRODUCER_NAME = process.env.SQS_PRODUCER_NAME;
 
 @Injectable()
 export class SqsClientService {
+
   constructor(private sqsService: SqsService) {}
   async send(pattern: any, data: any): Promise<any> {
     return await this.sqsService.send(SQS_CONSUMER_NAME, {

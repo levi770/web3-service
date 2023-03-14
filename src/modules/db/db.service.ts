@@ -1,7 +1,7 @@
 import { AllObjectsResponce } from './dto/responses/allObjects.response';
 import { ContractModel } from './models/contract.model';
 import { IDbArgs } from './interfaces/dbArgs.interface';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, UseFilters } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { MetadataModel } from './models/metadata.model';
 import { MetadataTypes, ObjectTypes, Statuses } from '../../common/constants';
@@ -17,12 +17,12 @@ import { IMetaData } from '../web3/interfaces/metaData.interface';
 import { GetMetadataRequest } from './dto/requests/getMetadata.request';
 import { IMetadata } from './interfaces/metadata.interface';
 import { IStatus } from './interfaces/status.interface';
+import { ExceptionFilter } from '../../common/filters/exception.filter';
 
 /**
  * A service for managing objects in a database.
- *
- * @class DbService
  */
+@UseFilters(new ExceptionFilter())
 @Injectable()
 export class DbService {
   constructor(

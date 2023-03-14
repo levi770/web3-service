@@ -24,9 +24,10 @@ import { ITxResult } from './interfaces/txResult.interface';
 import { CreateWalletRequest } from './dto/requests/createWallet.request';
 import { IWallet } from '../db/interfaces/wallet.interface';
 import { IMerkleProof } from './interfaces/merkleProof.interface';
-import { HttpStatus } from '@nestjs/common';
+import { HttpStatus, UseFilters } from '@nestjs/common';
 import { DeployResponse } from './dto/responses/deploy.response';
 import { MintResponse } from './dto/responses/mint.response';
+import { ExceptionFilter } from '../../common/filters/exception.filter';
 
 /**
  * A class that processes web3 jobs.
@@ -46,6 +47,7 @@ export class Web3Processor {
    * Creates a new encrypted leystore in DB for team_id
    */
   @Process(ProcessTypes.CREATE_WALLET)
+  @UseFilters(new ExceptionFilter())
   async createWallet(job: Job): Promise<IWallet> {
     try {
       const data: CreateWalletRequest = job.data;
@@ -65,6 +67,7 @@ export class Web3Processor {
    * Deploys a smart contract on the Ethereum or Polygon network.
    */
   @Process(ProcessTypes.DEPLOY)
+  @UseFilters(new ExceptionFilter())
   async deploy(job: Job): Promise<DeployResponse> {
     try {
       const deployData: DeployRequest = job.data;
@@ -120,6 +123,7 @@ export class Web3Processor {
    * Mints new token.
    */
   @Process(ProcessTypes.MINT)
+  @UseFilters(new ExceptionFilter())
   async mint(job: Job): Promise<MintResponse> {
     try {
       const callData: CallRequest = job.data;
@@ -151,6 +155,135 @@ export class Web3Processor {
       });
     }
   }
+
+  /**
+   * Processes a whitelist job by adding or removing addresses from a whitelist.
+   */
+  @Process(ProcessTypes.WHITELIST)
+  @UseFilters(new ExceptionFilter())
+  async whitelist(job: Job): Promise<WhitelistResponse> {
+    try {
+      const callData: CallRequest = job.data;
+      const { w3, keystore } = await this.getAccount(callData);
+      const { contractObj, contractInst, abiObj } = await this.getContract(callData, w3);
+      const whitelistOptions = callData.operation_options as WhitelistRequest;
+      let root: string, proof: { address: string; proof: string[] }[], new_whitelist: WhitelistModel[];
+      this.validateWhitelistOptions(whitelistOptions);
+
+      switch (callData.operation_type) {
+        case OperationTypes.WHITELIST_ADD: {
+          new_whitelist = await this.addWhitelist(whitelistOptions, contractObj);
+          const whitelist = await this.getWhitelist(contractObj);
+          root = await this.web3Service.getMerkleRoot(whitelist);
+          proof = await Promise.all(
+            new_whitelist.map(async (x) => {
+              const proof = await this.web3Service.getMerkleProof(whitelist, x.address);
+              return {
+                address: x.address,
+                proof,
+              };
+            }),
+          );
+          break;
+        }
+        case OperationTypes.WHITELIST_REMOVE: {
+          await this.removeWhitelist(whitelistOptions, contractObj);
+          const whitelist = await this.getWhitelist(contractObj);
+          root = await this.web3Service.getMerkleRoot(whitelist);
+          break;
+        }
+      }
+
+      const txData = this.encodeFunctionCall(w3, abiObj, [root]);
+      const txPayload: ITxPayload = {
+        execute: callData.execute,
+        operation_type: callData.operation_type,
+        network: callData.network,
+        contract: contractInst,
+        contract_obj: contractObj,
+        whitelist_obj: new_whitelist,
+        from_address: callData.from_address,
+        data: txData,
+        keystore: keystore,
+      };
+      const tx = await this.web3Service.processTx(txPayload);
+      return { root, proof, tx };
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Processes a common blockchain call.
+   */
+  @Process(ProcessTypes.COMMON)
+  @UseFilters(new ExceptionFilter())
+  async commonCall(job: Job): Promise<ITxResult> {
+    try {
+      const callData: CallRequest = job.data;
+      const { w3, keystore } = await this.getAccount(callData);
+      const { contractObj, contractInst, abiObj } = await this.getContract(callData, w3);
+      const callArgs = this.getArgs(callData.arguments, abiObj.inputs);
+      // If the operation type is a read contract, call the method and return the result
+      if (callData.operation_type === OperationTypes.READ_CONTRACT) {
+        const callResult = await contractInst.methods[callData.method_name](...callArgs).call();
+        return { [callData.method_name]: callResult };
+      }
+      const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any[]);
+      const txPayload: ITxPayload = {
+        execute: callData.execute,
+        operation_type: OperationTypes.COMMON,
+        network: callData.network,
+        contract: contractInst,
+        contract_obj: contractObj,
+        from_address: callData.from_address,
+        data: txData,
+        keystore: keystore,
+        value: callData?.value,
+      };
+      return await this.web3Service.processTx(txPayload);
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Gets a merkle proof for provided address
+   */
+  @Process(ProcessTypes.MERKLE_PROOF)
+  @UseFilters(new ExceptionFilter())
+  async getMerkleProof(job: Job): Promise<IMerkleProof> {
+    try {
+      const data: WhitelistRequest = job.data;
+      const whitelist = await this.dbManager.getAllObjects(ObjectTypes.WHITELIST, {
+        where: { contract_id: data.contract_id },
+      });
+      if (!whitelist.rows.length) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'No whitelist found for this contract',
+        });
+      }
+      const root = await this.web3Service.getMerkleRoot(whitelist.rows as WhitelistModel[]);
+      const proof = await this.web3Service.getMerkleProof(whitelist.rows as WhitelistModel[], data.addresses);
+      return { root, proof };
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message,
+      });
+    }
+  }
+
+  //#endregion
+
+  //#region Helpers Methods
 
   private validateMintOptions(mintOptions: IMintOptions, contractObj: ContractModel) {
     if (!mintOptions) {
@@ -207,7 +340,7 @@ export class Web3Processor {
         await this.dbManager.setMetadata({ object_id: tokenObj.id, id: metadata[0].id }, ObjectTypes.TOKEN);
         return metadata[0];
       }
-      
+
       const metadataPayload = {
         status: Statuses.CREATED,
         type: MetadataTypes.SPECIFIED,
@@ -229,65 +362,6 @@ export class Web3Processor {
   private encodeFunctionCall(w3: Web3, abiObj: any, args: string | string[]) {
     const callArgs = this.getArgs(args.toString(), abiObj.inputs);
     return w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any[]);
-  }
-
-  /**
-   * Processes a whitelist job by adding or removing addresses from a whitelist.
-   */
-  @Process(ProcessTypes.WHITELIST)
-  async whitelist(job: Job): Promise<WhitelistResponse> {
-    try {
-      const callData: CallRequest = job.data;
-      const { w3, keystore } = await this.getAccount(callData);
-      const { contractObj, contractInst, abiObj } = await this.getContract(callData, w3);
-      const whitelistOptions = callData.operation_options as WhitelistRequest;
-      let root: string, proof: { address: string; proof: string[] }[], new_whitelist: WhitelistModel[];
-      this.validateWhitelistOptions(whitelistOptions);
-
-      switch (callData.operation_type) {
-        case OperationTypes.WHITELIST_ADD: {
-          new_whitelist = await this.addWhitelist(whitelistOptions, contractObj);
-          const whitelist = await this.getWhitelist(contractObj);
-          root = await this.web3Service.getMerkleRoot(whitelist);
-          proof = await Promise.all(
-            new_whitelist.map(async (x) => {
-              const proof = await this.web3Service.getMerkleProof(whitelist, x.address);
-              return {
-                address: x.address,
-                proof,
-              };
-            }),
-          );
-          break;
-        }
-        case OperationTypes.WHITELIST_REMOVE: {
-          await this.removeWhitelist(whitelistOptions, contractObj);
-          const whitelist = await this.getWhitelist(contractObj);
-          root = await this.web3Service.getMerkleRoot(whitelist);
-          break;
-        }
-      }
-
-      const txData = this.encodeFunctionCall(w3, abiObj, [root]);
-      const txPayload: ITxPayload = {
-        execute: callData.execute,
-        operation_type: callData.operation_type,
-        network: callData.network,
-        contract: contractInst,
-        contract_obj: contractObj,
-        whitelist_obj: new_whitelist,
-        from_address: callData.from_address,
-        data: txData,
-        keystore: keystore,
-      };
-      const tx = await this.web3Service.processTx(txPayload);
-      return { root, proof, tx };
-    } catch (error) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message,
-      });
-    }
   }
 
   private validateWhitelistOptions(whitelistOptions: WhitelistRequest) {
@@ -371,73 +445,6 @@ export class Web3Processor {
     });
     return whitelist.rows as WhitelistModel[];
   }
-
-  /**
-   * Processes a common blockchain call.
-   */
-  @Process(ProcessTypes.COMMON)
-  async commonCall(job: Job): Promise<ITxResult> {
-    try {
-      const callData: CallRequest = job.data;
-      const { w3, keystore } = await this.getAccount(callData);
-      const { contractObj, contractInst, abiObj } = await this.getContract(callData, w3);
-      const callArgs = this.getArgs(callData.arguments, abiObj.inputs);
-      // If the operation type is a read contract, call the method and return the result
-      if (callData.operation_type === OperationTypes.READ_CONTRACT) {
-        const callResult = await contractInst.methods[callData.method_name](...callArgs).call();
-        return { [callData.method_name]: callResult };
-      }
-      const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any[]);
-      const txPayload: ITxPayload = {
-        execute: callData.execute,
-        operation_type: OperationTypes.COMMON,
-        network: callData.network,
-        contract: contractInst,
-        contract_obj: contractObj,
-        from_address: callData.from_address,
-        data: txData,
-        keystore: keystore,
-        value: callData?.value,
-      };
-      return await this.web3Service.processTx(txPayload);
-    } catch (error) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message,
-      });
-    }
-  }
-
-  /**
-   * Gets a merkle proof for provided address
-   */
-  @Process(ProcessTypes.MERKLE_PROOF)
-  async getMerkleProof(job: Job): Promise<IMerkleProof> {
-    try {
-      const data: WhitelistRequest = job.data;
-      const whitelist = await this.dbManager.getAllObjects(ObjectTypes.WHITELIST, {
-        where: { contract_id: data.contract_id },
-      });
-      if (!whitelist.rows.length) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'No whitelist found for this contract',
-        });
-      }
-      const root = await this.web3Service.getMerkleRoot(whitelist.rows as WhitelistModel[]);
-      const proof = await this.web3Service.getMerkleProof(whitelist.rows as WhitelistModel[], data.addresses);
-      return { root, proof };
-    } catch (error) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message,
-      });
-    }
-  }
-
-  //#endregion
-
-  //#region Helpers Methods
 
   /**
    * Retrieves account from DB and Web3 instance.

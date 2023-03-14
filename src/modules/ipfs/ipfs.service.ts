@@ -1,7 +1,7 @@
 import FormData from 'form-data';
 import { S3 } from 'aws-sdk';
 import { InjectAwsService } from 'nest-aws-sdk';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, UseFilters } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RpcException } from '@nestjs/microservices';
 import { HttpService } from '@nestjs/axios';
@@ -10,6 +10,7 @@ import { lastValueFrom, map } from 'rxjs';
 /**
  * A service for managing files on IPFS.
  */
+
 @Injectable()
 export class IpfsManagerService {
   constructor(
@@ -21,9 +22,9 @@ export class IpfsManagerService {
   /**
    * Uploads a file to IPFS.
    */
-  async upload(key: string): Promise<string> {
-    const file = await this.getObjectFromS3(key);
-    return await this.uploadToPinata({ name: key, data: file });
+  async upload(asset_key: string): Promise<string> {
+    const file = await this.getObjectFromS3(decodeURI(asset_key));
+    return await this.uploadToPinata({ name: asset_key, data: file });
   }
 
   /**
