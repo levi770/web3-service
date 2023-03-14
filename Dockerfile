@@ -68,4 +68,4 @@ HEALTHCHECK CMD wget --no-verbose --tries=1 --spider http://localhost:3000/healt
 
 # Run migrations in the production server and
 # Start the server using the production build
-CMD ["sh", "-c", "node dist/main.js"]
+CMD ["sh", "-c", "npm run migration:up; node dist/main.js"]

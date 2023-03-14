@@ -441,6 +441,7 @@ describe('App (e2e) latest', () => {
           operation_type: 'mint',
           operation_options: {
             mint_to: admin_acc_address,
+            qty: qty,
           },
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data));
@@ -585,6 +586,7 @@ describe('App (e2e) latest', () => {
           operation_options: {
             nft_number: '1',
             mint_to: admin_acc_address,
+            qty: 1,
           },
         };
         const response: JobResult = await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data));

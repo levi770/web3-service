@@ -131,8 +131,9 @@ export class Web3Processor {
       const { contractObj, contractInst, abiObj } = await this.getContract(callData, w3);
       const mintOptions = callData?.operation_options as IMintOptions;
       this.validateMintOptions(mintOptions, contractObj);
-      const tokenObj = await this.createToken(mintOptions, contractObj);
-      const metadataObj = await this.createMetadata(mintOptions, contractObj, tokenObj);
+      const { ids_range, ids_array } = await this.getTokenId(contractInst, mintOptions.qty);
+      const tokenObj = await this.createToken(mintOptions, contractObj, ids_array);
+      const metadataObj = await this.createMetadata(mintOptions, contractObj, tokenObj, ids_range);
       const txData = this.encodeFunctionCall(w3, abiObj, callData.arguments);
       const txPayload: ITxPayload = {
         execute: callData.execute,
@@ -285,6 +286,23 @@ export class Web3Processor {
 
   //#region Helpers Methods
 
+  private async getTokenId(contractInst: any, qty: number) {
+    try {
+      const tokens_count = +(await contractInst.methods.totalSupply().call());
+      const ids_range = [
+        { value: tokens_count ?? 0, inclusive: true },
+        { value: tokens_count + qty, inclusive: false },
+      ];
+      const ids_array = qty > 1 ? Array.from({ length: qty }, (v, k) => k + tokens_count) : [tokens_count];
+      return { ids_range, ids_array };
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message,
+      });
+    }
+  }
+
   private validateMintOptions(mintOptions: IMintOptions, contractObj: ContractModel) {
     if (!mintOptions) {
       throw new RpcException({
@@ -302,13 +320,18 @@ export class Web3Processor {
     }
   }
 
-  private async createToken(mintOptions: IMintOptions, contractObj: ContractModel): Promise<TokenModel> {
+  private async createToken(
+    mintOptions: IMintOptions,
+    contractObj: ContractModel,
+    ids_array: number[],
+  ): Promise<TokenModel> {
     try {
       const tokenPayload = {
         status: Statuses.CREATED,
         contract_id: contractObj.id,
         address: contractObj.address,
         qty: mintOptions.qty,
+        token_ids: ids_array,
       };
       const tokenObj = (await this.dbManager.create([tokenPayload], ObjectTypes.TOKEN)) as TokenModel[];
       return tokenObj[0];
@@ -324,17 +347,19 @@ export class Web3Processor {
     mintOptions: IMintOptions,
     contractObj: ContractModel,
     tokenObj: TokenModel,
+    ids_range: any,
   ): Promise<MetadataModel> {
     let metadata: MetadataModel[];
     try {
       const isMetadataExist = mintOptions.meta_data && mintOptions.asset_url && mintOptions.asset_type ? true : false;
+
       if (isMetadataExist) {
         const metadataPayload = {
           status: Statuses.CREATED,
           type: MetadataTypes.SPECIFIED,
           slug: contractObj.slug,
           meta_data: await this.getMetadata(mintOptions),
-          token_id: await this.dbManager.getTokenId(contractObj.id, tokenObj.qty),
+          token_id: ids_range,
         };
         metadata = (await this.dbManager.create([metadataPayload], ObjectTypes.METADATA)) as MetadataModel[];
         await this.dbManager.setMetadata({ object_id: tokenObj.id, id: metadata[0].id }, ObjectTypes.TOKEN);
@@ -346,7 +371,7 @@ export class Web3Processor {
         type: MetadataTypes.SPECIFIED,
         slug: contractObj.slug,
         meta_data: contractObj.metadata.meta_data,
-        token_id: await this.dbManager.getTokenId(contractObj.id, tokenObj.qty),
+        token_id: ids_range,
       };
       metadata = (await this.dbManager.create([metadataPayload], ObjectTypes.METADATA)) as MetadataModel[];
       await this.dbManager.setMetadata({ object_id: tokenObj.id, id: metadata[0].id }, ObjectTypes.TOKEN);
@@ -487,8 +512,7 @@ export class Web3Processor {
         message: 'method not found',
       });
     }
-    const contractObject = { contractObj, contractInst, abiObj };
-    return contractObject;
+    return { contractObj, contractInst, abiObj };
   }
 
   /**
