@@ -22,6 +22,9 @@ export class TokenModel extends Model {
   @Column({ type: DataType.INTEGER })
   qty: number;
 
+  @Column({ type: DataType.ARRAY(DataType.INTEGER) })
+  token_ids: number[];
+
   @Column({ type: DataType.JSON })
   tx_receipt: TransactionReceipt;
 
