@@ -60,12 +60,14 @@ FROM node:16-alpine As production
 
 # Copy the bundled code from the build stage to the production image
 COPY --chown=node:node --from=build /usr/src/app/package*.json ./
+COPY --chown=node:node --from=build /usr/src/app/.sequelizerc ./
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
+COPY --chown=node:node --from=build /usr/src/app/db ./db
 
 # wget because curl is not available in alpine
 HEALTHCHECK CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
 # Run migrations in the production server and
 # Start the server using the production build
-CMD ["sh", "-c", "node dist/main.js"]
+CMD ["sh", "-c", "npm run migration:up; node dist/main.js"]
