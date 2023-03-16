@@ -37,7 +37,7 @@ export class DbService {
   /**
    * Creates multiple objects of a specified type.
    */
-  async create(objects: CreateObjects, objectType: ObjectTypes): Promise<CreatedObjects> {
+  async create<T>(objects: CreateObjects, objectType: ObjectTypes): Promise<T[]> {
     try {
       const repository = this.getRepository(objectType);
       const result = await repository.bulkCreate(objects as any, { returning: true });
@@ -89,7 +89,7 @@ export class DbService {
   /**
    * Searches for an object in the specified repository by id.
    */
-  async findOneByAddress(address: string, objectType: ObjectTypes): Promise<ModelResponse> {
+  async findOneByAddress<T>(address: string, objectType: ObjectTypes): Promise<T> {
     try {
       const repository = this.getRepository(objectType);
       return await repository.findOne({ where: { address } });
@@ -112,15 +112,10 @@ export class DbService {
         order: [[params?.order_by || 'createdAt', params?.sort || 'DESC']] as Order,
         distinct: true,
       };
-      if (params?.where) {
-        args.where = params.where;
-      }
-      if (params?.include_child) {
-        args.include = this.getIncludeModels(objectType);
-      }
+      if (params?.where) args.where = params.where;
+      if (params?.include_child) args.include = this.getIncludeModels(objectType);
       const repository = this.getRepository(objectType);
-      const data = await repository.findAndCountAll(args);
-      return data;
+      return await repository.findAndCountAll(args);
     } catch (error) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -132,24 +127,16 @@ export class DbService {
   /**
    * Gets a single object of the specified type.
    */
-  async getOneObject(objectType: ObjectTypes, params: IDbArgs): Promise<ModelResponse> {
+  async getOneObject<T>(objectType: ObjectTypes, params: IDbArgs): Promise<T> {
     try {
       const args: IDbArgs = {};
-      if (!params) {
-        throw new RpcException('params can not be empty');
-      }
-      if (params.where) {
-        args.where = params.where;
-      }
-      if (params.include_child) {
-        args.include = this.getIncludeModels(objectType);
-      }
+      if (!params) throw new RpcException('params can not be empty');
+      if (params.where) args.where = params.where;
+      if (params.include_child) args.include = this.getIncludeModels(objectType);
       const repository = this.getRepository(objectType);
       let result = await repository.findOne(args);
       if (objectType === ObjectTypes.TOKEN) {
-        const metadata = await this.metadataRepository.findOne({
-          where: { id: (result as TokenModel).metadata_id },
-        });
+        const metadata = await this.metadataRepository.findOne({ where: { id: (result as TokenModel).metadata_id } });
         result = { ...result, metadata };
       }
       return result;
@@ -184,14 +171,11 @@ export class DbService {
    */
   async getTokenId(contract_id: string, qty = 1): Promise<Range> {
     try {
-      const count = await this.tokenRepository.sum('qty', {
-        where: { contract_id, status: Statuses.PROCESSED },
-      });
-      const range = [
+      const count = await this.tokenRepository.sum('qty', { where: { contract_id, status: Statuses.PROCESSED } });
+      return [
         { value: count ?? 0, inclusive: true },
         { value: count + qty, inclusive: false },
       ];
-      return range;
     } catch (error) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -232,9 +216,8 @@ export class DbService {
    */
   async getMetadata(params: GetMetadataRequest): Promise<IMetaData> {
     try {
-      const metadata = await this.getOneObject(ObjectTypes.METADATA, {
+      const metadata = await this.getOneObject<MetadataModel>(ObjectTypes.METADATA, {
         where: { token_id: { [Op.contains]: params.id }, slug: params.slug },
-        //where: { slug: params.slug },
       });
       if (!metadata) {
         throw new RpcException({
@@ -242,7 +225,7 @@ export class DbService {
           message: 'Metadata with this token_id not found',
         });
       }
-      return (metadata as MetadataModel).meta_data;
+      return metadata.meta_data;
     } catch (error) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -256,10 +239,9 @@ export class DbService {
    */
   async updateMetadata(data: UpdateMetadataRequest): Promise<MetadataModel> {
     try {
-      const metadata = (await this.getOneObject(ObjectTypes.METADATA, {
+      const metadata = await this.getOneObject<MetadataModel>(ObjectTypes.METADATA, {
         where: { token_id: { [Op.contains]: data.token_id }, slug: data.slug },
-        //where: { slug: data.slug },
-      })) as MetadataModel;
+      });
 
       if (!metadata) {
         throw new RpcException({
