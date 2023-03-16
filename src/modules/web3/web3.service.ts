@@ -4,137 +4,84 @@ import MerkleTree from 'merkletreejs';
 import ganache from 'ganache';
 import { TransactionReceipt } from 'web3-core';
 import { ConfigService } from '@nestjs/config';
-import { ContractModel } from '../db/models/contract.model';
-import { DeployRequest } from './dto/requests/deploy.request';
-import { GetJobRequest } from './dto/requests/getJob.request';
+import { DeployDto } from './dto/requests/deploy.dto';
 import { HttpStatus, Injectable, OnModuleInit, UseFilters } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Job, Queue } from 'bull';
-import { JobResult } from '../../common/dto/jobResult.dto';
-import { IMintOptions } from './interfaces/mintOptions.interface';
-import { Networks, ObjectTypes, OperationTypes, ProcessTypes, Statuses, WEB3_QUEUE } from '../../common/constants';
-import { Observable } from 'rxjs';
+import { Networks, ObjectTypes, OperationTypes, Statuses, WEB3_QUEUE } from '../../common/constants';
 import { RpcException } from '@nestjs/microservices';
-import { TokenModel } from '../db/models/token.model';
-import { ITxPayload } from './interfaces/txPayload.interface';
+import { TxPayloadDto } from './interfaces/txPayload.dto';
 import { ITxOptions } from './interfaces/txOptions.interface';
-import { ITxResult } from './interfaces/txResult.interface';
-import { v4 as uuidv4 } from 'uuid';
+import { TxResultDto } from './interfaces/txResult.dto';
 import { WhitelistModel } from '../db/models/whitelist.model';
-import { ProcessData } from '../../common/types';
 import { DbService } from '../db/db.service';
 import { TransactionModel } from '../db/models/transaction.model';
 import { IWallet } from './interfaces/wallet.interface';
-import { CreateWalletRequest } from './dto/requests/createWallet.request';
+import { CreateWalletDto } from './dto/requests/createWallet.dto';
 import { SendAdminDto } from './dto/requests/sendAdmin.dto';
 import { GetAdminDto } from './dto/requests/getAdmin.dto';
 import { WalletModel } from '../db/models/wallet.model';
-import { ExceptionFilter } from '../../common/filters/exception.filter';
+import { CallDto } from './dto/requests/call.dto';
+import { enumValuesToObject } from '../../common/utils/enum.util';
+import { ContractModel } from '../db/models/contract.model';
+import { EventBus } from '@nestjs/cqrs';
+import { TxExecutedEvent } from './events/tx-executed.event';
 
 /**
  * A service class for interacting with Web3.
  */
 @Injectable()
-export class Web3Service {
-  private ethereum: Web3;
-  private polygon: Web3;
-  private local: Web3;
+export class Web3Service implements OnModuleInit {
+  public networks = new Map<Networks, Web3>();
+  constructor(private readonly configService: ConfigService, private readonly dbService: DbService, private readonly eventBus: EventBus) {}
 
-  constructor(
-    @InjectQueue(WEB3_QUEUE) private web3Queue: Queue,
-    private configService: ConfigService,
-    private dbService: DbService,
-  ) {
-    this.ethereum = new Web3(new Web3.providers.HttpProvider(configService.get('ETHEREUM_HOST')));
-    this.polygon = new Web3(new Web3.providers.HttpProvider(configService.get('POLYGON_HOST')));
-    if (configService.get('USE_GANACHE') === 'true') {
-      this.local = new Web3(
-        ganache.provider({
-          wallet: { accounts: [{ secretKey: configService.get('PRIV_KEY'), balance: U.toHex(U.toWei('1000')) }] },
-          logging: { quiet: true },
-        }),
+  async onModuleInit() {
+    const net = enumValuesToObject(Networks);
+    for (const key in net) {
+      this.networks.set(net[key], await this.buildNetworkInstance(net[key]));
+    }
+
+    if (this.configService.get('USE_GANACHE') === 'true') {
+      const secretKey = this.configService.get('PRIV_KEY');
+      this.networks.set(
+        Networks.LOCAL,
+        new Web3(
+          ganache.provider({
+            wallet: { accounts: [{ secretKey, balance: U.toHex(U.toWei('1000')) }] },
+            logging: { quiet: true },
+          }),
+        ),
       );
     }
   }
 
-  /**
-   * Retrieve a job from the queue by its ID.
-   */
-  async getJob(data: GetJobRequest) {
-    const job = await this.web3Queue.getJob(data.jobId);
-    if (!job) {
-      throw new RpcException({
-        status: HttpStatus.NOT_FOUND,
-        message: 'Job not found',
-      });
+  async buildNetworkInstance(network: Networks) {
+    switch (network) {
+      case Networks.ETHEREUM:
+        return new Web3(new Web3.providers.HttpProvider(this.configService.get('ETHEREUM_HOST')));
+      case Networks.ETHEREUM_TEST:
+        return new Web3(new Web3.providers.HttpProvider(this.configService.get('ETHEREUM_HOST')));
+      case Networks.POLYGON:
+        return new Web3(new Web3.providers.HttpProvider(this.configService.get('POLYGON_HOST')));
+      case Networks.POLYGON_TEST:
+        return new Web3(new Web3.providers.HttpProvider(this.configService.get('POLYGON_HOST')));
     }
-    return job;
   }
 
-  /**
-   * Processes a job and returns an Observable that emits job results.
-   */
-  async process(data: ProcessData, processType: ProcessTypes): Promise<Observable<JobResult>> {
-    try {
-      const jobId = uuidv4();
-      const job$: Observable<JobResult> = new Observable((observer) => {
-        const active = (job: Job<IMintOptions | DeployRequest>) => {
-          checkSubscriptions();
-          if (job.id === jobId) {
-            observer.next(new JobResult(job.id, Statuses.ACTIVE, job.data));
-          }
-        };
-        const completed = (job: Job<IMintOptions | DeployRequest>, result: ContractModel | TokenModel) => {
-          checkSubscriptions();
-          if (job.id === jobId) {
-            observer.next(new JobResult(job.id, Statuses.COMPLETED, result));
-            observer.complete();
-            removeAllListeners();
-          }
-        };
-        const failed = (job: Job<IMintOptions | DeployRequest>, error: Error) => {
-          checkSubscriptions();
-          if (job.id === jobId) {
-            observer.next(new JobResult(job.id, Statuses.FAILED, error.message));
-            observer.complete();
-            removeAllListeners();
-          }
-        };
-        const checkSubscriptions = () => {
-          if (observer.closed) {
-            removeAllListeners();
-          }
-        };
-        const removeAllListeners = () => {
-          this.web3Queue.removeListener(Statuses.ACTIVE, active);
-          this.web3Queue.removeListener(Statuses.COMPLETED, completed);
-          this.web3Queue.removeListener(Statuses.FAILED, failed);
-        };
-
-        this.web3Queue.addListener(Statuses.ACTIVE, active);
-        this.web3Queue.addListener(Statuses.COMPLETED, completed);
-        this.web3Queue.addListener(Statuses.FAILED, failed);
-      });
-
-      await this.web3Queue.add(processType, data, { jobId, delay: 1000 });
-      return job$;
-    } catch (error) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message,
-      });
-    }
+  async getWallet(data: CallDto | DeployDto): Promise<{ wallet: WalletModel; keystore: any }> {
+    const wallet = await this.dbService.findOneByAddress<WalletModel>(data.from_address, ObjectTypes.WALLET);
+    if (data?.execute && !wallet) throw new RpcException({ status: HttpStatus.INTERNAL_SERVER_ERROR, message: 'from_address not found' });
+    const keystore = data?.execute ? wallet.keystore : null;
+    return { wallet, keystore };
   }
 
   /**
    * Sends a transaction to the Ethereum or Polygon network.
    */
-  async processTx(txPayload: ITxPayload): Promise<ITxResult> {
+  async processTx(txPayload: TxPayloadDto): Promise<TxResultDto> {
     const w3 = this.getWeb3(txPayload.network);
-    const { maxFeePerGas, maxPriorityFeePerGas } = await this.calculateGas(w3, txPayload.network);
+    const { maxPriorityFeePerGas } = await this.calculateGas(w3, txPayload.network);
     const gasPrice = await w3.eth.getGasPrice();
-    const contractObj = txPayload.contract_obj;
-    const contract = txPayload.contract;
+    const contractModel = txPayload.contract_model;
+    const contractInst = txPayload.contract_inst;
     const tx: ITxOptions = {
       nonce: await w3.eth.getTransactionCount(txPayload.from_address),
       from: txPayload.from_address,
@@ -151,8 +98,8 @@ export class Web3Service {
         });
         break;
       case OperationTypes.MINT:
-        tx.to = contract.options.address;
-        tx.value = +U.toWei(contractObj.price, 'ether');
+        tx.to = contractInst.options.address;
+        tx.value = +U.toWei(contractModel.price, 'ether');
         tx.gas = await w3.eth.estimateGas({
           from: txPayload.from_address,
           to: tx.to,
@@ -162,7 +109,7 @@ export class Web3Service {
         break;
       default:
         const value = txPayload.value ? +U.toWei(txPayload.value, 'ether') : 0;
-        tx.to = contract.options.address;
+        tx.to = contractInst.options.address;
         tx.value = value;
         tx.gas = await w3.eth.estimateGas({
           from: txPayload.from_address,
@@ -175,66 +122,33 @@ export class Web3Service {
 
     const commission = (+tx.gas * +gasPrice).toString();
     const balance = await w3.eth.getBalance(txPayload.from_address);
+    if (+balance < +commission) throw new RpcException({ status: HttpStatus.INTERNAL_SERVER_ERROR, message: 'Not enough balance' });
+    if (!txPayload.execute) return { payload: tx, commission, balance };
 
-    if (+balance < +commission) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Not enough balance',
-      });
-    }
-
-    if (!txPayload.execute) {
-      return { payload: tx, commission, balance };
-    }
-
-    const txObjPayload = {
+    const txModelPayload = {
       network: txPayload.network,
       status: Statuses.CREATED,
       address: txPayload.from_address,
       tx_payload: tx,
     };
-    const [txObj] = (await this.dbService.create([txObjPayload], ObjectTypes.TRANSACTION)) as TransactionModel[];
-    await contractObj.$add('transaction', txObj);
+    const [txModel] = await this.dbService.create<TransactionModel>([txModelPayload], ObjectTypes.TRANSACTION);
+    contractModel.$add('transaction', txModel);
+
     const account = w3.eth.accounts.decrypt(txPayload.keystore, this.configService.get('DEFAULT_PASSWORD'));
     const signed = await account.signTransaction(tx);
     const receipt = await w3.eth.sendSignedTransaction(signed.rawTransaction);
 
     if (receipt.status) {
-      txObj.status = Statuses.PROCESSED;
-      txObj.tx_receipt = receipt;
-      await txObj.save();
-
-      switch (txPayload.operation_type) {
-        case OperationTypes.DEPLOY:
-          contractObj.status = Statuses.PROCESSED;
-          contractObj.address = receipt.contractAddress;
-          await contractObj.save();
-          break;
-        case OperationTypes.MINT:
-          const tokenObj = txPayload.token_obj;
-          tokenObj.status = Statuses.PROCESSED;
-          tokenObj.tx_receipt = receipt;
-          await tokenObj.save();
-          break;
-        case OperationTypes.WHITELIST_ADD:
-          const ids = txPayload.whitelist_obj.map((obj) => obj.id);
-          await this.dbService.updateStatus(
-            {
-              object_id: ids,
-              status: Statuses.PROCESSED,
-              tx_hash: receipt.transactionHash,
-              tx_receipt: receipt,
-            },
-            ObjectTypes.WHITELIST,
-          );
-          break;
-      }
+      this.eventBus.publish(new TxExecutedEvent({ payload: txPayload, receipt }));
+      txModel.status = Statuses.PROCESSED;
+      txModel.tx_receipt = receipt;
+      await txModel.save();
     } else {
-      txObj[0].status = Statuses.FAILED;
-      await txObj[0].save();
+      txModel[0].status = Statuses.FAILED;
+      await txModel[0].save();
     }
 
-    return { payload: tx, commission, balance, txObj };
+    return { payload: tx, commission, balance, txModel };
   }
 
   async calculateGas(w3: Web3, network: Networks): Promise<{ maxFeePerGas: number; maxPriorityFeePerGas: string }> {
@@ -295,12 +209,7 @@ export class Web3Service {
   async getMerkleProof(leaves: WhitelistModel[], addresses: string): Promise<string[]> {
     try {
       const address = addresses.split(',');
-      if (address.length > 1) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Only one address is allowed.',
-        });
-      }
+      if (address.length > 1) throw new RpcException({ status: HttpStatus.BAD_REQUEST, message: 'Only one address is allowed.' });
       const hashLeaves = leaves.map((x) => U.keccak256(x.address));
       const tree = new MerkleTree(hashLeaves, U.keccak256, { sortPairs: true });
       return tree.getHexProof(U.keccak256(address[0]));
@@ -315,15 +224,14 @@ export class Web3Service {
   /**
    * Creates a new Ethereum account.
    */
-  async newWallet(data: CreateWalletRequest): Promise<IWallet> {
+  async newWallet(data: CreateWalletDto): Promise<IWallet> {
     try {
+      const w3 = this.getWeb3(data.network);
       const password = await this.configService.get('DEFAULT_PASSWORD');
       if (data.test) {
-        const w3 = this.getWeb3(data.network);
         const account = w3.eth.accounts.wallet.create(1, password);
-
         if (data.network === Networks.LOCAL) {
-          const accounts = await this.local.eth.getAccounts();
+          const accounts = await w3.eth.getAccounts();
           const tx_payload = {
             from: accounts[0],
             to: account[0].address,
@@ -355,7 +263,7 @@ export class Web3Service {
         }
       }
 
-      const account = this.ethereum.eth.accounts.create();
+      const account = w3.eth.accounts.create();
       return { address: account.address, keystore: account.encrypt(password) };
     } catch (error) {
       throw new RpcException({
@@ -367,10 +275,7 @@ export class Web3Service {
 
   async getAdmin(data: GetAdminDto) {
     const w3 = this.getWeb3(data.network);
-    if (data.network === Networks.LOCAL) {
-      const accounts = await w3.eth.getAccounts();
-      return accounts[0];
-    }
+    if (data.network === Networks.LOCAL) return (await w3.eth.getAccounts())[0];
     const pk = await this.configService.get('PRIV_KEY');
     const adminAcc = w3.eth.accounts.privateKeyToAccount(pk);
     return adminAcc.address;
@@ -378,9 +283,7 @@ export class Web3Service {
 
   async sendAdmin(data: SendAdminDto) {
     const w3 = this.getWeb3(data.network);
-    if (data.network === Networks.LOCAL) {
-      return await w3.eth.sendTransaction(data.payload);
-    }
+    if (data.network === Networks.LOCAL) return await w3.eth.sendTransaction(data.payload);
     const pk = await this.configService.get('PRIV_KEY');
     const adminAcc = w3.eth.accounts.privateKeyToAccount(pk);
     const signed = await adminAcc.signTransaction(data.payload);
@@ -388,17 +291,55 @@ export class Web3Service {
   }
 
   getWeb3(network: Networks): Web3 {
-    switch (network) {
-      case Networks.ETHEREUM:
-        return this.ethereum;
-      case Networks.ETHEREUM_TEST:
-        return this.ethereum;
-      case Networks.POLYGON:
-        return this.polygon;
-      case Networks.POLYGON_TEST:
-        return this.polygon;
-      default:
-        return this.local;
+    return this.networks.get(network);
+  }
+
+  async getContract(data: CallDto, w3: Web3): Promise<{ contractModel: ContractModel; contractInst: any; abiObj: any }> {
+    const contractModel = await this.dbService.getOneObject<ContractModel>(ObjectTypes.CONTRACT, {
+      where: { id: data.contract_id },
+      include_child: true,
+    });
+    if (!contractModel) throw new RpcException({ status: HttpStatus.NOT_FOUND, message: 'contract not found' });
+    const contractInst = new w3.eth.Contract(contractModel.deploy_data.abi as U.AbiItem[], contractModel.address);
+    const abiObj = contractModel.deploy_data.abi.find((x) => x.name === data.method_name && x.type === 'function');
+    if (!abiObj) throw new RpcException({ status: HttpStatus.NOT_FOUND, message: 'method not found' });
+    return { contractModel, contractInst, abiObj };
+  }
+
+  async getTokenId(contractInst: any, qty: number) {
+    try {
+      const tokens_count = +(await contractInst.methods.totalSupply().call());
+      const ids_range = [
+        { value: tokens_count ?? 0, inclusive: true },
+        { value: tokens_count + qty, inclusive: false },
+      ];
+      const ids_array = qty > 1 ? Array.from({ length: qty }, (v, k) => k + tokens_count) : [tokens_count];
+      return { ids_range, ids_array };
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message,
+      });
+    }
+  }
+
+  getArgs(args: string, inputs: U.AbiInput[]): any[] {
+    try {
+      if (!args || args === '') return [];
+      const argsArr = args.toString().split('::');
+      if (argsArr.length !== inputs.length)
+        throw new RpcException({ status: HttpStatus.INTERNAL_SERVER_ERROR, message: 'arguments length is not valid' });
+      if (argsArr.length !== 0) {
+        return argsArr.map((value, index) => {
+          if (inputs[index].type === 'bytes32[]') return JSON.parse(value);
+          return value;
+        });
+      }
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message,
+      });
     }
   }
 }

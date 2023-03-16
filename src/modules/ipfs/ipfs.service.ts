@@ -6,18 +6,18 @@ import { ConfigService } from '@nestjs/config';
 import { RpcException } from '@nestjs/microservices';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map } from 'rxjs';
+import { MintOptionsDto } from '../web3/interfaces/mintOptions.dto';
+import { DeployDto } from '../web3/dto/requests/deploy.dto';
+import { IMetaData } from '../web3/interfaces/metaData.interface';
+import { FileTypes } from '../../common/constants';
 
 /**
  * A service for managing files on IPFS.
  */
 
 @Injectable()
-export class IpfsManagerService {
-  constructor(
-    @InjectAwsService(S3) private s3: S3,
-    private configService: ConfigService,
-    private httpService: HttpService,
-  ) {}
+export class IpfsService {
+  constructor(@InjectAwsService(S3) private s3: S3, private configService: ConfigService, private httpService: HttpService) {}
 
   /**
    * Uploads a file to IPFS.
@@ -74,5 +74,27 @@ export class IpfsManagerService {
         message: error.message,
       });
     }
+  }
+
+  /**
+   * Retrieves metadata for a given contract.
+   */
+  async buildMetadata(data: MintOptionsDto | DeployDto): Promise<IMetaData> {
+    const fileId = await this.upload(data.asset_url);
+    const metadata = data.meta_data;
+    switch (data.asset_type) {
+      case FileTypes.IMAGE:
+        metadata.image = `${this.configService.get('PINATA_GATEWAY')}${fileId}`;
+        break;
+      case FileTypes.OBJECT:
+        metadata.model_url = `${this.configService.get('PINATA_GATEWAY')}${fileId}`;
+        break;
+      default:
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'File type not supported',
+        });
+    }
+    return metadata;
   }
 }

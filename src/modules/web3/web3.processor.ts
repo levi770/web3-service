@@ -1,27 +1,27 @@
 import * as U from 'web3-utils';
 import Web3 from 'web3';
 import { Job } from 'bull';
-import { CallRequest } from './dto/requests/call.request';
+import { CallDto } from './dto/requests/call.dto';
 import { WhitelistResponse } from './dto/responses/whitelist.response';
 import { ConfigService } from '@nestjs/config';
 import { ContractModel } from '../db/models/contract.model';
-import { DeployRequest } from './dto/requests/deploy.request';
-import { IpfsManagerService } from '../ipfs/ipfs.service';
+import { DeployDto } from './dto/requests/deploy.dto';
+import { IpfsService } from '../ipfs/ipfs.service';
 import { IMetaData } from './interfaces/metaData.interface';
 import { MetadataModel } from '../db/models/metadata.model';
-import { IMintOptions } from './interfaces/mintOptions.interface';
+import { MintOptionsDto } from './interfaces/mintOptions.dto';
 import { Process, Processor } from '@nestjs/bull';
 import { RpcException } from '@nestjs/microservices';
 import { TokenModel } from '../db/models/token.model';
-import { ITxPayload } from './interfaces/txPayload.interface';
+import { TxPayloadDto } from './interfaces/txPayload.dto';
 import { Web3Service } from './web3.service';
 import { WhitelistRequest } from './dto/requests/whitelist.request';
 import { WhitelistModel } from '../db/models/whitelist.model';
 import { FileTypes, MetadataTypes, ObjectTypes, OperationTypes, ProcessTypes, Statuses } from '../../common/constants';
 import { DbService } from '../db/db.service';
 import { WalletModel } from '../db/models/wallet.model';
-import { ITxResult } from './interfaces/txResult.interface';
-import { CreateWalletRequest } from './dto/requests/createWallet.request';
+import { TxResultDto } from './interfaces/txResult.dto';
+import { CreateWalletDto } from './dto/requests/createWallet.dto';
 import { IWallet } from '../db/interfaces/wallet.interface';
 import { IMerkleProof } from './interfaces/merkleProof.interface';
 import { HttpStatus, UseFilters } from '@nestjs/common';
@@ -37,7 +37,7 @@ export class Web3Processor {
   constructor(
     private configService: ConfigService,
     private dbManager: DbService,
-    private ipfsManger: IpfsManagerService,
+    private ipfsManger: IpfsService,
     private web3Service: Web3Service,
   ) {}
 
@@ -50,7 +50,7 @@ export class Web3Processor {
   @UseFilters(new ExceptionFilter())
   async createWallet(job: Job): Promise<IWallet> {
     try {
-      const data: CreateWalletRequest = job.data;
+      const data: CreateWalletDto = job.data;
       const account = await this.web3Service.newWallet(data);
       const walletPayload = { team_id: data.team_id, ...account };
       const [wallet] = (await this.dbManager.create([walletPayload], ObjectTypes.WALLET)) as WalletModel[];
@@ -70,7 +70,7 @@ export class Web3Processor {
   @UseFilters(new ExceptionFilter())
   async deploy(job: Job): Promise<DeployResponse> {
     try {
-      const deployData: DeployRequest = job.data;
+      const deployData: DeployDto = job.data;
       const { w3, wallet, keystore } = await this.getAccount(deployData);
       const contractInst = new w3.eth.Contract(deployData.abi as U.AbiItem[]);
       const contractPayload = {
@@ -80,7 +80,7 @@ export class Web3Processor {
         price: deployData.price,
       };
       const [contract] = (await this.dbManager.create([contractPayload], ObjectTypes.CONTRACT)) as ContractModel[];
-      const txPayload: ITxPayload = {
+      const txPayload: TxPayloadDto = {
         execute: deployData.execute,
         network: deployData.network,
         contract: contractInst,
@@ -126,16 +126,16 @@ export class Web3Processor {
   @UseFilters(new ExceptionFilter())
   async mint(job: Job): Promise<MintResponse> {
     try {
-      const callData: CallRequest = job.data;
+      const callData: CallDto = job.data;
       const { w3, keystore } = await this.getAccount(callData);
       const { contractObj, contractInst, abiObj } = await this.getContract(callData, w3);
-      const mintOptions = callData?.operation_options as IMintOptions;
+      const mintOptions = callData?.operation_options as MintOptionsDto;
       this.validateMintOptions(mintOptions, contractObj);
       const { ids_range, ids_array } = await this.getTokenId(contractInst, mintOptions.qty);
       const tokenObj = await this.createToken(mintOptions, contractObj, ids_array);
       const metadataObj = await this.createMetadata(mintOptions, contractObj, tokenObj, ids_range);
       const txData = this.encodeFunctionCall(w3, abiObj, callData.arguments);
-      const txPayload: ITxPayload = {
+      const txPayload: TxPayloadDto = {
         execute: callData.execute,
         operation_type: OperationTypes.MINT,
         network: callData.network,
@@ -164,7 +164,7 @@ export class Web3Processor {
   @UseFilters(new ExceptionFilter())
   async whitelist(job: Job): Promise<WhitelistResponse> {
     try {
-      const callData: CallRequest = job.data;
+      const callData: CallDto = job.data;
       const { w3, keystore } = await this.getAccount(callData);
       const { contractObj, contractInst, abiObj } = await this.getContract(callData, w3);
       const whitelistOptions = callData.operation_options as WhitelistRequest;
@@ -196,7 +196,7 @@ export class Web3Processor {
       }
 
       const txData = this.encodeFunctionCall(w3, abiObj, [root]);
-      const txPayload: ITxPayload = {
+      const txPayload: TxPayloadDto = {
         execute: callData.execute,
         operation_type: callData.operation_type,
         network: callData.network,
@@ -222,9 +222,9 @@ export class Web3Processor {
    */
   @Process(ProcessTypes.COMMON)
   @UseFilters(new ExceptionFilter())
-  async commonCall(job: Job): Promise<ITxResult> {
+  async commonCall(job: Job): Promise<TxResultDto> {
     try {
-      const callData: CallRequest = job.data;
+      const callData: CallDto = job.data;
       const { w3, keystore } = await this.getAccount(callData);
       const { contractObj, contractInst, abiObj } = await this.getContract(callData, w3);
       const callArgs = this.getArgs(callData.arguments, abiObj.inputs);
@@ -234,7 +234,7 @@ export class Web3Processor {
         return { [callData.method_name]: callResult };
       }
       const txData = w3.eth.abi.encodeFunctionCall(abiObj, callArgs as any[]);
-      const txPayload: ITxPayload = {
+      const txPayload: TxPayloadDto = {
         execute: callData.execute,
         operation_type: OperationTypes.COMMON,
         network: callData.network,
@@ -303,7 +303,7 @@ export class Web3Processor {
     }
   }
 
-  private validateMintOptions(mintOptions: IMintOptions, contractObj: ContractModel) {
+  private validateMintOptions(mintOptions: MintOptionsDto, contractObj: ContractModel) {
     if (!mintOptions) {
       throw new RpcException({
         status: HttpStatus.BAD_REQUEST,
@@ -320,11 +320,7 @@ export class Web3Processor {
     }
   }
 
-  private async createToken(
-    mintOptions: IMintOptions,
-    contractObj: ContractModel,
-    ids_array: number[],
-  ): Promise<TokenModel> {
+  private async createToken(mintOptions: MintOptionsDto, contractObj: ContractModel, ids_array: number[]): Promise<TokenModel> {
     try {
       const tokenPayload = {
         status: Statuses.CREATED,
@@ -344,7 +340,7 @@ export class Web3Processor {
   }
 
   private async createMetadata(
-    mintOptions: IMintOptions,
+    mintOptions: MintOptionsDto,
     contractObj: ContractModel,
     tokenObj: TokenModel,
     ids_range: any,
@@ -398,10 +394,7 @@ export class Web3Processor {
     }
   }
 
-  private async addWhitelist(
-    whitelistOptions: WhitelistRequest,
-    contractObj: ContractModel,
-  ): Promise<WhitelistModel[]> {
+  private async addWhitelist(whitelistOptions: WhitelistRequest, contractObj: ContractModel): Promise<WhitelistModel[]> {
     const addresses = whitelistOptions.addresses.split(',').map((address) => {
       return {
         status: Statuses.CREATED,
@@ -451,10 +444,7 @@ export class Web3Processor {
     });
     const addressArr = addresses.map((x) => x.address);
     const contractIdArr = addresses.map((x) => x.contract_id);
-    const deleted = await this.dbManager.delete(
-      { address: addressArr, contract_id: contractIdArr },
-      ObjectTypes.WHITELIST,
-    );
+    const deleted = await this.dbManager.delete({ address: addressArr, contract_id: contractIdArr }, ObjectTypes.WHITELIST);
     // If no addresses were removed, throw an error
     if (deleted === 0) {
       throw new RpcException({
@@ -474,8 +464,7 @@ export class Web3Processor {
   /**
    * Retrieves account from DB and Web3 instance.
    */
-  async getAccount(data: CallRequest | DeployRequest): Promise<{ w3: Web3; wallet: WalletModel; keystore: any }> {
-    const w3: Web3 = this.web3Service.getWeb3(data.network);
+  async getAccount(data: CallDto | DeployDto): Promise<{ wallet: WalletModel; keystore: any }> {
     const wallet = (await this.dbManager.findOneByAddress(data.from_address, ObjectTypes.WALLET)) as WalletModel;
     if (data?.execute && !wallet) {
       throw new RpcException({
@@ -484,16 +473,13 @@ export class Web3Processor {
       });
     }
     const keystore = data?.execute ? wallet.keystore : null;
-    return { w3, wallet, keystore };
+    return { wallet, keystore };
   }
 
   /**
    * Retrieves contract from DB and contract instance with ABI.
    */
-  async getContract(
-    data: CallRequest,
-    w3: Web3,
-  ): Promise<{ contractObj: ContractModel; contractInst: any; abiObj: any }> {
+  async getContract(data: CallDto, w3: Web3): Promise<{ contractObj: ContractModel; contractInst: any; abiObj: any }> {
     const contractObj = (await this.dbManager.getOneObject(ObjectTypes.CONTRACT, {
       where: { id: data.contract_id },
       include_child: true,
@@ -549,7 +535,7 @@ export class Web3Processor {
   /**
    * Retrieves metadata for a given contract.
    */
-  async getMetadata(data: IMintOptions | DeployRequest): Promise<IMetaData> {
+  async getMetadata(data: MintOptionsDto | DeployDto): Promise<IMetaData> {
     const fileId = await this.ipfsManger.upload(data.asset_url);
     const metadata = data.meta_data;
     switch (data.asset_type) {
