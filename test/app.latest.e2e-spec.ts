@@ -12,7 +12,7 @@ import { IWallet } from '../src/modules/db/interfaces/wallet.interface';
 import { TokenModel } from '../src/modules/db/models/token.model';
 import { WhitelistResponse } from '../src/modules/web3/dto/responses/whitelist.response';
 import { GetJobRequest } from '../src/modules/web3/dto/requests/getJob.request';
-import { Response } from '../src/common/dto/response.dto';
+import { ResponseDto } from '../src/common/dto/response.dto';
 import { AllObjectsResponce } from '../src/modules/db/dto/responses/allObjects.response';
 import { GetAllRequest } from '../src/modules/db/dto/requests/getAll.request';
 import { GetOneRequest } from '../src/modules/db/dto/requests/getOne.request';
@@ -170,8 +170,8 @@ describe('App (e2e) latest', () => {
         jest.setTimeout(timeout);
         expect(jobId).toBeTruthy();
         const data: GetJobRequest = { jobId: jobId.toString() };
-        const response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.JOB }, data));
-        expect(response.status).toEqual(HttpStatus.OK);
+        const response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.JOB }, data));
+        expect(response.statusCode).toEqual(HttpStatus.OK);
         expect(response.message).toEqual(expect.any(String));
         expect(response.data).toMatchObject(expect.any(Object));
         const responceData = response.data as any;
@@ -462,9 +462,7 @@ describe('App (e2e) latest', () => {
       'Execute mint transaction on client side',
       async () => {
         jest.setTimeout(timeout);
-        const tx = await lastValueFrom(
-          redis_client.send({ cmd: CMD.SEND_ADMIN }, { network, payload: user2_mint_tx_payload }),
-        );
+        const tx = await lastValueFrom(redis_client.send({ cmd: CMD.SEND_ADMIN }, { network, payload: user2_mint_tx_payload }));
         expect(tx.status).toBeTruthy();
         tx_receipt = tx;
       },
@@ -509,9 +507,7 @@ describe('App (e2e) latest', () => {
       'Execute mint transaction on client side',
       async () => {
         jest.setTimeout(timeout);
-        const tx = await lastValueFrom(
-          redis_client.send({ cmd: CMD.SEND_ADMIN }, { network, payload: user2_mint_tx_payload }),
-        );
+        const tx = await lastValueFrom(redis_client.send({ cmd: CMD.SEND_ADMIN }, { network, payload: user2_mint_tx_payload }));
         expect(tx.status).toBeTruthy();
         tx_receipt = tx;
       },
@@ -600,8 +596,8 @@ describe('App (e2e) latest', () => {
   describe('DbController', () => {
     it(`{ cmd: CMD.ALL_OBJECTS } Get all contracts from DB whith pagination`, async () => {
       const data: GetAllRequest = { object_type: ObjectTypes.CONTRACT };
-      let response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.ALL_OBJECTS }, data));
-      expect(response.status).toEqual(200);
+      let response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.ALL_OBJECTS }, data));
+      expect(response.statusCode).toEqual(200);
       let responceData = response.data as AllObjectsResponce;
       expect(responceData.count).toBeGreaterThan(0);
       expect(responceData.rows).toMatchObject(expect.any(Array));
@@ -609,14 +605,14 @@ describe('App (e2e) latest', () => {
       data.limit = 1;
       data.page = 1;
       response = await lastValueFrom(redis_client.send({ cmd: CMD.ALL_OBJECTS }, data));
-      expect(response.status).toEqual(200);
+      expect(response.statusCode).toEqual(200);
       responceData = response.data as AllObjectsResponce;
       expect(responceData.rows).toMatchObject(expect.any(Array));
       expect(responceData.rows).toHaveLength(1);
       const row = responceData.rows[0];
       data.page = 2;
       response = await lastValueFrom(redis_client.send({ cmd: CMD.ALL_OBJECTS }, data));
-      expect(response.status).toEqual(200);
+      expect(response.statusCode).toEqual(200);
       responceData = response.data as AllObjectsResponce;
       expect(responceData.rows).toMatchObject(expect.any(Array));
       expect(responceData.rows).toHaveLength(1);
@@ -625,12 +621,12 @@ describe('App (e2e) latest', () => {
 
     it(`{ cmd: CMD.ONE_OBJECT } Get one contract by id from DB with relations `, async () => {
       const data: GetOneRequest = { object_type: ObjectTypes.CONTRACT, where: { id: contract_id } };
-      let response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, data));
-      expect(response.status).toEqual(200);
+      let response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, data));
+      expect(response.statusCode).toEqual(200);
       expect(response.data).toMatchObject(expect.any(Object));
       data.include_child = true;
       response = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, data));
-      expect(response.status).toEqual(200);
+      expect(response.statusCode).toEqual(200);
       expect(response.data).toMatchObject(expect.any(Object));
       const responceData = response.data as any;
       expect(responceData.tokens).toMatchObject(expect.any(Array));
@@ -640,8 +636,8 @@ describe('App (e2e) latest', () => {
 
     it(`{ cmd: CMD.UPDATE_STATUS } Update status of external minted token in DB`, async () => {
       const get_data: GetOneRequest = { object_type: ObjectTypes.TOKEN, where: { id: token_id } };
-      let response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, get_data));
-      expect(response.status).toEqual(200);
+      let response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, get_data));
+      expect(response.statusCode).toEqual(200);
       expect(response.data).toMatchObject(expect.any(Object));
       expect((tx_receipt as any).transactionHash).not.toBeUndefined();
       const hash = (tx_receipt as any).transactionHash;
@@ -653,7 +649,7 @@ describe('App (e2e) latest', () => {
         tx_receipt: tx_receipt,
       };
       response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_STATUS }, update_data));
-      expect(response.status).toEqual(200);
+      expect(response.statusCode).toEqual(200);
       expect(response.data).toMatchObject(expect.any(Array));
     });
 
@@ -664,8 +660,8 @@ describe('App (e2e) latest', () => {
         token_id: +token1_uri_id,
         meta_data: metadata1_updated,
       };
-      const response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
-      expect(response.status).toEqual(200);
+      const response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
+      expect(response.statusCode).toEqual(200);
       expect(response.data).toMatchObject({
         slug: contract_slug,
         contract_id: null,
@@ -694,8 +690,8 @@ describe('App (e2e) latest', () => {
         token_id: +token10_uri_id,
         meta_data: metadata10_updated,
       };
-      const response: Response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
-      expect(response.status).toEqual(200);
+      const response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
+      expect(response.statusCode).toEqual(200);
       expect(response.data).toMatchObject({
         slug: contract_slug,
         contract_id: null,
