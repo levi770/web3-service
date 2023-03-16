@@ -13,4 +13,5 @@ export interface IToken {
   meta_data: object;
   tx_hash: string;
   tx_receipt: TransactionReceipt;
+  qty: number;
 }

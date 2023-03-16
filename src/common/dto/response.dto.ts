@@ -1,14 +1,10 @@
 /**
  * A data transfer object for passing response data.
  */
-export class Response {
-  status: number;
-  message: string | null;
-  data: any;
+export class ResponseDto {
+  public statusCode: number;
+  public message: string[];
+  public data: any;
 
-  constructor(status: number, message: string | null, result: any) {
-    this.status = status;
-    this.message = message;
-    this.data = result;
-  }
+  constructor(statusCode: number, message: string[], data: any) {}
 }

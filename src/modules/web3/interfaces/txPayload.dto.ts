@@ -9,18 +9,18 @@ import { MetadataModel } from '../../db/models/metadata.model';
 /**
  * An interface representing an object containing transaction data.
  */
-export interface ITxPayload {
+export class TxPayloadDto {
   execute: boolean;
   network: Networks;
-  contract: Contract;
-  contract_obj: ContractModel;
+  contract_inst: Contract;
+  contract_model: ContractModel;
   from_address: string;
   data: string;
   operation_type: OperationTypes;
   keystore: EncryptedKeystoreV3Json | null;
-  token_obj?: TokenModel;
-  whitelist_obj?: WhitelistModel[];
-  metadata_obj?: MetadataModel;
+  token_model?: TokenModel;
+  whitelist_model?: WhitelistModel[];
+  metadata_model?: MetadataModel;
   is_test?: boolean;
   value?: string;
 }

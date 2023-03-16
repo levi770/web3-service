@@ -4,7 +4,7 @@ import { Networks } from '../../../../common/constants';
 /**
  * A data transfer object for creating a wallet
  */
-export class CreateWalletRequest {
+export class CreateWalletDto {
   @IsString()
   team_id: string;
 

@@ -1,10 +1,10 @@
 import { Controller, Get, HttpStatus, Logger, Param, UseInterceptors, UsePipes } from '@nestjs/common';
-import { Response } from './common/dto/response.dto';
+import { ResponseDto } from './common/dto/response.dto';
 import { DbService } from './modules/db/db.service';
 import { GetMetadataRequest } from './modules/db/dto/requests/getMetadata.request';
 import { IMetaData } from './modules/web3/interfaces/metaData.interface';
 import { ValidationPipe } from './common/pipes/validation.pipe';
-import { ExceptionTypes } from './common/constants';
+import { ExceptionTypes, Statuses } from './common/constants';
 import { HttpLogger } from './common/interceptors/http-loger.interceptor';
 
 const logger = new Logger('AppController');
@@ -21,8 +21,8 @@ export class AppController {
    * Gets the health status of microservice.
    */
   @Get('health')
-  async getHealth(): Promise<Response> {
-    return new Response(HttpStatus.OK, 'active', null);
+  async getHealth(): Promise<ResponseDto> {
+    return new ResponseDto(HttpStatus.OK, [Statuses.ACTIVE], null);
   }
 
   /**

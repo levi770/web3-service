@@ -5,10 +5,10 @@ import { TransactionModel } from '../../db/models/transaction.model';
 /**
  * An interface for passing the result of a transaction.
  */
-export interface ITxResult {
+export class TxResultDto {
   payload?: ITxOptions;
   commission?: string;
   balance?: string;
   txReceipt?: TransactionReceipt;
-  txObj?: TransactionModel;
+  txModel?: TransactionModel;
 }

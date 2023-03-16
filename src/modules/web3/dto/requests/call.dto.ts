@@ -1,4 +1,4 @@
-import { IMintOptions } from '../../interfaces/mintOptions.interface';
+import { MintOptionsDto } from '../../interfaces/mintOptions.dto';
 import { Networks, OperationTypes } from '../../../../common/constants';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 import { WhitelistRequest } from './whitelist.request';
@@ -6,7 +6,7 @@ import { WhitelistRequest } from './whitelist.request';
 /**
  * A data transfer object for passing call data.
  */
-export class CallRequest {
+export class CallDto {
   @IsBoolean()
   execute: boolean;
 
@@ -32,7 +32,7 @@ export class CallRequest {
   operation_type: OperationTypes;
 
   @IsOptional()
-  operation_options?: IMintOptions | WhitelistRequest;
+  operation_options?: MintOptionsDto | WhitelistRequest;
 
   @IsOptional()
   test?: boolean;

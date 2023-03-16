@@ -6,7 +6,7 @@ import { IsArray, IsBoolean, IsEnum, IsOptional, IsString } from 'class-validato
 /**
  * A data transfer object for passing deploy data.
  */
-export class DeployRequest {
+export class DeployDto {
   @IsBoolean()
   execute: boolean;
 

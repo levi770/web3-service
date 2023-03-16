@@ -1,7 +1,7 @@
 import { Controller, HttpStatus, Logger, UseFilters, UseInterceptors } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CMD, DB_CONTROLLER, ExceptionTypes, Statuses } from '../../common/constants';
-import { Response } from '../../common/dto/response.dto';
+import { ResponseDto } from '../../common/dto/response.dto';
 import { DbService } from './db.service';
 import { GetAllRequest } from './dto/requests/getAll.request';
 import { GetOneRequest } from './dto/requests/getOne.request';
@@ -26,37 +26,35 @@ export class DbController {
    * Gets all objects of a specified type.
    */
   @MessagePattern({ cmd: CMD.ALL_OBJECTS })
-  async getAllObjects(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetAllRequest): Promise<Response> {
+  async getAllObjects(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetAllRequest): Promise<ResponseDto> {
     const result = await this.dbManagerService.getAllObjects(data.object_type, data);
-    return new Response(HttpStatus.OK, Statuses.SUCCESS, result);
+    return new ResponseDto(HttpStatus.OK, [Statuses.SUCCESS], [result]);
   }
 
   /**
    * Gets a single object of a specified type.
    */
   @MessagePattern({ cmd: CMD.ONE_OBJECT })
-  async getOneObject(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetOneRequest): Promise<Response> {
+  async getOneObject(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetOneRequest): Promise<ResponseDto> {
     const result = await this.dbManagerService.getOneObject(data.object_type, data);
-    return new Response(HttpStatus.OK, Statuses.SUCCESS, result);
+    return new ResponseDto(HttpStatus.OK, [Statuses.SUCCESS], [result]);
   }
 
   /**
    * Updates the status of a job.
    */
   @MessagePattern({ cmd: CMD.UPDATE_STATUS })
-  async updateStatus(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: UpdateStatusRequest): Promise<Response> {
+  async updateStatus(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: UpdateStatusRequest): Promise<ResponseDto> {
     const result = await this.dbManagerService.updateStatus(data, data.object_type);
-    return new Response(HttpStatus.OK, Statuses.SUCCESS, result);
+    return new ResponseDto(HttpStatus.OK, [Statuses.SUCCESS], [result]);
   }
 
   /**
    * Updates the metadata of token.
    */
   @MessagePattern({ cmd: CMD.UPDATE_METADATA })
-  async updateMetadata(
-    @Payload(new ValidationPipe(ExceptionTypes.RPC)) data: UpdateMetadataRequest,
-  ): Promise<Response> {
+  async updateMetadata(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: UpdateMetadataRequest): Promise<ResponseDto> {
     const result = await this.dbManagerService.updateMetadata(data);
-    return new Response(HttpStatus.OK, Statuses.SUCCESS, result);
+    return new ResponseDto(HttpStatus.OK, [Statuses.SUCCESS], [result]);
   }
 }

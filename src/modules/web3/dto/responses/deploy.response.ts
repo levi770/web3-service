@@ -1,10 +1,10 @@
 import { ContractModel } from '../../../db/models/contract.model';
-import { ITxResult } from '../../interfaces/txResult.interface';
+import { TxResultDto\ } from '../../interfaces/txResult.dto';
 
 /**
  * A data transfer object for passing the result of a deployment.
  */
 export class DeployResponse {
-  tx: ITxResult;
+  tx: TxResultDto\;
   contract: ContractModel;
 }
