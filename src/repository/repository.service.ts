@@ -4,7 +4,7 @@ import { Order, Op } from 'sequelize';
 import { lastValueFrom, map } from 'rxjs';
 import { ContractModel } from './models/contract.model';
 import { IDbQuery } from './interfaces/db-query.interface';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { MetadataModel } from './models/metadata.model';
 import { MetadataTypes, ObjectTypes, Statuses } from '../common/constants';
@@ -26,12 +26,16 @@ import { MintOptionsDto } from '../web3/dto/mint-options.dto';
 import { DeployDto } from '../web3/dto/deploy.dto';
 import { IMetaData } from '../web3/interfaces/metadata.interface';
 import { FileTypes } from '../common/constants';
+import { enumValuesToObject } from '../common/utils/enum.util';
+
+type Models = ContractModel | TokenModel | WhitelistModel | MetadataModel | WalletModel | TransactionModel;
 
 /**
  * A service for managing objects in a database.
  */
 @Injectable()
-export class RepositoryService {
+export class RepositoryService implements OnModuleInit {
+  public networks = new Map<ObjectTypes, Models>();
   constructor(
     @InjectModel(ContractModel) private contractRepository: typeof ContractModel,
     @InjectModel(TokenModel) private tokenRepository: typeof TokenModel,
@@ -41,8 +45,45 @@ export class RepositoryService {
     @InjectModel(TransactionModel) private transactionsRepository: typeof TransactionModel,
     @InjectAwsService(S3) private readonly s3: S3,
     private readonly httpService: HttpService,
-    private config: ConfigService,
+    private readonly config: ConfigService,
   ) {}
+
+  onModuleInit() {
+    // const types = enumValuesToObject(ObjectTypes);
+    // for (const key in types) {
+    //   this.networks.set(net[key], await this.buildNetworkInstance(net[key]));
+    // }
+  }
+
+  getRepository(objectType: ObjectTypes): any {
+    switch (objectType) {
+      case ObjectTypes.CONTRACT:
+        return this.contractRepository;
+      case ObjectTypes.TOKEN:
+        return this.tokenRepository;
+      case ObjectTypes.WHITELIST:
+        return this.whitelistRepository;
+      case ObjectTypes.METADATA:
+        return this.metadataRepository;
+      case ObjectTypes.WALLET:
+        return this.walletsRepository;
+      case ObjectTypes.TRANSACTION:
+        return this.transactionsRepository;
+    }
+  }
+
+  getIncludeModels(objectType: ObjectTypes): any[] {
+    switch (objectType) {
+      case ObjectTypes.TOKEN:
+        return [{ model: MetadataModel }];
+      case ObjectTypes.CONTRACT:
+        return [{ model: TokenModel }, { model: MetadataModel }, { model: TransactionModel }];
+      case ObjectTypes.WALLET:
+        return [{ model: ContractModel }, { model: TokenModel }, { model: TransactionModel }];
+    }
+  }
+
+  //#region DATABASE METHODS
 
   /**
    * Creates multiple objects of a specified type.
@@ -50,7 +91,7 @@ export class RepositoryService {
   async create<T>(objects: Partial<T>[], objectType: ObjectTypes): Promise<T[]> {
     try {
       const repository = this.getRepository(objectType);
-      const result = await repository.bulkCreate(objects as any, { returning: true });
+      const result = await repository.bulkCreate(objects, { returning: true });
       if (objectType === ObjectTypes.TOKEN) {
         (objects as Partial<TokenModel>[]).forEach(async (token) => {
           const contract = await this.findOneById<ContractModel>(token.contract_id, ObjectTypes.CONTRACT);
@@ -176,6 +217,10 @@ export class RepositoryService {
     }
   }
 
+  //#endregion
+
+  //#region METADATA METHODS
+
   /**
    * Gets the number of processed tokens associated with a contract.
    */
@@ -280,33 +325,9 @@ export class RepositoryService {
     }
   }
 
-  getRepository(objectType: ObjectTypes): any {
-    switch (objectType) {
-      case ObjectTypes.CONTRACT:
-        return this.contractRepository;
-      case ObjectTypes.TOKEN:
-        return this.tokenRepository;
-      case ObjectTypes.WHITELIST:
-        return this.whitelistRepository;
-      case ObjectTypes.METADATA:
-        return this.metadataRepository;
-      case ObjectTypes.WALLET:
-        return this.walletsRepository;
-      case ObjectTypes.TRANSACTION:
-        return this.transactionsRepository;
-    }
-  }
+  //#endregion
 
-  getIncludeModels(objectType: ObjectTypes): any[] {
-    switch (objectType) {
-      case ObjectTypes.TOKEN:
-        return [{ model: MetadataModel }];
-      case ObjectTypes.CONTRACT:
-        return [{ model: TokenModel }, { model: MetadataModel }, { model: TransactionModel }];
-      case ObjectTypes.WALLET:
-        return [{ model: ContractModel }, { model: TokenModel }, { model: TransactionModel }];
-    }
-  }
+  //#region WHITELIST METHODS
 
   async addWhitelist(whitelistOptions: WhitelistOptionsDto, contractModel: ContractModel): Promise<WhitelistModel[]> {
     const addresses = whitelistOptions.addresses.split(',').map((address) => {
@@ -348,6 +369,10 @@ export class RepositoryService {
     });
     return whitelist.rows;
   }
+
+  //#endregion
+
+  //#region IPFS METHODS
 
   /**
    * Uploads a file to IPFS.
@@ -416,4 +441,6 @@ export class RepositoryService {
     }
     return metadata;
   }
+
+  //#endregion
 }
