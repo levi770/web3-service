@@ -365,6 +365,22 @@ export class Web3Service {
     }
   }
 
+  async exportAccounts() {
+    const password = await this.configService.get('DEFAULT_PASSWORD');
+    const { rows } = await this.dbService.getAllObjects(ObjectTypes.WALLET);
+    let csv =
+      'address,private_key\n' +
+      rows
+        .map((acc: any) => {
+          const decrypted = this.ethereum.eth.accounts.decrypt(acc.keystore, password);
+          return [decrypted.address, decrypted.privateKey];
+        })
+        .map((e) => e.join(','))
+        .join('\n');
+
+    return csv;
+  }
+
   async getAdmin(data: GetAdminDto) {
     const w3 = this.getWeb3(data.network);
     if (data.network === Networks.LOCAL) {
