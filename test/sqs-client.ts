@@ -1,12 +1,4 @@
-import {
-  SqsService,
-  SqsMessageHandler,
-  SqsModule,
-  SqsConfigOption,
-  SqsConfig,
-  SqsQueueType,
-  SqsProcess,
-} from '@nestjs-packages/sqs';
+import { SqsService, SqsMessageHandler, SqsModule, SqsConfigOption, SqsConfig, SqsQueueType, SqsProcess } from '@nestjs-packages/sqs';
 import { Injectable, Module } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -15,7 +7,6 @@ const SQS_PRODUCER_NAME = process.env.SQS_PRODUCER_NAME;
 
 @Injectable()
 export class SqsClientService {
-
   constructor(private sqsService: SqsService) {}
   async send(pattern: any, data: any): Promise<any> {
     return await this.sqsService.send(SQS_CONSUMER_NAME, {
