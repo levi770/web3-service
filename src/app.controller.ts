@@ -1,13 +1,13 @@
 import { Controller, Get, HttpStatus, Logger, Param, UseInterceptors, UsePipes } from '@nestjs/common';
 import { ResponseDto } from './common/dto/response.dto';
-import { DbService } from './modules/db/db.service';
-import { GetMetadataRequest } from './modules/db/dto/requests/getMetadata.request';
-import { IMetaData } from './modules/web3/interfaces/metaData.interface';
+import { RepositoryService } from './repository/repository.service';
+import { GetMetadataDto } from './common/dto/get-metadata.dto';
+import { IMetaData } from './web3/interfaces/metadata.interface';
 import { ValidationPipe } from './common/pipes/validation.pipe';
-import { ExceptionTypes, Statuses } from './common/constants';
+import { APP_CONTROLLER, ExceptionTypes, Statuses } from './common/constants';
 import { HttpLogger } from './common/interceptors/http-loger.interceptor';
 
-const logger = new Logger('AppController');
+const logger = new Logger(APP_CONTROLLER);
 
 /**
  * A controller for handling web3 and database operations.
@@ -15,7 +15,7 @@ const logger = new Logger('AppController');
 @UseInterceptors(new HttpLogger(logger))
 @Controller()
 export class AppController {
-  constructor(private dbManagerService: DbService) {}
+  constructor(private dbService: RepositoryService) {}
 
   /**
    * Gets the health status of microservice.
@@ -29,8 +29,8 @@ export class AppController {
    * Gets the metadata of token.
    */
   @Get('metadata/:slug/:id')
-  @UsePipes(new ValidationPipe(ExceptionTypes.RPC))
-  async getMetaData(@Param() params: GetMetadataRequest): Promise<IMetaData> {
-    return await this.dbManagerService.getMetadata(params);
+  @UsePipes(new ValidationPipe(ExceptionTypes.HTTP))
+  async getMetaData(@Param() params: GetMetadataDto): Promise<IMetaData> {
+    return await this.dbService.getMetadata(params);
   }
 }

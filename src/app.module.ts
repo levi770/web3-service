@@ -2,21 +2,18 @@ import { AppController } from './app.controller';
 import { AwsSdkModule } from 'nest-aws-sdk';
 import { BullModule } from '@nestjs/bull';
 import { ConfigModule } from '@nestjs/config';
-import { ContractModel } from './modules/db/models/contract.model';
-import { DbModule } from './modules/db/db.module';
-import { IpfsModule } from './modules/ipfs/ipfs.module';
-import { MetadataModel } from './modules/db/models/metadata.model';
+import { ContractModel } from './repository/models/contract.model';
+import { RepositoryModule } from './repository/repository.module';
+import { MetadataModel } from './repository/models/metadata.model';
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { TokenModel } from './modules/db/models/token.model';
-import { Web3Module } from './modules/web3/web3.module';
-import { WhitelistModel } from './modules/db/models/whitelist.model';
-import { WalletModel } from './modules/db/models/wallet.model';
-import { TransactionModel } from './modules/db/models/transaction.model';
+import { TokenModel } from './repository/models/token.model';
+import { Web3Module } from './web3/web3.module';
+import { WhitelistModel } from './repository/models/whitelist.model';
+import { WalletModel } from './repository/models/wallet.model';
+import { TransactionModel } from './repository/models/transaction.model';
 import { Credentials } from 'aws-sdk';
 import { SqsConfig, SqsConfigOption, SqsModule } from '@nestjs-packages/sqs';
-import { SqsHandlerModule } from './modules/sqs/sqs.module';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 
 //const sql_logger = new Logger('Sql');
 
@@ -25,7 +22,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
  */
 @Module({
   imports: [
-    EventEmitterModule.forRoot(),
     ConfigModule.forRoot(),
     SequelizeModule.forRoot({
       dialect: 'postgres',
@@ -62,9 +58,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       },
     }),
     Web3Module,
-    DbModule,
-    IpfsModule,
-    SqsHandlerModule,
+    RepositoryModule,
   ],
   controllers: [AppController],
 })
