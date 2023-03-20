@@ -17,7 +17,15 @@ import { ITxPayload } from './interfaces/txPayload.interface';
 import { Web3Service } from './web3.service';
 import { WhitelistRequest } from './dto/requests/whitelist.request';
 import { WhitelistModel } from '../db/models/whitelist.model';
-import { FileTypes, MetadataTypes, ObjectTypes, OperationTypes, ProcessTypes, Statuses } from '../../common/constants';
+import {
+  FileTypes,
+  IPFS,
+  MetadataTypes,
+  ObjectTypes,
+  OperationTypes,
+  ProcessTypes,
+  Statuses,
+} from '../../common/constants';
 import { DbService } from '../db/db.service';
 import { WalletModel } from '../db/models/wallet.model';
 import { ITxResult } from './interfaces/txResult.interface';
@@ -554,13 +562,13 @@ export class Web3Processor {
     const metadata = data.meta_data;
     switch (data.asset_type) {
       case FileTypes.IMAGE:
-        metadata.image = `ipfs://${fileId}`;
+        metadata.image = `${IPFS}${fileId}`;
         break;
       case FileTypes.OBJECT:
-        metadata.model_url = `ipfs://${fileId}`;
+        metadata.model_url = `${IPFS}${fileId}`;
         break;
       case FileTypes.ANIMATION:
-        metadata.animation_url = `ipfs://${fileId}`;
+        metadata.animation_url = `${IPFS}${fileId}`;
         break;
       default:
         throw new RpcException({

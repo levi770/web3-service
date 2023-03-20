@@ -5,6 +5,7 @@ export const WEB3_CONTROLLER = 'Web3Controller';
 export const DB_CONTROLLER = 'DbController';
 export const SQS_CONTROLLER = 'SqsController';
 export const WEB3_SERVICE = 'Web3Service';
+export const IPFS = 'ipfs://'
 
 export enum Events {
   JOB_CREATED = 'job.created',
