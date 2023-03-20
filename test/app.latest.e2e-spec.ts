@@ -427,6 +427,67 @@ describe('App (e2e) latest', () => {
     );
 
     it(
+      '{cmd: CMD.MINT} buy user1 whitelist free collection with animation parameter',
+      async () => {
+        jest.setTimeout(timeout);
+        const qty = 1;
+        const mint_response: JobResult = await lastValueFrom(
+          redis_client.send(
+            { cmd: CMD.MINT },
+            {
+              execute: true,
+              network: network,
+              from_address: team_acc_address,
+              contract_id: contract_id,
+              method_name: 'buy',
+              arguments: `${qty}::${JSON.stringify(team_acc_proof)}`,
+              operation_type: 'mint',
+              operation_options: {
+                mint_to: team_acc_address,
+                qty: qty,
+                asset_url: 'assets/1ab94f9c-b510-478d-99e3-35474853b253.jpeg',
+                asset_type: 'animation',
+                meta_data: metadata1,
+              },
+            },
+          ),
+        );
+        if (mint_response.status === 'failed') console.log(mint_response);
+        expect(mint_response.jobId).toBeTruthy();
+        expect(mint_response.status).toEqual('completed');
+        expect(mint_response.data).toMatchObject({ tx: expect.any(Object), token: expect.any(Object) });
+        token = (mint_response.data as any).token;
+        
+        const token_uri_response: JobResult = await lastValueFrom(
+          redis_client.send(
+            { cmd: CMD.COMMON },
+            {
+              execute: true,
+              network: network,
+              contract_id: contract_id,
+              from_address: team_acc_address,
+              method_name: 'tokenURI',
+              arguments: token.token_ids[0],
+              operation_type: 'readcontract',
+            },
+          ),
+        );
+        if (token_uri_response.status === 'failed') console.log(token_uri_response);
+        expect(token_uri_response.jobId).toBeTruthy();
+        expect(token_uri_response.status).toEqual('completed');
+        expect(token_uri_response.data).toMatchObject({ tokenURI: expect.any(String) });
+        const animation_token_uri = (token_uri_response.data as any).tokenURI;
+        
+        const get_metadata_response = await request(server).get(animation_token_uri).send();
+        if (get_metadata_response.status != 200) console.log(get_metadata_response);
+        expect(get_metadata_response.status).toEqual(200);
+        expect(get_metadata_response.body.animation_url).toBeDefined();
+        expect(get_metadata_response.body.animation_url.substring(0, 7)).toEqual('ipfs://');
+      },
+      timeout,
+    );
+
+    it(
       '{cmd: CMD.MINT} buy user2 whitelist nometadata free collection',
       async () => {
         const qty = 1;
