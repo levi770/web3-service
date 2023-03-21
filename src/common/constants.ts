@@ -93,4 +93,5 @@ export enum Networks {
 export enum FileTypes {
   IMAGE = 'image',
   OBJECT = 'object',
+  ANIMATION = 'animation',
 }

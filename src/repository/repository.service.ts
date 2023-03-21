@@ -431,10 +431,13 @@ export class RepositoryService implements OnModuleInit {
     const metadata = data.meta_data;
     switch (data.asset_type) {
       case FileTypes.IMAGE:
-        metadata.image = `${this.config.get('PINATA_GATEWAY')}${fileId}`;
+        metadata.image = `ipfs://${fileId}`;
         break;
       case FileTypes.OBJECT:
-        metadata.model_url = `${this.config.get('PINATA_GATEWAY')}${fileId}`;
+        metadata.model_url = `ipfs://${fileId}`;
+        break;
+      case FileTypes.ANIMATION:
+        metadata.animation_url = `ipfs://${fileId}`;
         break;
       default:
         throw new RpcException({ status: HttpStatus.BAD_REQUEST, message: 'File type not supported' });
