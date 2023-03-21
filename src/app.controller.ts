@@ -6,7 +6,7 @@ import { IMetaData } from './web3/interfaces/metadata.interface';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { APP_CONTROLLER, ExceptionTypes, Statuses } from './common/constants';
 import { HttpLogger } from './common/interceptors/http-loger.interceptor';
-import { Web3Service } from './modules/web3/web3.service';
+import { Web3Service } from './web3/web3.service';
 import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
 
