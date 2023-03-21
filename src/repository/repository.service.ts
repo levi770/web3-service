@@ -26,34 +26,23 @@ import { MintOptionsDto } from '../web3/dto/mint-options.dto';
 import { DeployDto } from '../web3/dto/deploy.dto';
 import { IMetaData } from '../web3/interfaces/metadata.interface';
 import { FileTypes } from '../common/constants';
-import { enumValuesToObject } from '../common/utils/enum.util';
-
-type Models = ContractModel | TokenModel | WhitelistModel | MetadataModel | WalletModel | TransactionModel;
 
 /**
  * A service for managing objects in a database.
  */
 @Injectable()
-export class RepositoryService implements OnModuleInit {
-  public networks = new Map<ObjectTypes, Models>();
+export class RepositoryService {
   constructor(
-    @InjectModel(ContractModel) private contractRepository: typeof ContractModel,
-    @InjectModel(TokenModel) private tokenRepository: typeof TokenModel,
-    @InjectModel(WhitelistModel) private whitelistRepository: typeof WhitelistModel,
-    @InjectModel(MetadataModel) private metadataRepository: typeof MetadataModel,
-    @InjectModel(WalletModel) private walletsRepository: typeof WalletModel,
-    @InjectModel(TransactionModel) private transactionsRepository: typeof TransactionModel,
+    @InjectModel(ContractModel) private readonly contractRepository: typeof ContractModel,
+    @InjectModel(TokenModel) private readonly tokenRepository: typeof TokenModel,
+    @InjectModel(WhitelistModel) private readonly whitelistRepository: typeof WhitelistModel,
+    @InjectModel(MetadataModel) private readonly metadataRepository: typeof MetadataModel,
+    @InjectModel(WalletModel) private readonly walletsRepository: typeof WalletModel,
+    @InjectModel(TransactionModel) private readonly transactionsRepository: typeof TransactionModel,
     @InjectAwsService(S3) private readonly s3: S3,
     private readonly httpService: HttpService,
     private readonly config: ConfigService,
   ) {}
-
-  onModuleInit() {
-    // const types = enumValuesToObject(ObjectTypes);
-    // for (const key in types) {
-    //   this.networks.set(net[key], await this.buildNetworkInstance(net[key]));
-    // }
-  }
 
   getRepository(objectType: ObjectTypes): any {
     switch (objectType) {

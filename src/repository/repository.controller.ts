@@ -31,7 +31,7 @@ export class RepositoryController {
    */
   @MessagePattern({ cmd: CMD.ALL_OBJECTS })
   async getAllObjects(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetAllDto): Promise<ResponseDto> {
-    return this.queryBus.execute(new GetAllObjectsQuery(data));
+    return await this.queryBus.execute(new GetAllObjectsQuery(data));
   }
 
   /**
@@ -39,7 +39,7 @@ export class RepositoryController {
    */
   @MessagePattern({ cmd: CMD.ONE_OBJECT })
   async getOneObject(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: GetOneDto): Promise<ResponseDto> {
-    return this.queryBus.execute(new GetOneObjectQuery(data));
+    return await this.queryBus.execute(new GetOneObjectQuery(data));
   }
 
   /**
@@ -47,7 +47,7 @@ export class RepositoryController {
    */
   @MessagePattern({ cmd: CMD.UPDATE_STATUS })
   async updateStatus(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: UpdateStatusDto): Promise<ResponseDto> {
-    return this.commandBus.execute(new UpdateStatusCommand(data));
+    return await this.commandBus.execute(new UpdateStatusCommand(data));
   }
 
   /**
@@ -55,6 +55,6 @@ export class RepositoryController {
    */
   @MessagePattern({ cmd: CMD.UPDATE_METADATA })
   async updateMetadata(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: UpdateMetadataDto): Promise<ResponseDto> {
-    return this.commandBus.execute(new UpdateMetadataCommand(data));
+    return await this.commandBus.execute(new UpdateMetadataCommand(data));
   }
 }

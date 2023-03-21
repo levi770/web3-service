@@ -1,3 +1,5 @@
+import * as bcrypt from 'bcrypt';
+import { Response } from 'express';
 import { BadRequestException, Controller, Get, HttpStatus, Logger, Param, Query, Res, UseInterceptors, UsePipes } from '@nestjs/common';
 import { ResponseDto } from './common/dto/response.dto';
 import { RepositoryService } from './repository/repository.service';
@@ -7,8 +9,6 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
 import { APP_CONTROLLER, ExceptionTypes, Statuses } from './common/constants';
 import { HttpLogger } from './common/interceptors/http-loger.interceptor';
 import { Web3Service } from './web3/web3.service';
-import { Response } from 'express';
-import * as bcrypt from 'bcrypt';
 
 const logger = new Logger(APP_CONTROLLER);
 

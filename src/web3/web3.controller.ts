@@ -37,7 +37,7 @@ export class Web3Controller {
    */
   @MessagePattern({ cmd: CMD.CREATE_WALLET })
   async createWallet(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: CreateWalletDto): Promise<ResponseDto> {
-    return this.commandBus.execute(new CreateWalletCommand(data));
+    return await this.commandBus.execute(new CreateWalletCommand(data));
   }
 
   /**
@@ -45,7 +45,7 @@ export class Web3Controller {
    */
   @MessagePattern({ cmd: CMD.DEPLOY })
   async processDeploy(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: DeployDto): Promise<ResponseDto> {
-    return this.commandBus.execute(new DeployCommand(data));
+    return await this.commandBus.execute(new DeployCommand(data));
   }
 
   /**
@@ -53,7 +53,7 @@ export class Web3Controller {
    */
   @MessagePattern({ cmd: CMD.MINT })
   async processMint(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: CallDto): Promise<ResponseDto> {
-    return this.commandBus.execute(new MintCommand(data));
+    return await this.commandBus.execute(new MintCommand(data));
   }
 
   /**
@@ -61,7 +61,7 @@ export class Web3Controller {
    */
   @MessagePattern({ cmd: CMD.WHITELIST })
   async processWhitelist(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: CallDto): Promise<ResponseDto> {
-    return this.commandBus.execute(new WhitelistCommand(data));
+    return await this.commandBus.execute(new WhitelistCommand(data));
   }
 
   /**
@@ -69,7 +69,7 @@ export class Web3Controller {
    */
   @MessagePattern({ cmd: CMD.COMMON })
   async processCommon(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: CallDto): Promise<ResponseDto> {
-    return this.commandBus.execute(new CommonCommand(data));
+    return await this.commandBus.execute(new CommonCommand(data));
   }
 
   /**
@@ -77,7 +77,7 @@ export class Web3Controller {
    */
   @MessagePattern({ cmd: CMD.GET_MERKLE_PROOF })
   async getMerkleProof(@Payload(new ValidationPipe(ExceptionTypes.RPC)) data: WhitelistOptionsDto): Promise<ResponseDto> {
-    return this.queryBus.execute(new GetMerkleProofQuery(data));
+    return await this.queryBus.execute(new GetMerkleProofQuery(data));
   }
 
   /**
