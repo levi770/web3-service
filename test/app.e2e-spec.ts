@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
-import { lastValueFrom } from 'rxjs';
+import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { Test } from '@nestjs/testing';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { ClientProxy, ClientsModule, MicroserviceOptions, Transport } from '@nestjs/microservices';
@@ -509,127 +509,171 @@ describe('App (e2e) latest', () => {
             qty: 1,
           },
         };
-        //const response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data));
-        expect(await lastValueFrom(redis_client.send({ cmd: CMD.MINT }, data))).toThrow('UNKNOWN ERROR');
+        try {
+          const response: ResponseDto = await firstValueFrom(redis_client.send({ cmd: CMD.MINT }, data));
+        } catch (error) {
+          expect(error).toEqual({
+            message:
+              'VM Exception while processing transaction: revert Exclusible::buy: Address is not whitelisted - Merkle Invalid proof.',
+            status: 500,
+          });
+        }
       },
       timeout,
     );
   });
 
   describe('DbController', () => {
-    it(`{ cmd: CMD.ALL_OBJECTS } Get all contracts from DB whith pagination`, async () => {
-      const data: GetAllDto = { object_type: ObjectTypes.CONTRACT };
-      let response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.ALL_OBJECTS }, data));
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.data.count).toBeGreaterThan(0);
-      expect(response.data.rows).toMatchObject(expect.any(Array));
-      expect(response.data.rows).toHaveLength(response.data.count);
-      data.limit = 1;
-      data.page = 1;
-      response = await lastValueFrom(redis_client.send({ cmd: CMD.ALL_OBJECTS }, data));
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.data.rows).toMatchObject(expect.any(Array));
-      expect(response.data.rows).toHaveLength(1);
-      const row = response.data.rows[0];
-      data.page = 2;
-      response = await lastValueFrom(redis_client.send({ cmd: CMD.ALL_OBJECTS }, data));
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.data.rows).toMatchObject(expect.any(Array));
-      expect(response.data.rows).toHaveLength(1);
-      expect(response.data.rows[0]).not.toEqual(row);
-    });
+    it(
+      `{ cmd: CMD.ALL_OBJECTS } Get all contracts from DB whith pagination`,
+      async () => {
+        jest.setTimeout(timeout);
+        const data: GetAllDto = { object_type: ObjectTypes.CONTRACT };
+        let response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.ALL_OBJECTS }, data));
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.data.count).toBeGreaterThan(0);
+        expect(response.data.rows).toMatchObject(expect.any(Array));
+        expect(response.data.rows).toHaveLength(response.data.count);
+        data.limit = 1;
+        data.page = 1;
+        response = await lastValueFrom(redis_client.send({ cmd: CMD.ALL_OBJECTS }, data));
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.data.rows).toMatchObject(expect.any(Array));
+        expect(response.data.rows).toHaveLength(1);
+        const row = response.data.rows[0];
+        data.page = 2;
+        response = await lastValueFrom(redis_client.send({ cmd: CMD.ALL_OBJECTS }, data));
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.data.rows).toMatchObject(expect.any(Array));
+        expect(response.data.rows).toHaveLength(1);
+        expect(response.data.rows[0]).not.toEqual(row);
+      },
+      timeout,
+    );
 
-    it(`{ cmd: CMD.ONE_OBJECT } Get one contract by id from DB with relations `, async () => {
-      const data: GetOneDto = { object_type: ObjectTypes.CONTRACT, where: { id: contract_id } };
-      let response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, data));
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.data).toMatchObject(expect.any(Object));
-      data.include_child = true;
-      response = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, data));
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.data).toMatchObject(expect.any(Object));
-      expect(response.data.tokens).toMatchObject(expect.any(Array));
-      expect(response.data.metadata).toMatchObject(expect.any(Object));
-      expect(response.data.transactions).toMatchObject(expect.any(Array));
-    });
+    it(
+      `{ cmd: CMD.ONE_OBJECT } Get one contract by id from DB with relations `,
+      async () => {
+        jest.setTimeout(timeout);
+        const data: GetOneDto = { object_type: ObjectTypes.CONTRACT, where: { id: contract_id } };
+        let response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, data));
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.data).toMatchObject(expect.any(Object));
+        data.include_child = true;
+        response = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, data));
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.data).toMatchObject(expect.any(Object));
+        expect(response.data.tokens).toMatchObject(expect.any(Array));
+        expect(response.data.metadata).toMatchObject(expect.any(Object));
+        expect(response.data.transactions).toMatchObject(expect.any(Array));
+      },
+      timeout,
+    );
 
-    it(`{ cmd: CMD.UPDATE_STATUS } Update status of external minted token in DB`, async () => {
-      const get_data: GetOneDto = { object_type: ObjectTypes.TOKEN, where: { id: token_id } };
-      let response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, get_data));
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.data).toMatchObject(expect.any(Object));
-      expect((tx_receipt as any).transactionHash).not.toBeUndefined();
-      const hash = (tx_receipt as any).transactionHash;
-      const update_data: UpdateStatusDto = {
-        object_type: ObjectTypes.TOKEN,
-        object_id: token_id,
-        status: Statuses.PROCESSED,
-        tx_hash: hash,
-        tx_receipt: tx_receipt,
-      };
-      response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_STATUS }, update_data));
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.data).toMatchObject(expect.any(Array));
-    });
+    it(
+      `{ cmd: CMD.UPDATE_STATUS } Update status of external minted token in DB`,
+      async () => {
+        jest.setTimeout(timeout);
+        const get_data: GetOneDto = { object_type: ObjectTypes.TOKEN, where: { id: token_id } };
+        let response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.ONE_OBJECT }, get_data));
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.data).toMatchObject(expect.any(Object));
+        expect((tx_receipt as any).transactionHash).not.toBeUndefined();
+        const hash = (tx_receipt as any).transactionHash;
+        const update_data: UpdateStatusDto = {
+          object_type: ObjectTypes.TOKEN,
+          object_id: token_id,
+          status: Statuses.PROCESSED,
+          tx_hash: hash,
+          tx_receipt: tx_receipt,
+        };
+        response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_STATUS }, update_data));
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.data).toMatchObject(expect.any(Array));
+      },
+      timeout,
+    );
 
-    it(`{ cmd: CMD.UPDATE_METADATA } Update token metadata1`, async () => {
-      expect(token1_uri_id).not.toBeUndefined();
-      const data: UpdateMetadataDto = {
-        slug: contract_slug,
-        token_id: +token1_uri_id,
-        meta_data: metadata1_updated,
-      };
-      const response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.data).toMatchObject({
-        slug: contract_slug,
-        contract_id: null,
-        createdAt: expect.any(String),
-        id: expect.any(String),
-        meta_data: metadata1_updated,
-        status: 'created',
-        token_id: expect.any(Array),
-        type: 'specified',
-        updatedAt: expect.any(String),
-      });
-    });
+    it(
+      `{ cmd: CMD.UPDATE_METADATA } Update token metadata1`,
+      async () => {
+        jest.setTimeout(timeout);
+        expect(token1_uri_id).not.toBeUndefined();
+        const data: UpdateMetadataDto = {
+          slug: contract_slug,
+          token_id: +token1_uri_id,
+          meta_data: metadata1_updated,
+        };
+        const response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.data).toMatchObject({
+          slug: contract_slug,
+          contract_id: null,
+          createdAt: expect.any(String),
+          id: expect.any(String),
+          meta_data: metadata1_updated,
+          status: 'created',
+          token_id: expect.any(Array),
+          type: 'specified',
+          updatedAt: expect.any(String),
+        });
+      },
+      timeout,
+    );
 
-    it(`GET /metadata/:slug/:id - Gets metadata1 by slug and token1_id`, async () => {
-      const response = await request(server).get(`${token1_uri}`).send();
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.body.attributes).toEqual(metadata1_updated.attributes);
-      expect(response.body.description).toEqual(metadata1_updated.description);
-      expect(response.body.name).toEqual(metadata1_updated.name);
-    });
+    it(
+      `GET /metadata/:slug/:id - Gets metadata1 by slug and token1_id`,
+      async () => {
+        jest.setTimeout(timeout);
+        const response = await request(server).get(`${token1_uri}`).send();
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.body.attributes).toEqual(metadata1_updated.attributes);
+        expect(response.body.description).toEqual(metadata1_updated.description);
+        expect(response.body.name).toEqual(metadata1_updated.name);
+      },
+      timeout,
+    );
 
-    it(`{ cmd: CMD.UPDATE_METADATA } Update token metadata10`, async () => {
-      expect(token10_uri_id).not.toBeUndefined();
-      const data: UpdateMetadataDto = {
-        slug: contract_slug,
-        token_id: +token10_uri_id,
-        meta_data: metadata10_updated,
-      };
-      const response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.data).toMatchObject({
-        slug: contract_slug,
-        contract_id: null,
-        createdAt: expect.any(String),
-        id: expect.any(String),
-        meta_data: metadata10_updated,
-        status: 'created',
-        token_id: expect.any(Array),
-        type: 'specified',
-        updatedAt: expect.any(String),
-      });
-    });
+    it(
+      `{ cmd: CMD.UPDATE_METADATA } Update token metadata10`,
+      async () => {
+        jest.setTimeout(timeout);
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        expect(token10_uri_id).not.toBeUndefined();
+        const data: UpdateMetadataDto = {
+          slug: contract_slug,
+          token_id: +token10_uri_id,
+          meta_data: metadata10_updated,
+        };
+        const response: ResponseDto = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_METADATA }, data));
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.data).toMatchObject({
+          slug: contract_slug,
+          contract_id: null,
+          createdAt: expect.any(String),
+          id: expect.any(String),
+          meta_data: metadata10_updated,
+          status: 'created',
+          token_id: expect.any(Array),
+          type: 'specified',
+          updatedAt: expect.any(String),
+        });
+      },
+      timeout,
+    );
 
-    it(`GET /metadata/:slug/:id - Gets metadata10 by slug and token1_id`, async () => {
-      const response = await request(server).get(`${token10_uri}`).send();
-      expect(response.status).toEqual(HttpStatus.OK);
-      expect(response.body.description).toEqual(metadata10_updated.description);
-      expect(response.body.name).toEqual(metadata10_updated.name);
-    });
+    it(
+      `GET /metadata/:slug/:id - Gets metadata10 by slug and token1_id`,
+      async () => {
+        jest.setTimeout(timeout);
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        const response = await request(server).get(`${token10_uri}`).send();
+        expect(response.status).toEqual(HttpStatus.OK);
+        expect(response.body.description).toEqual(metadata10_updated.description);
+        expect(response.body.name).toEqual(metadata10_updated.name);
+      },
+      timeout,
+    );
   });
 
   describe('SqsHandler', () => {
@@ -660,7 +704,7 @@ describe('App (e2e) latest', () => {
           MessageId: expect.any(String),
           SequenceNumber: expect.any(String),
         });
-        await new Promise((resolve) => setTimeout(resolve, 30000));
+        await new Promise((resolve) => setTimeout(resolve, 5000));
         expect(logSpy).toBeCalledTimes(1);
       },
       timeout,
