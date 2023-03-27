@@ -6,6 +6,8 @@ export const REPOSITORY_CONTROLLER = 'RepositoryController';
 export const SQS_CONTROLLER = 'SqsController';
 export const WEB3_SERVICE = 'Web3Service';
 export const APP_CONTROLLER = 'AppController';
+export const EXPORT_CONTROLLER = 'export';
+export const AUTH_CONTROLLER = 'auth';
 
 export enum Events {
   JOB_CREATED = 'job.created',
