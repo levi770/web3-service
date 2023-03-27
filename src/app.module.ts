@@ -14,6 +14,9 @@ import { WalletModel } from './repository/models/wallet.model';
 import { TransactionModel } from './repository/models/transaction.model';
 import { Credentials } from 'aws-sdk';
 import { SqsConfig, SqsConfigOption, SqsModule } from '@nestjs-packages/sqs';
+import { ExportModule } from './export/export.module';
+import { AuthModule } from './auth/auth.module';
+import { EmailModule } from './email/email.module';
 
 //const sql_logger = new Logger('Sql');
 
@@ -59,6 +62,9 @@ import { SqsConfig, SqsConfigOption, SqsModule } from '@nestjs-packages/sqs';
     }),
     Web3Module,
     RepositoryModule,
+    ExportModule,
+    AuthModule,
+    EmailModule,
   ],
   controllers: [AppController],
 })
