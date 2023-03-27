@@ -1,10 +1,14 @@
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
+import { engine } from 'express-handlebars';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { NestFactory } from '@nestjs/core';
+import { join } from 'path';
+import flash from 'connect-flash';
+import session from 'express-session';
 
 /**
  * Bootstraps the application by creating an instance of NestExpressApplication and starting the server.
@@ -15,6 +19,8 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.use(compression());
   app.use(cookieParser());
+  app.use(session({ secret: 'my-secret', resave: false, saveUninitialized: false }));
+  app.use(flash());
   app.disable('x-powered-by');
   app.enableCors({
     origin: true,
@@ -22,6 +28,11 @@ async function bootstrap() {
     methods: 'GET',
     credentials: true,
   });
+  app.useStaticAssets(join(__dirname, '..', 'public'));
+  app.setBaseViewsDir(join(__dirname, '..', 'views'));
+  app.engine('handlebars', engine());
+  app.setViewEngine('handlebars');
+
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.REDIS,
     options: {
