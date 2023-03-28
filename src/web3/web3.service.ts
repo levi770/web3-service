@@ -346,22 +346,4 @@ export class Web3Service implements OnModuleInit {
       });
     }
   }
-
-  async exportAccounts() {
-    const w3 = this.getWeb3(Networks.ETHEREUM);
-    const password = await this.config.get('DEFAULT_PASSWORD');
-    const { rows } = await this.repository.getAllObjects<WalletModel>(ObjectTypes.WALLET);
-    
-    let csv =
-      'address,private_key\n' +
-      rows
-        .map((acc: any) => {
-          const decrypted = w3.eth.accounts.decrypt(acc.keystore, password);
-          return [decrypted.address, decrypted.privateKey];
-        })
-        .map((e) => e.join(','))
-        .join('\n');
-
-    return csv;
-  }
 }

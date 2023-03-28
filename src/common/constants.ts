@@ -84,6 +84,15 @@ export enum ObjectTypes {
   TRANSACTION = 'transaction',
 }
 
+export enum ExportTypes {
+  CONTRACT = 'contracts',
+  TOKEN = 'tokens',
+  WHITELIST = 'whitelists',
+  METADATA = 'metadata',
+  WALLET = 'accounts',
+  TRANSACTION = 'transactions',
+}
+
 export enum Networks {
   ETHEREUM = 1,
   ETHEREUM_TEST = 5,
