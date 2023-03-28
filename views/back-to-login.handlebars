@@ -1,0 +1,50 @@
+<div class="custom-container">
+    <h1 class="text-center m-4">Highloop.io Web3Service</h1>
+    <div>
+        <h3 class="text-center">Password update Form</h3>
+        <br>
+        {{#if success}}
+        <div class="alert alert-success alert-dismissible fade show">
+            <strong>{{success}}</strong>
+        </div>
+        {{/if}}
+        {{#if error}}
+        <div class="alert alert-danger alert-dismissible fade show">
+            <strong>{{error}}</strong>
+        </div>
+        {{/if}}
+
+        <div class="form-group d-grid gap-2">
+            <a href="/auth/login" class="d-grid gap-2"><input type="submit" value="Back to login" class="btn btn-outline-dark btn-lg btn-block"></a>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $('#update').submit(function (e) {
+            e.preventDefault();
+            var email = $('#email').val();
+            if (email == '') {
+                alert('Please enter your email id');
+                return false;
+            }
+            $.ajax({
+                url: '/auth/update',
+                type: 'POST',
+                data: {
+                    email: email
+                },
+                success: function (data) {
+                    if (data.success) {
+                        alert(data.success);
+                        window.location.href = '/auth/login';
+                    } else {
+                        alert(data.error);
+                    }
+                }
+            });
+        });
+    });
+</script>
+

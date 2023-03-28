@@ -7,3 +7,15 @@
 .modal-dialog {
     max-width: 70%;
 }
+
+.form-group .form-control .zip {
+    margin-bottom: 20px;
+}
+
+.zip {
+    margin-bottom: 20px;
+}
+
+.form-btn {
+    margin-top: 20px;
+}
