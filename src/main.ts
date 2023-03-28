@@ -7,7 +7,6 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { NestFactory } from '@nestjs/core';
 import { join } from 'path';
-import flash from 'connect-flash';
 import session from 'express-session';
 
 /**
@@ -17,17 +16,19 @@ import session from 'express-session';
 async function bootstrap() {
   const logger: Logger = new Logger('App');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
   app.use(compression());
   app.use(cookieParser());
+
   app.use(session({ secret: 'my-secret', resave: false, saveUninitialized: false }));
-  app.use(flash());
-  app.disable('x-powered-by');
+
   app.enableCors({
     origin: true,
     allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept',
     methods: 'GET',
     credentials: true,
   });
+
   app.useStaticAssets(join(__dirname, '..', 'public'));
   app.setBaseViewsDir(join(__dirname, '..', 'views'));
   app.engine('handlebars', engine());
@@ -41,6 +42,9 @@ async function bootstrap() {
     },
   });
   await app.startAllMicroservices();
+
+  app.disable('x-powered-by');
+
   await app.listen(process.env.PORT || 5000, async () => logger.log(`Server started on port ${await app.getUrl()}`));
 }
 bootstrap();

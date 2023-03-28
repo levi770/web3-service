@@ -8,6 +8,9 @@ export class UnauthorizedFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
     const status = exception.getStatus();
+    const session = (request as any).session;
+
+    if (!session.originalUrl) session.originalUrl = request.url;
 
     if (request.url === '/auth/login') {
       return response.status(status).render('login', {

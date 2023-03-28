@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { Body, Controller, Get, HttpStatus, Post, Req, Res, UseFilters, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Post, Req, Res, Session, UseFilters, UseGuards } from '@nestjs/common';
 import { LocalGuard } from './guards/local.guard';
 import { AuthService } from './auth.service';
 import { AUTH_CONTROLLER, Statuses } from '../common/constants';
@@ -20,9 +20,9 @@ export class AuthController {
   @Post('login')
   @UseGuards(LocalGuard)
   @UseFilters(UnauthorizedFilter, BadRequestFilter)
-  async authenticate(@Req() req: IRequest, @Res() res: Response) {
+  async authenticate(@Req() req: IRequest, @Res() res: Response, @Session() session: Record<string, any>) {
     res.header('Set-Cookie', [await this.authService.getAccessCookie(req.user)]);
-    res.redirect(req.headers.referer || '/');
+    res.status(HttpStatus.ACCEPTED).redirect(session.originalUrl || '/');
   }
 
   @Get('update')
@@ -33,7 +33,6 @@ export class AuthController {
   @Post('update')
   async updatePassword(@Req() req: IRequest, @Res() res: Response, @Body() body: CredentialsDto) {
     const success = await this.authService.updatePassword(body.email);
-    req.flash('success', success);
-    res.redirect('/auth/login');
+    res.render('back-to-login', { success });
   }
 }

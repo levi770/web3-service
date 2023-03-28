@@ -1,6 +1,5 @@
 import { AppController } from './app.controller';
 import { AwsSdkModule } from 'nest-aws-sdk';
-import { BullModule } from '@nestjs/bull';
 import { ConfigModule } from '@nestjs/config';
 import { ContractModel } from './repository/models/contract.model';
 import { RepositoryModule } from './repository/repository.module';
@@ -34,11 +33,6 @@ import { EmailModule } from './email/email.module';
       synchronize: true,
       //logging: (sql: string) => sql_logger.log(sql),
       logging: false,
-    }),
-    BullModule.forRoot({
-      url: process.env.REDIS_URI,
-      // Alternatively, use Redis host and port
-      // redis: { host: process.env.REDIS_HOST, port: +process.env.REDIS_PORT },
     }),
     AwsSdkModule.forRoot({
       defaultServiceOptions: {
