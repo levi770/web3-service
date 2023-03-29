@@ -19,7 +19,8 @@ export function newPasswordTemplate(app_url: string, password: string) {
                     <p style="margin: 0; padding-top: 20px; padding-bottom: 20px; background: rgba(11, 15, 24, 0.05); font-size: 20px; line-height: 24px; color: #0B0F18;">
                       ${password}
                     </p>
-                    <p style="margin-top: 20px; margin-bottom: 40px; padding-left: 40px; padding-right: 40px; font-weight: 400; font-size: 14px; line-height: 20px; color: #0B0F18;">Important! You can change your password at any time on export page: ${app_url}</p>
+                    <p style="margin-top: 20px; margin-bottom: 40px; padding-left: 40px; padding-right: 40px; font-weight: 400; font-size: 14px; line-height: 20px; color: #0B0F18;">You can export any data from Highloop.io Web3Service using export form on this page: <a href="${app_url}/export">${app_url}/export</a></p>
+                    <p style="margin-top: 20px; margin-bottom: 40px; padding-left: 40px; padding-right: 40px; font-weight: 400; font-size: 14px; line-height: 20px; color: #0B0F18;">You can change your password at any time on this page: <a href="${app_url}/auth/update">${app_url}/auth/update</a></p>
                   </td>
                 </tr>
               </table>
