@@ -1,9 +1,9 @@
 import { ArgumentMetadata, HttpStatus, Injectable, PipeTransform } from '@nestjs/common';
 import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
-import { RpcValidationException } from '../exceptions/RpcValidation.exception';
+import { RpcValidationException } from '../exceptions/rpc-validation.exception';
 import { ExceptionTypes } from '../constants';
-import { HttpValidationException } from '../exceptions/HttpValidation.exception';
+import { HttpValidationException } from '../exceptions/http-validation.exception';
 
 @Injectable()
 export class ValidationPipe implements PipeTransform<any> {
@@ -20,11 +20,8 @@ export class ValidationPipe implements PipeTransform<any> {
       const messages = errors.map((err) => {
         return `${err.property} - ${Object.values(err.constraints).join(', ')}`;
       });
-      if (this.type === ExceptionTypes.HTTP) {
-        throw new HttpValidationException(messages);
-      } else {
-        throw new RpcValidationException({ status: HttpStatus.BAD_REQUEST, messages });
-      }
+      if (this.type === ExceptionTypes.HTTP) throw new HttpValidationException(messages);
+      else throw new RpcValidationException({ status: HttpStatus.BAD_REQUEST, messages });
     }
     return obj;
   }

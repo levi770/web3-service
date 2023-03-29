@@ -2,10 +2,10 @@ export const WEB3_QUEUE = 'web3';
 export const CRON_QUEUE = 'cron';
 export const TX_WORKER = 'tx';
 export const WEB3_CONTROLLER = 'Web3Controller';
-export const DB_CONTROLLER = 'DbController';
+export const REPOSITORY_CONTROLLER = 'RepositoryController';
 export const SQS_CONTROLLER = 'SqsController';
 export const WEB3_SERVICE = 'Web3Service';
-export const IPFS = 'ipfs://'
+export const APP_CONTROLLER = 'AppController';
 
 export enum Events {
   JOB_CREATED = 'job.created',
