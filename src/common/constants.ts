@@ -87,7 +87,7 @@ export enum ObjectTypes {
 export enum ExportTypes {
   CONTRACT = 'contracts',
   TOKEN = 'tokens',
-  WHITELIST = 'whitelists',
+  WHITELIST = 'whitelist',
   METADATA = 'metadata',
   WALLET = 'accounts',
   TRANSACTION = 'transactions',

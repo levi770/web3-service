@@ -23,15 +23,18 @@ export class ExportController {
   @UseFilters(UnauthorizedFilter, BadRequestFilter)
   async exportPk(@Body() data: ExportDto, @Res() res: Response) {
     const csv = await this.exportService.exportAccounts(data.type);
-    if (data.zip_checkbox === 'on') {
-      const zip = await this.exportService.wrapInZip(data.zip_password, csv, `${data.type}.csv`);
-      res.header('Content-Type', 'application/zip');
-      res.attachment(`${data.type}.zip`);
-      res.send(zip);
+
+    if (!data.zip_checkbox) {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${data.type}.csv"`);
+      res.send(csv);
       return;
     }
-    res.header('Content-Type', 'text/csv');
-    res.attachment('accounts.csv');
-    res.send(Buffer.from(csv));
+
+    const zip = await this.exportService.wrapInZip(data.zip_password, csv, `${data.type}.csv`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${data.type}.zip"`);
+    zip.finalize();
+    zip.pipe(res);
   }
 }
