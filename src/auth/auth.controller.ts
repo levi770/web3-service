@@ -32,7 +32,12 @@ export class AuthController {
 
   @Post('update')
   async updatePassword(@Req() req: IRequest, @Res() res: Response, @Body() body: CredentialsDto) {
-    const success = await this.authService.updatePassword(body.email);
-    res.render('back-to-login', { success });
+      try {
+        const success = await this.authService.updatePassword(body.email);
+        res.render('back-to-login', { success });
+      } catch (error) {
+        res.render('update', { error: error.message });
+      }
+    
   }
 }

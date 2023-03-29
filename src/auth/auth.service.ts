@@ -50,11 +50,12 @@ export class AuthService implements OnModuleInit {
 
   public async updatePassword(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) throw new BadRequestException('User not found');
     const password = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(password, 10);
     await this.setNewUserPassword(hashedPassword, user.id);
     await this.sendEmail(email, password, 'Password updated');
-    return 'Your temporary password has been sent to your email. Please use it to log back into the SwapGateway.';
+    return 'Your temporary password has been sent to your email. Please use it to log back into the login form.';
   }
 
   async setNewUserPassword(password: string, id: string) {
