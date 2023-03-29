@@ -230,11 +230,11 @@ export class Web3Service implements OnModuleInit {
    */
   async newWallet(data: CreateWalletDto): Promise<IWallet> {
     try {
-      const w3 = this.getWeb3(data.network);
       const password = await this.config.get('DEFAULT_PASSWORD');
-      if (data.test) {
-        const account = w3.eth.accounts.wallet.create(1, password);
-        if (data.network === Networks.LOCAL) {
+      if (data.test) { 
+        if (data?.network === Networks.LOCAL) {
+          const w3 = this.getWeb3(Networks.LOCAL);
+          const account = w3.eth.accounts.wallet.create(1, password);
           const accounts = await w3.eth.getAccounts();
           const tx_payload = {
             from: accounts[0],
@@ -249,6 +249,8 @@ export class Web3Service implements OnModuleInit {
           await w3.eth.sendTransaction(tx_payload);
           return { address: account[0].address, keystore: account[0].encrypt(password) };
         } else {
+          const w3 = this.getWeb3(data?.network);
+          const account = w3.eth.accounts.wallet.create(1, password);
           const pk = await this.config.get('PRIV_KEY');
           const adminAcc = w3.eth.accounts.privateKeyToAccount(pk);
           const tx_payload = {
@@ -267,6 +269,7 @@ export class Web3Service implements OnModuleInit {
         }
       }
 
+      const w3 = this.getWeb3(Networks.ETHEREUM);
       const account = w3.eth.accounts.create();
       return { address: account.address, keystore: account.encrypt(password) };
     } catch (error) {
