@@ -1,3 +1,5 @@
+import { join } from 'path';
+import session from 'express-session';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { engine } from 'express-handlebars';
@@ -6,8 +8,6 @@ import { Logger } from '@nestjs/common';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { NestFactory } from '@nestjs/core';
-import { join } from 'path';
-import session from 'express-session';
 
 /**
  * Bootstraps the application by creating an instance of NestExpressApplication and starting the server.
@@ -19,8 +19,7 @@ async function bootstrap() {
 
   app.use(compression());
   app.use(cookieParser());
-
-  app.use(session({ secret: 'my-secret', resave: false, saveUninitialized: false }));
+  app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false }));
 
   app.enableCors({
     origin: true,
