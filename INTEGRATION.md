@@ -2,12 +2,6 @@
 
 All web3-related operations, such as contract deployment and contract calls, will be processed in queue order. After a request for an operation is received, the microservice will register a job and return an observable object. It will then start to process the job and pipe all stages of this process to the observable.
 
-There are three types of job results from the web3 service:
-
-- `"received"`, object contains `jobId` and job input data.
-- `"completed"`, object contains `jobId` and job output data.
-- `"failed"`, object contains `jobId` and error message.
-
 ### Table of contents:
 
 1. [Create a new encrypted wallet keystore in DB](#create-a-new-encrypted-wallet-keystore-in-db)
@@ -516,7 +510,6 @@ Related DTOs:
 - [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
-
 
 ## Update object status if blockchain operation was executed on client side
 
