@@ -117,6 +117,16 @@ jobs:
             SQS_ENDPOINT=${{secrets.SQS_ENDPOINT}}
             SQS_CONSUMER_NAME=${{secrets.SQS_CONSUMER_NAME}}
             SQS_PRODUCER_NAME=${{secrets.SQS_PRODUCER_NAME}}
+            AWS_SES_SMTP_HOST=${serets.AWS_SES_SMTP_HOST}
+            AWS_SES_SMTP_PORT=${serets.AWS_SES_SMTP_PORT}
+            AWS_SES_SMTP_USERNAME=${serets.AWS_SES_SMTP_USERNAME}
+            AWS_SES_SMTP_PASSWORD=${serets.AWS_SES_SMTP_PASSWORD}
+            EMAIL_FROM_NAME=${serets.EMAIL_FROM_NAME}
+            EMAIL_FROM_ADDRESS=${serets.EMAIL_FROM_ADDRESS}
+            EMAILS_LIST=${serets.EMAILS_LIST}
+            APP_URL=${serets.APP_URL}
+            JWT_SECRET=${serets.JWT_SECRET}
+            JWT_EXPIRATION=${serets.JWT_EXPIRATION}
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
