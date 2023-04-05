@@ -64,6 +64,8 @@ COPY --chown=node:node --from=build /usr/src/app/.sequelizerc ./
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 COPY --chown=node:node --from=build /usr/src/app/db ./db
+COPY --chown=node:node --from=build /usr/src/app/views ./views
+COPY --chown=node:node --from=build /usr/src/app/public ./public
 
 # wget because curl is not available in alpine
 HEALTHCHECK CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
