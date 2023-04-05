@@ -126,6 +126,7 @@ jobs:
             EMAILS_LIST=${{secrets.EMAILS_LIST}}
             APP_URL=${{secrets.APP_URL}}
             JWT_SECRET=${{secrets.JWT_SECRET}}
+            SESSION_SECRET=${{secrets.SESSION_SECRET}}
             JWT_EXPIRATION=${{secrets.JWT_EXPIRATION}}
 
       - name: Deploy Amazon ECS task definition
