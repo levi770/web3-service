@@ -2,12 +2,6 @@
 
 All web3-related operations, such as contract deployment and contract calls, will be processed in queue order. After a request for an operation is received, the microservice will register a job and return an observable object. It will then start to process the job and pipe all stages of this process to the observable.
 
-There are three types of job results from the web3 service:
-
-- `"received"`, object contains `jobId` and job input data.
-- `"completed"`, object contains `jobId` and job output data.
-- `"failed"`, object contains `jobId` and error message.
-
 ### Table of contents:
 
 1. [Create a new encrypted wallet keystore in DB](#create-a-new-encrypted-wallet-keystore-in-db)
@@ -67,7 +61,7 @@ Output example:
 
 Related DTOs:
 
-- [CreateWalletRequest](./src/modules/web3/dto/requests/createWallet.request.ts)
+- [CreateWalletDto](./src/web3/dto/create-wallet.dto.ts)
 - [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
@@ -124,14 +118,14 @@ Output example:
 
 ```json
 {
-  "jobId": "7d1b1892-74c2-46aa-b5ee-61b79f752857",
-  "status": "completed",
-  "data": {
+  "status": 201,
+  "message": "success",
+  "result": {
     "tx": {
       "balance": "989201669171719570",
       "comission": "10469154000000000",
       "payload": "some tx payload data",
-      "txObj": "tx object from DB"
+      "txModel": "tx object from DB"
     },
     "contract": "contract object from DB"
   }
@@ -139,14 +133,13 @@ Output example:
 ```
 
 - If `"execute:true"`, the `"tx"` will contain the transaction receipt and related data. If `"execute:false"`, the `"tx"` will contain the transaction payload for execution on the client side.
-- `"jobId"` is a job ID in the queue.
-- `"status"` is a job status in the queue.
-- `"data"` is an object with the transaction data and the contract object from DB.
+- `"result"` is an object with the transaction data and the contract object from DB.
 
 Related DTOs:
 
-- [DeployRequest](./src/modules/web3/dto/requests/deploy.request.ts)
-- [JobResult](./src/common/dto/jobResult.dto.ts)
+- [DeployDto](./src/web3/dto/deploy.dto.ts)
+- [TxResultDto](./src/web3/dto/txResult.dto.ts)
+- [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
 
@@ -199,10 +192,32 @@ Input example:
 - `"operation_type"` is an operation flag (e.g. `"mint"`, `"whitelistadd"`, `"whitelistremove"`, or `"common"`).
 - `"operation_options"` is a set of operation-specific options for executing the method call (e.g. an address for adding or removing from the whitelist, or token minting payload data).
 
+Output example:
+
+```json
+{
+  "status": 201,
+  "message": "success",
+  "result": {
+    "tx": {
+      "balance": "989201669171719570",
+      "comission": "10469154000000000",
+      "payload": "some tx payload data",
+      "txModel": "tx object from DB"
+    },
+    "token": "token object from DB"
+  }
+}
+```
+
+- If `"execute:true"`, the `"tx"` will contain the transaction receipt and related data. If `"execute:false"`, the `"tx"` will contain the transaction payload for execution on the client side.
+- `"result"` is an object with the transaction data and the token object from DB.
+
 Related DTOs:
 
-- [CallRequest](./src/modules/web3/dto/requests/call.request.ts)
-- [JobResult](./src/common/dto/jobResult.dto.ts)
+- [CallDto](./src/web3/dto/call.dto.ts)
+- [TxResultDto](./src/web3/dto/txResult.dto.ts)
+- [Response](./src/common/dto/response.dto.ts)
 
 ## Process whitelist operations
 
@@ -250,9 +265,9 @@ Whitelist add example output:
 
 ```json
 {
-  "jobId": "6d1cd2ee-cc7e-4074-8b14-9b0cb1820410",
-  "status": "completed",
-  "data": {
+  "status": 201,
+  "message": "success",
+  "result": {
     "root": "0x3b297cc865f8497608cf20c9602e291c2c105cdca97911cd21d1e0aa19704ce4",
     "proof": [
       {
@@ -268,26 +283,25 @@ Whitelist add example output:
       "payload": "some tx payload",
       "comission": "53322000000000",
       "balance": "978409913850372781",
-      "txObj": "tx object from DB"
+      "txModel": "tx object from DB"
     }
   }
 }
 ```
 
-- `"jobId"` is the ID of the job that was created.
-- `"status"` is the status of the job.
-- `"data"` is the result of the job.
+- `"result"` is the result of the job.
 - `"root"` is the Merkle root hash of the whitelist.
 - `"proof"` is an array of addresses and their Merkle proofs.
 - `"payload"` is the transaction payload data.
 - `"comission"` is the transaction fee.
 - `"balance"` is the balance of the wallet from which the transaction will be sent.
-- `"txObj"` is the transaction object from the database.
+- `"txModel"` is the transaction object from the database.
 
 Related DTOs:
 
-- [CallRequest](./src/modules/web3/dto/requests/call.request.ts)
-- [JobResult](./src/common/dto/jobResult.dto.ts)
+- [CallDto](./src/web3/dto/call.dto.ts)
+- [TxResultDto](./src/web3/dto/txResult.dto.ts)
+- [Response](./src/common/dto/response.dto.ts)
 
 ### Whitelist remove operation
 
@@ -320,30 +334,31 @@ Output data:
 
 ```json
 {
-  "jobId": "f3b432a1-067a-43e6-83b4-222516b98cb3",
-  "status": "completed",
-  "data": {
+  "status": 201,
+  "message": "success",
+  "result": {
     "root": "0x57d77e67e7489f322454d8784f9698a32183af492a5bf6e34950132a73d7f7d1",
     "tx": {
       "payload": "some tx payload",
       "comission": "58746000000000",
       "balance": "978004916887541816",
-      "txObj": "tx object from DB"
+      "txModel": "tx object from DB"
     }
   }
 }
 ```
 
-- `"jobId"` is the ID of the job that was created.
-- `"status"` is the status of the job.
-- `"data"` is the result of the job.
+.
+
+- `"result"` is the result of the job.
 - If `"execute:true"`, the `"tx"` object will contain the transaction receipt and related data. If `"execute:false"`, the `"tx"` will contain the transaction payload for execution on the client side.
 - `"root"` is an updated merkle root for contract.
 
 Related DTOs:
 
-- [CallRequest](./src/modules/web3/dto/requests/call.request.ts)
-- [JobResult](./src/common/dto/jobResult.dto.ts)
+- [CallDto](./src/web3/dto/call.dto.ts)
+- [TxResultDto](./src/web3/dto/txResult.dto.ts)
+- [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
 
@@ -373,9 +388,9 @@ Output example:
 
 ```json
 {
-  "jobId": "b76ce423-10b7-400d-8aff-530c3d2d188c",
-  "status": "completed",
-  "data": {
+  "status": 201,
+  "message": "success",
+  "result": {
     "root": "0x3b297cc865f8497608cf20c9602e291c2c105cdca97911cd21d1e0aa19704ce4",
     "proof": ["0x6d54fd1de301b631205ce974fcf95ba8f568bb63f8c7d991ad1369697e7e999c"]
   }
@@ -387,8 +402,8 @@ Output example:
 
 Related DTOs:
 
-- [WhitelistRequest](./src/modules/web3/dto/requests/whitelist.request.ts)
-- [JobResult](./src/common/dto/jobResult.dto.ts)
+- [WhitelistOptionsDto](./src/web3/dto/whitelist-options.dto.ts)
+- [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
 
@@ -427,26 +442,25 @@ Output example:
 
 ```json
 {
-  "jobId": "182c3e53-b68f-407d-b679-12a2fd25dbe9",
-  "status": "completed",
-  "data": {
+  "status": 201,
+  "message": "success",
+  "result": {
     "payload": "some tx payload",
     "comission": "60310000000000",
     "balance": "978732261394192033",
-    "txObj": "tx object from DB"
+    "txModel": "tx object from DB"
   }
 }
 ```
 
-- `"jobId"` is the ID of the job that was created.
-- `"status"` is the status of the job.
-- `"data"` is the result of the job.
+- `"result"` is the result of the job.
 - If `"execute:true"`, the `"tx"` object will contain the transaction receipt and related data. If `"execute:false"`, the `"tx"` will contain the transaction payload for execution on the client side.
 
 Related DTOs:
 
-- [CallRequest](./src/modules/web3/dto/requests/call.request.ts)
-- [JobResult](./src/common/dto/jobResult.dto.ts)
+- [CallDto](./src/web3/dto/call.dto.ts)
+- [TxResultDto](./src/web3/dto/txResult.dto.ts)
+- [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
 
@@ -480,58 +494,19 @@ Output example:
 
 ```json
 {
-  "jobId": "182c3e53-b68f-407d-b679-12a2fd25dbe9",
-  "status": "completed",
-  "data": { "tokenURI": "http://some.com/metadata/some_slug/0" }
+  "status": 201,
+  "message": "success",
+  "result": {
+    "tokenURI": "http://some.com/metadata/some_slug/0"
+  }
 }
 ```
 
-- `"data"` is the result of the job.
+- `"result"` is the result of the job.
 
 Related DTOs:
 
-- [CallRequest](./src/modules/web3/dto/requests/call.request.ts)
-- [JobResult](./src/common/dto/jobResult.dto.ts)
-
-[Go to top](#table-of-contents)
-
-## Get specified job from queue
-
-Message pattern:
-
-```json
-{
-  "cmd": "getjobbyid"
-}
-```
-
-Input example:
-
-```json
-{
-  "jobId": "182c3e53-b68f-407d-b679-12a2fd25dbe9"
-}
-```
-
-- `"jobId"` is the ID of the job.
-
-Output example:
-
-```json
-{
-  "jobId": "182c3e53-b68f-407d-b679-12a2fd25dbe9",
-  "status": "completed",
-  "data": { "tokenURI": "http://some.com/metadata/some_slug/0" }
-}
-```
-
-- `"jobId"` is the ID of the job.
-- `"status"` is the status of the job.
-- `"data"` is the data of the job.
-
-Related DTOs:
-
-- [GetJobRequest](./src/modules/web3/dto/requests/getJob.request.ts)
+- [CallDto](./src/web3/dto/call.dto.ts)
 - [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
@@ -570,17 +545,17 @@ Output example:
 {
   "status": 200,
   "message": "success",
-  "data": [1]
+  "result": 1
 }
 ```
 
 - `"status"` is the status code of the operation.
 - `"message"` is the message of the operation `"success"` or `"failed"`.
-- `"data"` is the number of affected and updated rows.
+- `"result"` is the number of affected and updated rows.
 
 Related DTOs:
 
-- [UpdateStatusRequest](./src/modules/db/dto/requests/updateStatus.request.ts)
+- [UpdateStatusDto](./src/repository/dto/update-status.dto.ts)
 - [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
@@ -624,7 +599,7 @@ Output example:
 {
   "status": 200,
   "message": "success",
-  "data": {
+  "result": {
     "count": 0,
     "rows": []
   }
@@ -636,7 +611,7 @@ Output example:
 
 Related DTOs:
 
-- [GetAllRequest](./src/modules/db/dto/requests/getAll.request.ts)
+- [GetAllDto](./src/repository/dto/get-all.dto.ts)
 - [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
@@ -673,13 +648,13 @@ Output example:
 {
   "status": 200,
   "message": "success",
-  "data": "some model object"
+  "result": "some model object"
 }
 ```
 
 Related DTOs:
 
-- [GetOneRequest](./src/modules/db/dto/requests/getOne.request.ts)
+- [GetOneDto](./src/repository/dto/get-one.dto.ts)
 - [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)
@@ -723,17 +698,17 @@ Output example:
 {
   "status": 200,
   "message": "success",
-  "data": "some model object"
+  "result": "some model object"
 }
 ```
 
 - `"status"` is the status code of the operation.
 - `"message"` is the message of the operation `"success"` or `"failed"`.
-- `"data"` is the updated token metadata.
+- `"result"` is the updated token metadata.
 
 Related DTOs:
 
-- [UpdateMetadataRequest](./src/modules/db/dto/requests/updateMetadata.request.ts)
+- [UpdateMetadataDto](./src/repository/dto/update-metadata.dto.ts)
 - [Response](./src/common/dto/response.dto.ts)
 
 [Go to top](#table-of-contents)

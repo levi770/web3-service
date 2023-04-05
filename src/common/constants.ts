@@ -6,6 +6,8 @@ export const REPOSITORY_CONTROLLER = 'RepositoryController';
 export const SQS_CONTROLLER = 'SqsController';
 export const WEB3_SERVICE = 'Web3Service';
 export const APP_CONTROLLER = 'AppController';
+export const EXPORT_CONTROLLER = 'export';
+export const AUTH_CONTROLLER = 'auth';
 
 export enum Events {
   JOB_CREATED = 'job.created',
@@ -82,6 +84,15 @@ export enum ObjectTypes {
   TRANSACTION = 'transaction',
 }
 
+export enum ExportTypes {
+  CONTRACT = 'contracts',
+  TOKEN = 'tokens',
+  WHITELIST = 'whitelist',
+  METADATA = 'metadata',
+  WALLET = 'accounts',
+  TRANSACTION = 'transactions',
+}
+
 export enum Networks {
   ETHEREUM = 1,
   ETHEREUM_TEST = 5,
@@ -94,4 +105,8 @@ export enum FileTypes {
   IMAGE = 'image',
   OBJECT = 'object',
   ANIMATION = 'animation',
+}
+
+export enum EmailTemplates {
+  NEW_PASSWORD = 'new-password',
 }

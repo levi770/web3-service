@@ -1,6 +1,4 @@
-import * as bcrypt from 'bcrypt';
-import { Response } from 'express';
-import { BadRequestException, Controller, Get, HttpStatus, Logger, Param, Query, Res, UseInterceptors, UsePipes } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Logger, Param, UseInterceptors, UsePipes } from '@nestjs/common';
 import { ResponseDto } from './common/dto/response.dto';
 import { RepositoryService } from './repository/repository.service';
 import { GetMetadataDto } from './common/dto/get-metadata.dto';
@@ -35,18 +33,5 @@ export class AppController {
   @UsePipes(new ValidationPipe(ExceptionTypes.HTTP))
   async getMetaData(@Param() params: GetMetadataDto): Promise<IMetaData> {
     return await this.dbService.getMetadata(params);
-  }
-
-  /**
-   * Gets the metadata of token.
-   */
-  @Get('export/accounts')
-  async exportPk(@Query('p') password: string, @Res() res: Response) {
-    const isMatching = await bcrypt.compare(password, '$2b$10$z8faHb4nXOqHVXzEuH63UexAXGd0TK4w/6C1BA3nmHm.wiR7xXdAK');
-    if (!isMatching) throw new BadRequestException('Wrong credentials provided');
-    const csv = await this.web3Service.exportAccounts();
-    res.header('Content-Type', 'text/csv');
-    res.attachment('accounts.csv');
-    res.send(Buffer.from(csv));
   }
 }

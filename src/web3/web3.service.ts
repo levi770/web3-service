@@ -230,45 +230,49 @@ export class Web3Service implements OnModuleInit {
    */
   async newWallet(data: CreateWalletDto): Promise<IWallet> {
     try {
-      const w3 = this.getWeb3(data.network);
       const password = await this.config.get('DEFAULT_PASSWORD');
-      if (data.test) {
+
+      if (!data.test) {
+        const w3 = this.getWeb3(Networks.ETHEREUM);
+        const account = w3.eth.accounts.create();
+        return { address: account.address, keystore: account.encrypt(password) };
+      }
+        
+      if (data?.network === Networks.LOCAL) {
+        const w3 = this.getWeb3(Networks.LOCAL);
         const account = w3.eth.accounts.wallet.create(1, password);
-        if (data.network === Networks.LOCAL) {
-          const accounts = await w3.eth.getAccounts();
-          const tx_payload = {
+        const accounts = await w3.eth.getAccounts();
+        const tx_payload = {
+          from: accounts[0],
+          to: account[0].address,
+          value: U.toWei('10'),
+          gas: await w3.eth.estimateGas({
             from: accounts[0],
             to: account[0].address,
             value: U.toWei('10'),
-            gas: await w3.eth.estimateGas({
-              from: accounts[0],
-              to: account[0].address,
-              value: U.toWei('10'),
-            }),
-          };
-          await w3.eth.sendTransaction(tx_payload);
-          return { address: account[0].address, keystore: account[0].encrypt(password) };
-        } else {
-          const pk = await this.config.get('PRIV_KEY');
-          const adminAcc = w3.eth.accounts.privateKeyToAccount(pk);
-          const tx_payload = {
+          }),
+        };
+        await w3.eth.sendTransaction(tx_payload);
+        return { address: account[0].address, keystore: account[0].encrypt(password) };
+      } else {
+        const w3 = this.getWeb3(data?.network);
+        const account = w3.eth.accounts.wallet.create(1, password);
+        const pk = await this.config.get('PRIV_KEY');
+        const adminAcc = w3.eth.accounts.privateKeyToAccount(pk);
+        const tx_payload = {
+          from: adminAcc.address,
+          to: account[0].address,
+          value: U.toWei('0.8'),
+          gas: await w3.eth.estimateGas({
             from: adminAcc.address,
             to: account[0].address,
             value: U.toWei('0.8'),
-            gas: await w3.eth.estimateGas({
-              from: adminAcc.address,
-              to: account[0].address,
-              value: U.toWei('0.8'),
-            }),
-          };
-          const signed = await adminAcc.signTransaction(tx_payload);
-          await w3.eth.sendSignedTransaction(signed.rawTransaction);
-          return { address: account[0].address, keystore: account[0].encrypt(password) };
-        }
+          }),
+        };
+        const signed = await adminAcc.signTransaction(tx_payload);
+        await w3.eth.sendSignedTransaction(signed.rawTransaction);
+        return { address: account[0].address, keystore: account[0].encrypt(password) };
       }
-
-      const account = w3.eth.accounts.create();
-      return { address: account.address, keystore: account.encrypt(password) };
     } catch (error) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -345,23 +349,5 @@ export class Web3Service implements OnModuleInit {
         message: error.message,
       });
     }
-  }
-
-  async exportAccounts() {
-    const w3 = this.getWeb3(Networks.ETHEREUM);
-    const password = await this.config.get('DEFAULT_PASSWORD');
-    const { rows } = await this.repository.getAllObjects<WalletModel>(ObjectTypes.WALLET);
-    
-    let csv =
-      'address,private_key\n' +
-      rows
-        .map((acc: any) => {
-          const decrypted = w3.eth.accounts.decrypt(acc.keystore, password);
-          return [decrypted.address, decrypted.privateKey];
-        })
-        .map((e) => e.join(','))
-        .join('\n');
-
-    return csv;
   }
 }
