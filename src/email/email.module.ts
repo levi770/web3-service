@@ -30,8 +30,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
             pass: config.get<string>('AWS_SES_SMTP_PASSWORD'),
           },
         },
-        //preview: config.get<string>('NODE_ENV') === 'production' ? false : true,
-        preview: false,
+        preview: config.get<string>('NODE_ENV') === 'production' ? false : true,
         defaults: {
           from: `"${config.get('EMAIL_FROM_NAME')}" <${config.get('EMAIL_FROM_ADDRESS')}>`,
         },
