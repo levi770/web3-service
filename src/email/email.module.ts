@@ -16,8 +16,8 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
         transport: {
           SES: new AWS.SES({
             region: config.get<string>('AWS_REGION'),
-            accessKeyId: config.get<string>('AWS_ACCESS_KEY_ID'),
-            secretAccessKey: config.get<string>('AWS_SECRET_ACCESS_KEY'),
+            accessKeyId: config.get<string>('AWS_ACCESS_KEY'),
+            secretAccessKey: config.get<string>('AWS_SECRET_KEY'),
             paramValidation: false,
           }),
           host: config.get<string>('AWS_SES_SMTP_HOST'),
