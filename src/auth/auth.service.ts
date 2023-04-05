@@ -2,12 +2,12 @@ import * as bcrypt from 'bcrypt';
 import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from './models/user.model';
-import { newPasswordTemplate } from '../email/templates/new-password.template';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email/email.service';
 import { IAccessTokenPayload } from './interfaces/access-token-payload.interface';
 import { IUser } from './interfaces/user.interface';
 import { JwtService } from '@nestjs/jwt';
+import { EmailTemplates } from '../common/constants';
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -23,7 +23,7 @@ export class AuthService implements OnModuleInit {
     for (const email of emails_list.split(',')) {
       const { password, hash } = await this.newPassword(email);
       const [_, isCreated] = await this.userRepository.findOrCreate({ where: { email }, defaults: { email, password: hash } });
-      if (isCreated) await this.sendEmail(email, password, 'New account created');
+      if (isCreated) await this.sendEmail(email, password, 'New account created', EmailTemplates.NEW_PASSWORD);
     }
   }
 
@@ -54,7 +54,7 @@ export class AuthService implements OnModuleInit {
     const password = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(password, 10);
     await this.setNewUserPassword(hashedPassword, user.id);
-    await this.sendEmail(email, password, 'Password updated');
+    await this.sendEmail(email, password, 'Password updated', EmailTemplates.NEW_PASSWORD);
     return 'Your temporary password has been sent to your email. Please use it to log back into the login form.';
   }
 
@@ -63,12 +63,12 @@ export class AuthService implements OnModuleInit {
     return !!isUpdated;
   }
 
-  async sendEmail(to: string, password: string, subject: string) {
+  async sendEmail(to: string, password: string, subject: string, template: EmailTemplates) {
     await this.emailService.sendMail({
       to,
       subject,
-      from: { name: 'Highloop.io Web3Service', email: this.config.get('EMAIL_USER') },
-      html: newPasswordTemplate(this.config.get('APP_URL'), password),
+      context: { password },
+      template,
     });
   }
 

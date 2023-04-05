@@ -106,3 +106,7 @@ export enum FileTypes {
   OBJECT = 'object',
   ANIMATION = 'animation',
 }
+
+export enum EmailTemplates {
+  NEW_PASSWORD = 'new-password',
+}

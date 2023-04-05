@@ -23,6 +23,7 @@
     "migration:down": "npx sequelize-cli db:migrate:undo:all"
   },
   "dependencies": {
+    "@nestjs-modules/mailer": "^1.8.1",
     "@nestjs-packages/sqs": "^1.0.2",
     "@nestjs/axios": "^1.0.0",
     "@nestjs/bull": "^0.6.1",
