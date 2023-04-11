@@ -170,7 +170,7 @@ describe('App (e2e) latest', () => {
         if (response.status != HttpStatus.OK) console.log(response);
 
         expect(response.message).toEqual(Statuses.COMPLETED);
-        expect(response.data).toMatchObject({ tx: expect.any(Object), contract: expect.any(Object) });
+        expect(response.data).toMatchObject({ tx: expect.any(Object), contract: expect.any(Object), metadata: expect.any(Object) });
 
         contract_id = response.data.contract.id;
         contract_slug = response.data.contract.slug;
@@ -739,7 +739,7 @@ describe('App (e2e) latest', () => {
         response = await lastValueFrom(redis_client.send({ cmd: CMD.UPDATE_STATUS }, update_data));
 
         expect(response.status).toEqual(HttpStatus.OK);
-        expect(response.data).toMatchObject(expect.any(Array));
+        expect(response.data).toEqual(1);
       },
       timeout,
     );
