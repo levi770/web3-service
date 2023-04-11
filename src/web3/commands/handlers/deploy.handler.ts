@@ -4,13 +4,14 @@ import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import { HttpStatus } from '@nestjs/common';
 import { Web3Service } from '../../web3.service';
 import { RpcException } from '@nestjs/microservices';
-import { ObjectTypes, OperationTypes, Statuses } from '../../../common/constants';
+import { MetadataTypes, ObjectTypes, OperationTypes, Statuses } from '../../../common/constants';
 import { RepositoryService } from '../../../repository/repository.service';
 import { ResponseDto } from '../../../common/dto/response.dto';
 import { DeployCommand } from '../deploy.command';
 import { ContractModel } from '../../../repository/models/contract.model';
 import { TxPayloadDto } from '../../dto/txPayload.dto';
 import { ContractDeployedEvent } from '../../events/contract-deployed.event';
+import { MetadataModel } from '../../../repository/models/metadata.model';
 
 @CommandHandler(DeployCommand)
 export class DeployHandler implements ICommandHandler<DeployCommand> {
@@ -39,6 +40,21 @@ export class DeployHandler implements ICommandHandler<DeployCommand> {
       };
       const tx = await this.w3Service.processTx(txPayload);
       this.eventBus.publish(new ContractDeployedEvent({ payload: data, contract: contractModel, wallet, tx }));
+      
+      if (data.meta_data && data.asset_url && data.asset_type) {
+        const meta_data = await this.repository.buildMetadata(data);
+        const metadataPayload = {
+          status: Statuses.CREATED,
+          type: MetadataTypes.COMMON,
+          address: tx.txModel.tx_receipt.contractAddress,
+          slug: data.slug,
+          meta_data,
+        };
+        const [metadata] = await this.repository.create<MetadataModel>([metadataPayload], ObjectTypes.METADATA);
+        await this.repository.setMetadata({ object_id: contractModel.id, id: metadata.id }, ObjectTypes.CONTRACT);
+        return new ResponseDto(HttpStatus.OK, Statuses.COMPLETED, { tx, contract: contractModel, metadata });
+      }
+      
       return new ResponseDto(HttpStatus.OK, Statuses.COMPLETED, { tx, contract: contractModel });
     } catch (error) {
       throw new RpcException({
