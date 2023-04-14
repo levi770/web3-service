@@ -31,6 +31,9 @@ export class MetadataModel extends Model {
   @Column({ type: DataType.JSON })
   meta_data: IMetaData;
 
+  @Column({ type: DataType.STRING })
+  file_link: string;
+
   @ForeignKey(() => ContractModel)
   contract_id: string;
 

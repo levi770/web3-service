@@ -12,30 +12,36 @@ export class TokensMintedHandler implements IEventHandler<TokensMintedEvent> {
   async handle(event: TokensMintedEvent) {
     try {
       const { payload, contract, token, ids_range } = event.data;
-      let metadata: MetadataModel[];
+      
+      let metadataModel: MetadataModel[];
       const isMetadataExist = payload.meta_data && payload.asset_url && payload.asset_type ? true : false;
       if (isMetadataExist) {
+        const { metadata, gw_link } = await this.repository.buildMetadata(payload);
         const metadataPayload = {
           status: Statuses.CREATED,
           type: MetadataTypes.SPECIFIED,
+          address: contract.address,
           slug: contract.slug,
-          meta_data: await this.repository.buildMetadata(payload),
+          meta_data: metadata,
+          file_link: gw_link,
           token_id: ids_range,
         };
-        metadata = await this.repository.create<MetadataModel>([metadataPayload], ObjectTypes.METADATA);
-        await this.repository.setMetadata({ object_id: token.id, id: metadata[0].id }, ObjectTypes.TOKEN);
-        return metadata[0];
+        metadataModel = await this.repository.create<MetadataModel>([metadataPayload], ObjectTypes.METADATA);
+        await this.repository.setMetadata({ object_id: token.id, id: metadataModel[0].id }, ObjectTypes.TOKEN);
+        return metadataModel[0];
       }
 
       const metadataPayload = {
         status: Statuses.CREATED,
         type: MetadataTypes.SPECIFIED,
+        address: contract.address,
         slug: contract.slug,
         meta_data: contract.metadata.meta_data,
+        file_link: contract.metadata.file_link,
         token_id: ids_range,
       };
-      metadata = await this.repository.create<MetadataModel>([metadataPayload], ObjectTypes.METADATA);
-      await this.repository.setMetadata({ object_id: token.id, id: metadata[0].id }, ObjectTypes.TOKEN);
+      metadataModel = await this.repository.create<MetadataModel>([metadataPayload], ObjectTypes.METADATA);
+      await this.repository.setMetadata({ object_id: token.id, id: metadataModel[0].id }, ObjectTypes.TOKEN);
     } catch (err) {
       this.logger.error(err);
     }

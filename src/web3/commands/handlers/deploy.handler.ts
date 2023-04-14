@@ -42,17 +42,18 @@ export class DeployHandler implements ICommandHandler<DeployCommand> {
       this.eventBus.publish(new ContractDeployedEvent({ payload: data, contract: contractModel, wallet, tx }));
       
       if (data.meta_data && data.asset_url && data.asset_type) {
-        const meta_data = await this.repository.buildMetadata(data);
+        const {metadata, gw_link} = await this.repository.buildMetadata(data);
         const metadataPayload = {
           status: Statuses.CREATED,
           type: MetadataTypes.COMMON,
           address: tx.txModel.tx_receipt.contractAddress,
           slug: data.slug,
-          meta_data,
+          meta_data: metadata,
+          file_link: gw_link,
         };
-        const [metadata] = await this.repository.create<MetadataModel>([metadataPayload], ObjectTypes.METADATA);
-        await this.repository.setMetadata({ object_id: contractModel.id, id: metadata.id }, ObjectTypes.CONTRACT);
-        return new ResponseDto(HttpStatus.OK, Statuses.COMPLETED, { tx, contract: contractModel, metadata });
+        const [metadataModel] = await this.repository.create<MetadataModel>([metadataPayload], ObjectTypes.METADATA);
+        await this.repository.setMetadata({ object_id: contractModel.id, id: metadataModel.id }, ObjectTypes.CONTRACT);
+        return new ResponseDto(HttpStatus.OK, Statuses.COMPLETED, { tx, contract: contractModel, metadata: metadataModel });
       }
       
       return new ResponseDto(HttpStatus.OK, Statuses.COMPLETED, { tx, contract: contractModel });

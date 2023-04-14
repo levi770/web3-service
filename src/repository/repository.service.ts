@@ -415,8 +415,9 @@ export class RepositoryService {
   /**
    * Retrieves metadata for a given contract.
    */
-  async buildMetadata(data: MintOptionsDto | DeployDto): Promise<IMetaData> {
+  async buildMetadata(data: MintOptionsDto | DeployDto): Promise<{ metadata: IMetaData; gw_link: string }> {
     const fileId = await this.upload(data.asset_url);
+    const gateway = this.config.get('PINATA_GATEWAY');
     const metadata = data.meta_data;
     switch (data.asset_type) {
       case FileTypes.IMAGE:
@@ -431,7 +432,7 @@ export class RepositoryService {
       default:
         throw new RpcException({ status: HttpStatus.BAD_REQUEST, message: 'File type not supported' });
     }
-    return metadata;
+    return { metadata, gw_link: `${gateway}${fileId}` };
   }
 
   //#endregion
