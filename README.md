@@ -1,6 +1,6 @@
-# CRM-WEB3-SERVICE
+# WEB3-SERVICE
 
-Microservice for blockchain-related operations such as deploying contracts, minting tokens, and querying token data. The microservice is a NestJS application that uses a Postgres database, Redis pub/sub messaging transport protocol, a local IPFS node, and an AWS S3 client.
+Microservice for blockchain-related operations such as deploying contracts, minting tokens, and querying token data. The microservice is a NestJS application that uses a Postgres database, Redis and AWS SQS pub/sub messaging transport protocol, a local IPFS node, and an AWS S3 client.
 
 Supported blockchains:
 

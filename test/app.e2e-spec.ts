@@ -18,7 +18,7 @@ import { UpdateMetadataDto } from '../src/repository/dto/update-metadata.dto';
 jest.useRealTimers();
 
 const timeout = 600000;
-const network = Networks.LOCAL;
+const network = Networks.POLYGON_TEST;
 let admin_acc_address: string;
 let team_acc_address: string;
 let contract_slug: string;
